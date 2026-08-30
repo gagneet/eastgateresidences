@@ -1,0 +1,19 @@
+{
+  "_comment": "Per-page Lighthouse budgets. 'default' applies to any page without an override. Metrics are lower-is-better except performance_score (0..1, higher-is-better). Tune these to your first clean baseline before gating in CI — start loose, tighten over time. Keys map to routes.json 'name'.",
+  "default": {
+    "performance_score": 0.80,
+    "lcp_ms": 2500,
+    "tbt_ms": 300,
+    "cls": 0.1,
+    "fcp_ms": 1800,
+    "tti_ms": 3800,
+    "speed_index_ms": 3400,
+    "total_byte_weight": 1800000
+  },
+  "public_home": { "performance_score": 0.90, "lcp_ms": 2000, "total_byte_weight": 1200000 },
+  "public_login": { "performance_score": 0.90, "lcp_ms": 2000, "total_byte_weight": 1000000 },
+  "public_register": { "performance_score": 0.90, "lcp_ms": 2000, "total_byte_weight": 1000000 },
+  "dashboard": { "performance_score": 0.70, "lcp_ms": 3200, "tbt_ms": 500 },
+  "bi": { "performance_score": 0.65, "lcp_ms": 3500, "tbt_ms": 600, "total_byte_weight": 2400000 },
+  "levy_fairness": { "performance_score": 0.65, "lcp_ms": 3500, "tbt_ms": 600, "total_byte_weight": 2400000 }
+}

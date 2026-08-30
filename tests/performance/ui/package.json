@@ -1,0 +1,15 @@
+{
+  "name": "strataos-ui-perf",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lighthouse UI performance harness for StrataOS (isolated from the frontend lockfile).",
+  "scripts": {
+    "perf:ui": "node lighthouse_runner.mjs",
+    "perf:ui:list": "node lighthouse_runner.mjs --list"
+  },
+  "devDependencies": {
+    "chrome-launcher": "^1.1.2",
+    "lighthouse": "^12.2.1"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "strataos-strata-management",
+  "version": "3.0.0",
+  "description": "Strata Management Platform",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:e2e": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:console": "playwright test console-errors",
+    "test:financial": "playwright test financial-data-handling",
+    "test:build": "playwright test build-validation",
+    "test:report": "playwright show-report tests/reports/html",
+    "test:codegen": "playwright codegen https://eastgateresidences.com.au",
+    "install:all": "cd frontend && yarn install && cd ../backend && pip install -r requirements.txt",
+    "build:frontend": "cd frontend && yarn build",
+    "start:frontend": "cd frontend && yarn start",
+    "start:backend": "cd backend && uvicorn server:app --reload --host 0.0.0.0 --port 8000"
+  },
+  "keywords": [
+    "strataos",
+    "strata-management",
+    "property-management",
+    "real-estate-management",
+    "owners-corporation",
+    "executive-committee",
+    "community",
+    "residential",
+    "react",
+    "fastapi",
+    "mongodb"
+  ],
+  "author": "Silverfox Technologies / Gagneet Singh",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "mongodb": "^7.2.0"
+  },
+  "dependencies": {
+    "@types/node": "^25.6.0",
+    "playwright": "^1.59.1"
+  }
+}

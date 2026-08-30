@@ -1,0 +1,295 @@
+{
+  "_meta": {
+    "captured_at": "2026-07-12",
+    "purpose": "Phase 1 golden fixture \u2014 proves domain/finance/formulas/collection.py extraction is byte-identical to the pre-extraction server.py/finance.py inline implementation. Captured via direct in-process calls (no HTTP, no admin password) against the live East Gate (13195) database \u2014 see PR for methodology.",
+    "note": "Frozen \u2014 do NOT silently refresh when live data changes. A deliberate refresh is a new dated file."
+  },
+  "building_id": "13195",
+  "year": "2026",
+  "finance_summary": {
+    "year": "2026",
+    "status": "actual",
+    "admin_fund": {
+      "levy_income": 309882.0,
+      "other_income": 0.0,
+      "total_income": 309882.0,
+      "total_expenses": 145628.22,
+      "opening_balance": 34332.27,
+      "closing_balance": 180000,
+      "surplus_deficit": 0.0,
+      "current_balance": 9187.44,
+      "budgeted_expenses": 309882.0,
+      "actual_expenses": 145628.22,
+      "annual_levy_proposed": 309882.0
+    },
+    "sinking_fund": {
+      "levy_income": 90459.0,
+      "other_income": 0.0,
+      "total_income": 90459.0,
+      "total_expenses": 72084.22,
+      "opening_balance": 225904.0,
+      "closing_balance": 298398.0,
+      "surplus_deficit": 0.0,
+      "current_balance": 193337.03,
+      "budgeted_expenses": 73644.0,
+      "actual_expenses": 72084.22,
+      "annual_levy_proposed": 90459.0
+    },
+    "payment_schedule": [
+      {
+        "quarter": "Q1",
+        "due_date": "2025-10-01"
+      },
+      {
+        "quarter": "Q2",
+        "due_date": "2026-01-01"
+      },
+      {
+        "quarter": "Q3",
+        "due_date": "2026-03-31"
+      },
+      {
+        "quarter": "Q4",
+        "due_date": "2026-07-01"
+      }
+    ],
+    "levy_rates": {
+      "admin_per_uoe_annual": 34.087,
+      "admin_per_uoe_quarterly": 8.5218,
+      "sinking_per_uoe_annual": 9.9505,
+      "sinking_per_uoe_quarterly": 2.4876,
+      "total_uoe": 10000
+    },
+    "unit_ledger_summary": {
+      "total_levied": 110093.74,
+      "total_paid": 101671.69,
+      "net_balance": 8961.48,
+      "units_owing": 85,
+      "units_credit": 12,
+      "units_paid_up": 59,
+      "total_outstanding": 122061.03,
+      "total_collected_ytd": 101132.26,
+      "annual_levy_total": 400341.0
+    },
+    "collected_summary": {
+      "portal_confirmed_total": 22922.04,
+      "pending_total": 2000.0,
+      "confirmed_count": 20,
+      "pending_count": 1
+    },
+    "period_status": {
+      "any_overdue": true,
+      "overdue_periods": [
+        "Q1",
+        "Q2"
+      ],
+      "overdue_count": 2,
+      "total_periods": 4,
+      "grace_period_days": 14,
+      "in_grace_periods": [],
+      "in_grace_count": 0
+    },
+    "in_grace_summary": {
+      "in_grace_periods": [],
+      "in_grace_count": 0,
+      "in_grace_amount": 0.0,
+      "true_arrears_amount": 122061.03,
+      "grace_period_days": 14
+    },
+    "portal_summary": {
+      "arrears_total": 11780.42,
+      "credit_total": 6622.23,
+      "arrears_count": 13,
+      "credit_count": 13,
+      "clear_count": 61,
+      "total_lots": 87,
+      "collection_rate": 85.1,
+      "risk_level": "HIGH",
+      "updated_at": "2026-07-03T03:09:13.932994+00:00"
+    },
+    "ledger_quality": {
+      "canonical_unit_count": 87,
+      "ledger_row_count": 87,
+      "distinct_ledger_unit_count": 87,
+      "duplicate_ledger_units": [],
+      "duplicate_ledger_row_count": 0,
+      "missing_ledger_units": [],
+      "extra_ledger_units": [],
+      "malformed_ledger_row_count": 0,
+      "is_unit_count_consistent": true,
+      "source": "units + unit_levy_ledger",
+      "canonical_status_counts": {
+        "paid_up": 59,
+        "owing": 16,
+        "credit": 12
+      }
+    },
+    "warnings": []
+  },
+  "kpi_contract": {
+    "year": "2026",
+    "source_contract_version": "ledger-kpi-v1",
+    "ledger_quality": {
+      "canonical_unit_count": 87,
+      "ledger_row_count": 87,
+      "distinct_ledger_unit_count": 87,
+      "duplicate_ledger_units": [],
+      "duplicate_ledger_row_count": 0,
+      "missing_ledger_units": [],
+      "extra_ledger_units": [],
+      "malformed_ledger_row_count": 0,
+      "is_unit_count_consistent": true,
+      "source": "units + unit_levy_ledger",
+      "canonical_status_counts": {
+        "paid_up": 59,
+        "owing": 16,
+        "credit": 12
+      }
+    },
+    "unit_counts": {
+      "canonical_unit_count": 87,
+      "paid_up": 59,
+      "owing": 85,
+      "credit": 12,
+      "missing_ledger": 0,
+      "duplicate_ledger_rows": 0
+    },
+    "collection_mix": {
+      "ledger_levied_ytd": 110093.74,
+      "ledger_paid_ytd": 101671.69,
+      "ledger_collected_ytd": 101132.26,
+      "in_grace_amount": 0.0,
+      "true_arrears_amount": 122061.03,
+      "not_yet_due_amount": 177147.71
+    },
+    "arrears_metrics": {
+      "units_owing": 85,
+      "total_outstanding": 122061.03,
+      "true_arrears_amount": 122061.03,
+      "in_grace_amount": 0.0
+    },
+    "portal_cross_check": {
+      "available": true,
+      "portal_arrears_total": 11780.42,
+      "ledger_arrears_total": 122061.03,
+      "delta": -110280.61,
+      "requires_reconciliation": true,
+      "last_scraped_at": "2026-07-03T03:09:13.932994+00:00"
+    },
+    "warnings": [
+      "Portal arrears ($11780.42) differ from ledger arrears ($122061.03) by $110280.61 \u2014 reconciliation required before treating the portal figure as truth."
+    ]
+  },
+  "quarterly_budget": {
+    "year": "2026",
+    "fy_label": "FY 2026",
+    "fy_start_date": "2026-01-01",
+    "fy_end_date": "2026-12-31",
+    "fy_start_month": 1,
+    "gst_registered": true,
+    "gst_rate": 0.1,
+    "effective_gst_rate": 0.1,
+    "gst_label": "GST (10%)",
+    "annual_totals": {
+      "admin_ex_gst": 309882.0,
+      "sinking_ex_gst": 90459.0,
+      "total_ex_gst": 400341.0,
+      "gst": 40034.1,
+      "total_inc_gst": 440375.1,
+      "total_levied_ytd": 110093.74,
+      "total_collected_ytd": 101671.69,
+      "total_outstanding_ytd": 8422.05,
+      "total_expenses_budgeted": 383526.0,
+      "total_expenses_actual": 217712.44
+    },
+    "quarters": [
+      {
+        "label": "Q1",
+        "due_date": "2026-03-31",
+        "status": "overdue",
+        "budgeted_income_ex_gst": 100085.25,
+        "budgeted_gst": 10008.52,
+        "budgeted_income_inc_gst": 110093.77,
+        "levied": 110093.74,
+        "collected": 101671.69,
+        "outstanding": 8422.05,
+        "has_ledger_data": true,
+        "portal_confirmed": 3330.3,
+        "portal_pending": 0,
+        "budgeted_expenses": 95881.5,
+        "actual_expenses": 54428.11
+      },
+      {
+        "label": "Q2",
+        "due_date": "2026-06-01",
+        "status": "past",
+        "budgeted_income_ex_gst": 100085.25,
+        "budgeted_gst": 10008.52,
+        "budgeted_income_inc_gst": 110093.77,
+        "levied": 0,
+        "collected": 0,
+        "outstanding": 0,
+        "has_ledger_data": false,
+        "portal_confirmed": 3060.6,
+        "portal_pending": 2000.0,
+        "budgeted_expenses": 95881.5,
+        "actual_expenses": 54428.11
+      },
+      {
+        "label": "Q3",
+        "due_date": "2026-09-01",
+        "status": "upcoming",
+        "budgeted_income_ex_gst": 100085.25,
+        "budgeted_gst": 10008.52,
+        "budgeted_income_inc_gst": 110093.77,
+        "levied": 0,
+        "collected": 0,
+        "outstanding": 0,
+        "has_ledger_data": false,
+        "portal_confirmed": 0,
+        "portal_pending": 0,
+        "budgeted_expenses": 95881.5,
+        "actual_expenses": 54428.11
+      },
+      {
+        "label": "Q4",
+        "due_date": "2026-12-01",
+        "status": "upcoming",
+        "budgeted_income_ex_gst": 100085.25,
+        "budgeted_gst": 10008.52,
+        "budgeted_income_inc_gst": 110093.77,
+        "levied": 0,
+        "collected": 0,
+        "outstanding": 0,
+        "has_ledger_data": false,
+        "portal_confirmed": 0,
+        "portal_pending": 0,
+        "budgeted_expenses": 95881.5,
+        "actual_expenses": 54428.11
+      }
+    ]
+  },
+  "building_kpis": {
+    "collection_rate": 86.36,
+    "arrears_percentage": 18.39,
+    "pending_approvals_count": 0,
+    "units_in_arrears": 16,
+    "total_units": 87,
+    "total_arrears": 15284.25,
+    "total_levied": 110093.74,
+    "total_obligations": 112021.77,
+    "total_paid": 101671.69,
+    "confirmed_paid": 101671.69,
+    "total_opening_arrears": 1928.03,
+    "net_position": 44696.79,
+    "num_overdue_periods": 2,
+    "admin_fund_balance": 180000,
+    "sinking_fund_balance": 298398.0,
+    "admin_fund_live_balance": 37481.98,
+    "sinking_fund_live_balance": 178817.43,
+    "confirmed_admin_ytd": 78698.26,
+    "confirmed_sinking_ytd": 22973.43,
+    "admin_opening_balance": 34332.27,
+    "sinking_opening_balance": 225904.0
+  }
+}

@@ -1,0 +1,933 @@
+{
+  "info": {
+    "name": "StrataOS External API v1 \u2014 Performance & Smoke",
+    "_postman_id": "strataos-external-api-v1-perf",
+    "description": "Partner-facing External API v1 (/api/v1). Auth is via the X-API-Key header \u2014 create a key through the JWT-authenticated POST /api/v1/api-keys management endpoint. Every request asserts an HTTP status and a per-endpoint response-time budget, so this collection doubles as a newman smoke/perf check:\n\n  newman run strataos_external_api_v1.postman_collection.json \\\n    -e strataos_external_api_v1.postman_environment.json --iteration-count 20\n\nThe k6 equivalent is tests/performance/external_api_benchmark.ts. Writes are append-only and must target a demo/staging building.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8003",
+      "type": "default"
+    },
+    {
+      "key": "api_key",
+      "value": "",
+      "type": "secret"
+    },
+    {
+      "key": "unit_number",
+      "value": "DEMO-001",
+      "type": "default"
+    },
+    {
+      "key": "work_order_id",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "maintenance_id",
+      "value": "",
+      "type": "default"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Discovery",
+      "item": [
+        {
+          "name": "GET /health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200]).to.include(pm.response.code));",
+                  "pm.test('response under 300ms', () => pm.expect(pm.response.responseTime).to.be.below(300));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /scopes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 401, 403]).to.include(pm.response.code));",
+                  "pm.test('response under 300ms', () => pm.expect(pm.response.responseTime).to.be.below(300));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/scopes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "scopes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /webhooks/events",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 401, 403]).to.include(pm.response.code));",
+                  "pm.test('response under 300ms', () => pm.expect(pm.response.responseTime).to.be.below(300));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/webhooks/events",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhooks",
+                "events"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Building",
+      "item": [
+        {
+          "name": "GET /building",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200]).to.include(pm.response.code));",
+                  "pm.test('response under 800ms', () => pm.expect(pm.response.responseTime).to.be.below(800));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/building",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "building"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /units",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200]).to.include(pm.response.code));",
+                  "pm.test('response under 800ms', () => pm.expect(pm.response.responseTime).to.be.below(800));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/units",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "units"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /units/{{unit_number}}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 404]).to.include(pm.response.code));",
+                  "pm.test('response under 800ms', () => pm.expect(pm.response.responseTime).to.be.below(800));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/units/{{unit_number}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "units",
+                "{{unit_number}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /units/{{unit_number}}/levy-balance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 404]).to.include(pm.response.code));",
+                  "pm.test('response under 800ms', () => pm.expect(pm.response.responseTime).to.be.below(800));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/units/{{unit_number}}/levy-balance",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "units",
+                "{{unit_number}}",
+                "levy-balance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /building/defects",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 403]).to.include(pm.response.code));",
+                  "pm.test('response under 800ms', () => pm.expect(pm.response.responseTime).to.be.below(800));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/building/defects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "building",
+                "defects"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Finance",
+      "item": [
+        {
+          "name": "GET /oc/summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 403]).to.include(pm.response.code));",
+                  "pm.test('response under 1500ms', () => pm.expect(pm.response.responseTime).to.be.below(1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/oc/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "oc",
+                "summary"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /oc/levies",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 403]).to.include(pm.response.code));",
+                  "pm.test('response under 1500ms', () => pm.expect(pm.response.responseTime).to.be.below(1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/oc/levies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "oc",
+                "levies"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /finance/summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 403]).to.include(pm.response.code));",
+                  "pm.test('response under 1500ms', () => pm.expect(pm.response.responseTime).to.be.below(1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/finance/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "finance",
+                "summary"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /finance/budget",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 403]).to.include(pm.response.code));",
+                  "pm.test('response under 1500ms', () => pm.expect(pm.response.responseTime).to.be.below(1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/finance/budget",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "finance",
+                "budget"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /finance/transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 403]).to.include(pm.response.code));",
+                  "pm.test('response under 1500ms', () => pm.expect(pm.response.responseTime).to.be.below(1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/finance/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "finance",
+                "transactions"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Maintenance & Work Orders",
+      "item": [
+        {
+          "name": "GET /maintenance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200]).to.include(pm.response.code));",
+                  "pm.test('response under 800ms', () => pm.expect(pm.response.responseTime).to.be.below(800));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/maintenance",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "maintenance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /maintenance/{{maintenance_id}}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 404]).to.include(pm.response.code));",
+                  "pm.test('response under 800ms', () => pm.expect(pm.response.responseTime).to.be.below(800));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/maintenance/{{maintenance_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "maintenance",
+                "{{maintenance_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /work-orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 403]).to.include(pm.response.code));",
+                  "pm.test('response under 800ms', () => pm.expect(pm.response.responseTime).to.be.below(800));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/work-orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "work-orders"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /work-orders/{{work_order_id}}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 404, 403]).to.include(pm.response.code));",
+                  "pm.test('response under 800ms', () => pm.expect(pm.response.responseTime).to.be.below(800));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/work-orders/{{work_order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "work-orders",
+                "{{work_order_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /service/work-orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 403]).to.include(pm.response.code));",
+                  "pm.test('response under 800ms', () => pm.expect(pm.response.responseTime).to.be.below(800));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/service/work-orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "service",
+                "work-orders"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Writes (opt-in, demo/staging only)",
+      "description": "Append-only partner writes. Point at a demo/staging building. Records use the perf-ext- prefix; clean up via backend/scripts/cleanup_perf_test_maintenance.py.",
+      "item": [
+        {
+          "name": "POST /building/defects",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 201, 403]).to.include(pm.response.code));",
+                  "pm.test('response under 1500ms', () => pm.expect(pm.response.responseTime).to.be.below(1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"perf-ext postman defect\",\n  \"description\": \"perf-ext automated External API benchmark defect \\u2014 safe to delete\",\n  \"location\": \"Common Area\",\n  \"priority\": \"low\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/building/defects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "building",
+                "defects"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /service/quotes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 201, 400, 403, 404]).to.include(pm.response.code));",
+                  "pm.test('response under 1500ms', () => pm.expect(pm.response.responseTime).to.be.below(1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"work_order_id\": \"{{work_order_id}}\",\n  \"amount\": 100.0,\n  \"description\": \"perf-ext automated benchmark quote \\u2014 safe to delete\",\n  \"notes\": \"perf-ext\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/service/quotes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "service",
+                "quotes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /service/invoices",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is acceptable', () => pm.expect([200, 201, 400, 403, 404]).to.include(pm.response.code));",
+                  "pm.test('response under 1500ms', () => pm.expect(pm.response.responseTime).to.be.below(1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"work_order_id\": \"{{work_order_id}}\",\n  \"amount\": 100.0,\n  \"gst_amount\": 10.0,\n  \"description\": \"perf-ext automated benchmark invoice\",\n  \"invoice_number\": \"perf-ext-postman-001\",\n  \"invoice_date\": \"2026-06-28\",\n  \"notes\": \"perf-ext\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/service/invoices",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "service",
+                "invoices"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

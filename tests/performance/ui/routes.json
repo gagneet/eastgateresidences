@@ -1,0 +1,82 @@
+[
+  {
+    "name": "public_home",
+    "path": "/",
+    "auth": false
+  },
+  {
+    "name": "public_login",
+    "path": "/login",
+    "auth": false
+  },
+  {
+    "name": "public_register",
+    "path": "/register",
+    "auth": false
+  },
+  {
+    "name": "dashboard",
+    "path": "/dashboard",
+    "auth": true
+  },
+  {
+    "name": "management_classic",
+    "path": "/management/classic",
+    "auth": true
+  },
+  {
+    "name": "owner_hub_classic",
+    "path": "/owner-hub/classic",
+    "auth": true
+  },
+  {
+    "name": "financials",
+    "path": "/financials",
+    "auth": true
+  },
+  {
+    "name": "collection_rate",
+    "path": "/financials/collection-rate",
+    "auth": true
+  },
+  {
+    "name": "levy_kpi",
+    "path": "/financials/levy-kpi",
+    "auth": true
+  },
+  {
+    "name": "bi",
+    "path": "/intelligence/bi",
+    "auth": true
+  },
+  {
+    "name": "levy_fairness",
+    "path": "/intelligence/levy-fairness",
+    "auth": true
+  },
+  {
+    "name": "maintenance",
+    "path": "/maintenance",
+    "auth": true
+  },
+  {
+    "name": "governance_meetings",
+    "path": "/governance/meetings",
+    "auth": true
+  },
+  {
+    "name": "documents",
+    "path": "/documents",
+    "auth": true
+  },
+  {
+    "name": "community",
+    "path": "/community",
+    "auth": true
+  },
+  {
+    "name": "owner_hub",
+    "path": "/owner-hub",
+    "auth": true
+  }
+]
