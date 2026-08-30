@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Document Upload — Accepted File Types &amp; Safety</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+    <style>
+        .fmt-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .fmt-badge {
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            font-weight: 700;
+            border: 1px solid transparent;
+        }
+
+        .fmt-ok {
+            background: #f0fdf4;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+
+        .fmt-ok-img {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border-color: #bfdbfe;
+        }
+
+        .fmt-no {
+            background: #fef2f2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        .step {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            margin: 16px 0;
+        }
+
+        .step-num {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary, #2F4F4F);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .callout {
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 16px 0;
+        }
+
+        .info {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .warn {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .err {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            margin: 12px 0;
+        }
+
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        td {
+            border-top: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            vertical-align: top;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em">Strata Management Platform</div>
+                <div style="color:var(--muted);font-size:12px">Document Upload — Accepted Types &amp; Safety</div>
+            </div>
+        </div>
+        <div class="badge">All Buildings</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Contents</h3>
+        <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#accepted">Accepted File Types</a></li>
+            <li><a href="#blocked">Blocked File Types</a></li>
+            <li><a href="#limits">Size Limits</a></li>
+            <li><a href="#rejected">If Your File Is Rejected</a></li>
+            <li><a href="#photos">Maintenance Photos</a></li>
+            <li><a href="#csv">CSV / Financial Imports</a></li>
+            <li><a href="#faq">FAQ</a></li>
+        </ul>
+    </nav>
+
+    <article class="content">
+        <h1>Document Uploads — Accepted Types &amp; Safety</h1>
+        <p>
+            Your building's platform automatically checks every file you upload to make sure it is safe
+            and of the expected type. This guide explains what is accepted, what is blocked, and what to
+            do if your upload is rejected.
+        </p>
+
+        <!-- ── Overview ─────────────────────────────────────────────────── -->
+        <h2 id="overview">How File Safety Works</h2>
+        <p>
+            When you upload a file, the platform reads the file's actual content — not just its name or
+            extension — to determine what kind of file it really is. This protects your community from
+            accidentally sharing harmful files.
+        </p>
+        <div class="callout info">
+            <strong>Why does this matter?</strong> A file named <em>budget-2026.pdf</em> could actually
+            contain a computer program in disguise. The platform detects the real content and blocks
+            dangerous files even when they have innocent-looking names.
+        </div>
+        <p>
+            This check happens automatically on every upload — you do not need to do anything differently.
+            Safe files pass instantly. Unsafe files are rejected with a clear error message.
+        </p>
+
+        <!-- ── Accepted ──────────────────────────────────────────────────── -->
+        <h2 id="accepted">Accepted File Types</h2>
+
+        <h3>Documents &amp; Office Files</h3>
+        <div class="fmt-grid">
+            <span class="fmt-badge fmt-ok">.pdf</span>
+            <span class="fmt-badge fmt-ok">.docx</span>
+            <span class="fmt-badge fmt-ok">.doc</span>
+            <span class="fmt-badge fmt-ok">.xlsx</span>
+            <span class="fmt-badge fmt-ok">.xls</span>
+            <span class="fmt-badge fmt-ok">.pptx</span>
+            <span class="fmt-badge fmt-ok">.ppt</span>
+            <span class="fmt-badge fmt-ok">.odt</span>
+            <span class="fmt-badge fmt-ok">.ods</span>
+            <span class="fmt-badge fmt-ok">.rtf</span>
+            <span class="fmt-badge fmt-ok">.txt</span>
+            <span class="fmt-badge fmt-ok">.csv</span>
+        </div>
+
+        <h3>Images</h3>
+        <div class="fmt-grid">
+            <span class="fmt-badge fmt-ok-img">.jpg / .jpeg</span>
+            <span class="fmt-badge fmt-ok-img">.png</span>
+            <span class="fmt-badge fmt-ok-img">.gif</span>
+            <span class="fmt-badge fmt-ok-img">.webp</span>
+            <span class="fmt-badge fmt-ok-img">.bmp</span>
+            <span class="fmt-badge fmt-ok-img">.tiff</span>
+            <span class="fmt-badge fmt-ok-img">.heic</span>
+        </div>
+
+        <p>
+            When uploading to the <strong>general documents area</strong>, all of the above types are
+            accepted. For <strong>maintenance photos</strong>, only image formats are accepted.
+        </p>
+
+        <!-- ── Blocked ───────────────────────────────────────────────────── -->
+        <h2 id="blocked">Blocked File Types</h2>
+        <p>
+            The following file types are <strong>always blocked</strong>, regardless of their extension.
+            If you attempt to upload one, you will see the message:
+            <em>"This file type is not permitted for upload."</em>
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Category</th>
+                <th>Examples</th>
+                <th>Why Blocked</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Windows programs</td>
+                <td>.exe, .msi, .dll, .cab</td>
+                <td>Executable programs — can harm devices that download them</td>
+            </tr>
+            <tr>
+                <td>Linux / Mac programs</td>
+                <td>ELF binaries, .app, .dmg</td>
+                <td>Same reason</td>
+            </tr>
+            <tr>
+                <td>Mobile apps</td>
+                <td>.apk, .ipa, .dex</td>
+                <td>Mobile application packages — not appropriate for document sharing</td>
+            </tr>
+            <tr>
+                <td>Shell / batch scripts</td>
+                <td>.sh, .bash, .bat, .cmd, .ps1</td>
+                <td>Command scripts that can execute actions on a computer</td>
+            </tr>
+            <tr>
+                <td>Programming scripts</td>
+                <td>.py, .php, .rb, .pl, .vbs</td>
+                <td>Code files — not valid resident documents</td>
+            </tr>
+            <tr>
+                <td>Web scripts</td>
+                <td>.js, .ts</td>
+                <td>Can execute in browsers — security risk if served back to users</td>
+            </tr>
+            <tr>
+                <td>Java packages</td>
+                <td>.jar, .class</td>
+                <td>Executable Java code</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="callout warn">
+            <strong>Note:</strong> The extension on the file's name does not matter — the platform checks
+            the actual file content. A program renamed to <em>minutes.pdf</em> is still detected and blocked.
+        </div>
+
+        <!-- ── Size Limits ───────────────────────────────────────────────── -->
+        <h2 id="limits">File Size Limits</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Upload Area</th>
+                <th>Maximum Size</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>General documents (PDF, Word, Excel, etc.)</td>
+                <td>25 MB</td>
+            </tr>
+            <tr>
+                <td>Maintenance photos</td>
+                <td>10 MB</td>
+            </tr>
+            <tr>
+                <td>Financial CSV imports</td>
+                <td>10 MB</td>
+            </tr>
+            <tr>
+                <td>Financial PDF reports (admin)</td>
+                <td>50 MB</td>
+            </tr>
+            <tr>
+                <td>Document Converter</td>
+                <td>20 MB</td>
+            </tr>
+            </tbody>
+        </table>
+        <p>
+            If your file exceeds the limit, you will see: <em>"File too large. Maximum allowed size is X MB."</em>
+        </p>
+        <p>
+            For large PDFs (body corporate budgets, minutes books), consider splitting the document using
+            a free PDF tool before uploading, or compress the PDF using "Save as reduced size" in
+            Adobe Acrobat or macOS Preview.
+        </p>
+
+        <!-- ── Rejected ──────────────────────────────────────────────────── -->
+        <h2 id="rejected">If Your File Is Rejected</h2>
+
+        <h3>Error: "This file type is not permitted for upload"</h3>
+        <div class="step">
+            <div class="step-num">1</div>
+            <div>Check the file extension. If it is one of the blocked types listed above, the platform
+                cannot accept it.
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <div>If the file is a legitimate document (e.g. a PDF that is being misidentified), try
+                re-saving or re-exporting it from the original application (Word, Adobe, etc.).
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <div>If you believe there is an error, contact your strata manager or an administrator
+                and describe the file you are trying to upload.
+            </div>
+        </div>
+
+        <h3>Error: "File content does not match the expected type"</h3>
+        <p>
+            This means the file's content does not match what is expected for that upload area. For example,
+            uploading an Excel file to the "maintenance photo" area, where only images are accepted.
+        </p>
+        <div class="step">
+            <div class="step-num">1</div>
+            <div>Make sure you are uploading to the correct area. Photos go in the maintenance request
+                photo section; financial reports go in the finance documents area.
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <div>If you are uploading a PDF that is being misidentified, try re-saving it as PDF from
+                your original application. Some PDF-like files are actually other formats with a .pdf extension.
+            </div>
+        </div>
+
+        <h3>Error: "File too large"</h3>
+        <p>See the <a href="#limits">size limits table</a> above and compress or split your document.</p>
+
+        <!-- ── Maintenance Photos ────────────────────────────────────────── -->
+        <h2 id="photos">Maintenance Photos</h2>
+        <p>
+            When attaching photos to a maintenance request, only image files are accepted:
+            JPEG, PNG, GIF, WebP, BMP, TIFF, and HEIC (iPhone photos).
+        </p>
+        <ul>
+            <li>Maximum size: 10 MB per photo</li>
+            <li>PDFs, Word documents, and spreadsheets are <strong>not</strong> accepted as maintenance photos</li>
+            <li>Screenshots saved from your phone or computer are fine (usually PNG or JPEG)</li>
+            <li>iPhone photos in HEIC format are accepted — you do not need to convert them</li>
+        </ul>
+
+        <!-- ── CSV / Financial Imports ───────────────────────────────────── -->
+        <h2 id="csv">CSV / Financial Imports (Strata Managers &amp; Admins)</h2>
+        <p>
+            When importing financial data via CSV (levy schedules, owner details, budget categories),
+            the platform accepts CSV, TSV, and plain text files up to <strong>10 MB</strong>.
+        </p>
+        <ul>
+            <li>Export from Excel as "CSV (Comma delimited)" or "CSV UTF-8"</li>
+            <li>Do <strong>not</strong> upload the original .xlsx file — export to CSV first</li>
+            <li>Files with unusual characters (accented names) are handled automatically</li>
+        </ul>
+
+        <!-- ── FAQ ──────────────────────────────────────────────────────── -->
+        <h2 id="faq">FAQ</h2>
+
+        <h3>Can I upload a ZIP file?</h3>
+        <p>
+            ZIP files and other archive formats (.zip, .7z, .rar) are not in the standard accepted list
+            for general documents. If you need to share multiple files, upload them individually.
+            Your strata manager or administrator can contact support if bulk upload is needed.
+        </p>
+
+        <h3>My PDF was created by scanning physical documents — will it work?</h3>
+        <p>
+            Yes. Scanned PDFs (image-only PDFs) are still accepted as PDF files. Note that the
+            <strong>Document Converter</strong> feature will detect these as "scanned PDFs" and indicate
+            that text extraction was not possible — but they will upload to the documents section normally.
+        </p>
+
+        <h3>Why does the platform check my file's content, not just the extension?</h3>
+        <p>
+            File extensions can be changed easily — anyone can rename a program to <em>report.pdf</em>.
+            The platform reads the actual file content to determine its true type. This protects all
+            residents and the building's data from malicious files regardless of what they are named.
+        </p>
+
+        <h3>I'm an owner — can I upload confidential documents?</h3>
+        <p>
+            Yes. Documents can be marked as private (visible only to managers and EC members) or as
+            owner-only. Talk to your strata manager about the appropriate access level for sensitive
+            documents such as legal correspondence or insurance claims.
+        </p>
+
+        <p style="margin-top:40px;color:var(--muted);font-size:12px">
+            Last updated: April 2026 ·
+            <a href="index.html">← Back to User Guides</a>
+        </p>
+    </article>
+</main>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Demo Bank And Bank Feed Sync - Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">Strata Management Platform</div>
+            <div class="sub">Demo Bank · Bank Feed Sync · Matching Backfill</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">Docs</span> Overview</a>
+            <a data-page="api.html" href="api.html"><span class="icon">API</span> API Reference</a>
+            <a data-page="matching-engine.html" href="matching-engine.html"><span class="icon">Match</span> Matching Engine</a>
+            <a class="active" data-page="bank-feeds-demo-bank.html" href="bank-feeds-demo-bank.html"><span class="icon">Bank</span> Demo Bank Sync</a>
+            <a data-page="historical-reconstruction.html" href="historical-reconstruction.html"><span class="icon">Batch</span> Historical Reconstruction</a>
+            <a data-page="trust-accounting.html" href="trust-accounting.html"><span class="icon">Trust</span> Trust Accounting</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">Back</span> Dashboard</a>
+            <a href="/user-guides/payment-matching.html" target="_blank"><span class="icon">Guide</span> Payment Matching Guide</a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <h1>Demo Bank And Bank Feed Sync</h1>
+        <p style="color:var(--muted);font-size:15px;margin-bottom:24px">
+            Current implementation reference for Demo Bank staging, canonical bank transaction sync, and matching queue
+            backfill.
+        </p>
+
+        <div class="callout warn">
+            <strong>Production tenant rule.</strong> East Gate uses real production data. Do not run sync or rematch
+            against a live building unless the target building, account reference, feature toggles, and token context
+            have been checked first.
+        </div>
+
+        <h2>Data Flow</h2>
+        <pre><code>demo_bank_transactions (Mongo staging)
+  -> POST /api/bank-feeds/sync
+  -> finance.bank_transactions (PostgreSQL canonical bank rows)
+  -> MatchingEngine.match()
+  -> match_review_queue (Mongo review queue)
+  -> manager decision
+  -> FinancialCoreService ledger posting</code></pre>
+
+        <p>Demo Bank is not the ledger. It is a provider-simulation and evidence-staging layer. Ledger writes must still
+            happen through FinancialCoreService after a matching decision is reviewed and approved.</p>
+
+        <h2>Routes</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Route</th>
+                <th>Purpose</th>
+                <th>Important behavior</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>POST /api/bank-feeds/sync</code></td>
+                <td>Promote Demo Bank staged transactions to <code>finance.bank_transactions</code>.</td>
+                <td>Idempotent via <code>UNIQUE (trust_account_id, external_transaction_id)</code>; new rows dispatch to MatchingEngine.</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/bank-feeds/rematch</code></td>
+                <td>Replay existing Postgres bank transactions through MatchingEngine.</td>
+                <td>Idempotent by <code>inbox_event_id == bank_transaction_id</code>; returns <code>created</code> and <code>skipped_existing</code>.</td>
+            </tr>
+            <tr>
+                <td><code>GET /api/bank-feeds/transactions</code></td>
+                <td>List canonical bank transactions for the current building.</td>
+                <td>Building scoped through authenticated context.</td>
+            </tr>
+            <tr>
+                <td><code>PATCH /api/bank-feeds/transactions/{id}/match</code></td>
+                <td>Manually mark a canonical bank transaction as matched.</td>
+                <td>This is not the historical rematch endpoint.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2>Auth And Building Context</h2>
+        <ul>
+            <li>The router is gated by <code>financial_integration_layer_v2</code>.</li>
+            <li><code>/sync</code> and <code>/rematch</code> are additionally gated by <code>bank_feeds_sync_enabled</code>.</li>
+            <li><code>/sync</code> and <code>/rematch</code> require <code>super_admin</code> or <code>strata_admin</code>.</li>
+            <li>Super-admin cross-building operations must include <code>X-Building-ID</code>.</li>
+            <li>Production calls should keep <code>include_test_data</code> false.</li>
+        </ul>
+
+        <h2>Operational Examples</h2>
+        <pre><code>curl -X POST "$API_BASE/api/bank-feeds/rematch" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Building-ID: 13195" \
+  -H "Content-Type: application/json" \
+  -d '{"account_ref":"ADMIN-13195","limit":2000}'
+
+curl -X POST "$API_BASE/api/bank-feeds/sync" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Building-ID: 13195" \
+  -H "Content-Type: application/json" \
+  -d '{"account_ref":"ADMIN-13195","from_date":"2021-01-01","to_date":"2026-06-30","include_test_data":false}'</code></pre>
+
+        <h2>Response Fields</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Fields</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>/sync</code></td>
+                <td><code>processed</code>, <code>inserted</code>, <code>duplicates</code>, <code>failed</code>, <code>skipped_other_batch</code> <em>(new 2026-07-19 — see <a href="historical-reconstruction.html">Historical Reconstruction</a>: non-zero only when a caller passed <code>reconstruction_batch_id</code>, always 0 for a normal building-wide sync)</em></td>
+            </tr>
+            <tr>
+                <td><code>/rematch</code></td>
+                <td><code>processed</code>, <code>created</code>, <code>queued</code>, <code>skipped_existing</code>, <code>failed</code></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2>East Gate Audit Result</h2>
+        <p>The 2026-07-01 East Gate audit verified <code>2768</code> review queue rows after rematch plus sync for
+            <code>ADMIN-13195</code> and <code>SINKING-13195</code>. The queue was populated correctly, but most rows were
+            classified as <code>unidentified</code>, so matching quality still depends on better payer references and levy
+            candidate enrichment.</p>
+    </main>
+</div>
+</body>
+</html>

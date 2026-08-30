@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>BI Analytics — Portfolio Endpoints — StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet">
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">StrataOS</div>
+            <div class="sub">Technical Documentation · BI Analytics Phase 2</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">BI Analytics</div>
+            <a href="bi-analytics-overview.html"><span class="icon">📊</span> BI Overview</a>
+            <a href="bi-analytics-building-api.html"><span class="icon">🏢</span> Building Endpoints</a>
+            <a class="active" href="bi-analytics-portfolio-api.html"><span class="icon">🗂️</span> Portfolio Endpoints</a>
+            <a href="bi-analytics-owner-api.html"><span class="icon">👤</span> Owner Endpoints</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#manager">Manager Portfolio</a>
+            <a href="#agency">Agency</a>
+            <a href="#platform">Platform</a>
+            <a href="#mgmt-entity">Management Entity</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main>
+        <h1>BI Analytics — Portfolio, Agency &amp; Platform Endpoints</h1>
+        <p>These endpoints aggregate across multiple buildings. All use prefix <code>/api/bi</code>.</p>
+
+        <section id="manager">
+            <h2>Manager Portfolio Endpoints</h2>
+            <p>Toggle: <code>bi_portfolio_analytics_enabled</code>.<br>
+            Role: super_admin, strata_admin; strata_manager (own portfolio — <code>manager_id</code> must match caller's user ID, unless super_admin/strata_admin).</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/manager/{strata_manager_id}/summary</code></h3>
+            <p>Portfolio summary across the manager's assigned buildings.</p>
+            <p><strong>Response:</strong> manager-scoped summary object from <code>get_agency_summary</code>, wrapped with route metadata. Field names are service-owned and should be checked in <code>backend/services/bi_service.py</code> before client binding.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/manager/{strata_manager_id}/buildings</code></h3>
+            <p>List of assigned buildings with per-building KPI snapshot. Used to populate the manager portfolio grid.</p>
+            <p><strong>Response:</strong> array of assigned building identifiers; KPI cards are loaded through the per-building BI endpoints.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/manager/{strata_manager_id}/arrears-hotspots</code></h3>
+            <p>Top arrears lots across all assigned buildings. Maximum 30 results ordered by arrears descending.</p>
+            <p><strong>Response:</strong> array of <code>{building_id, lot_number, owner_name, arrears_cents, months_overdue}</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/manager/{strata_manager_id}/compliance-overdue</code></h3>
+            <p>Compliance items past due or expiring within 30 days across the manager's portfolio.</p>
+            <p><strong>Response:</strong> array of <code>{building_id, domain, expiry_date, days_overdue}</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/manager/{strata_manager_id}/health-ranking</code></h3>
+            <p>Buildings ranked by financial health score descending. Surfaces buildings needing attention.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/manager/{strata_manager_id}/workload</code></h3>
+            <p>Request volume and SLA breach count per building, for workload balancing.</p>
+            <p><strong>Response:</strong> array of <code>{building_id, open_requests, sla_breached, avg_days_to_resolve}</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/manager/{strata_manager_id}/upcoming-actions</code></h3>
+            <p>Upcoming AGMs, compliance deadlines, levy schedule dates, and contract renewals across the portfolio.
+            Returns items within the next 90 days, ordered by due_date ascending.</p>
+        </section>
+
+        <section id="agency">
+            <h2>Agency Endpoints</h2>
+            <p>Toggle: <code>bi_analytics_agency_enabled</code> (depends on <code>bi_analytics_platform_enabled</code>).<br>
+            Role: super_admin, strata_admin. The <code>agency_id</code> is the strata company's <code>tenant_id</code> in <code>core.tenants</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/agency/{agency_id}/summary</code></h3>
+            <p>Top-level summary for an agency's entire portfolio.</p>
+            <p><strong>Response:</strong> agency summary object from <code>get_agency_summary</code>; avoid assuming cent-suffixed API fields because the service converts cents to display values in several paths.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/agency/{agency_id}/buildings</code></h3>
+            <p>All buildings under the agency with KPI snapshot. Equivalent to manager/buildings but scoped to the full company.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/agency/{agency_id}/financial-summary</code></h3>
+            <p>Aggregate financial KPIs across all agency buildings.</p>
+            <p><strong>Response:</strong> per-building financial summary rows using the same keys as <code>/bi/building/{building_id}/financial-summary</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/agency/{agency_id}/arrears-hotspots</code></h3>
+            <p>Top arrears lots across all agency buildings (max 50).</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/agency/{agency_id}/compliance-overdue</code></h3>
+            <p>Compliance overdue items across all agency buildings.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/agency/{agency_id}/health-ranking</code></h3>
+            <p>Buildings ranked by health score; used for portfolio triage.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/agency/{agency_id}/maintenance-risk</code></h3>
+            <p>Buildings ranked by deferred maintenance risk score.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/agency/{agency_id}/budget-vs-actual</code></h3>
+            <p>Budget variance per building for the current financial year.</p>
+        </section>
+
+        <section id="platform">
+            <h2>Platform Endpoints (Super Admin)</h2>
+            <p>Toggle: <code>bi_analytics_platform_enabled</code>.<br>
+            Role: super_admin only. Returns cross-agency aggregates for all buildings on the platform.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/platform/summary</code></h3>
+            <p>Platform-wide aggregate: total buildings, lots, agencies, arrears, compliance health.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/platform/agencies</code></h3>
+            <p>All strata companies with their building count, lot count, and aggregate KPIs.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/platform/buildings</code></h3>
+            <p>All buildings across the platform with KPI snapshot. Used for admin triage dashboard.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/platform/feature-adoption</code></h3>
+            <p>Feature toggle activation rates across buildings. Shows which buildings have each feature enabled.
+            Used for rollout tracking.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/platform/data-freshness</code></h3>
+            <p>Per-building data freshness report: last sync timestamps for Mongo→PG ETL, levy data, compliance data.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/platform/etl-health</code></h3>
+            <p>ETL pipeline health across all buildings: success/failure counts, row counts, staleness flags.</p>
+        </section>
+
+        <section id="mgmt-entity">
+            <h2>Management Entity Endpoints</h2>
+            <p>Toggle: <code>management_hierarchy_enabled</code>.<br>
+            Role: super_admin, strata_admin. The <code>management_entity_id</code> refers to
+            <code>core.management_entities.id</code>.</p>
+            <p>These endpoints mirror the agency tier but scope to a single management entity (a team or office
+            within a strata company) rather than the full company.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/management-entity/{management_entity_id}/summary</code></h3>
+            <h3><span class="badge badge-get">GET</span> <code>/bi/management-entity/{management_entity_id}/buildings</code></h3>
+            <h3><span class="badge badge-get">GET</span> <code>/bi/management-entity/{management_entity_id}/financial-summary</code></h3>
+            <h3><span class="badge badge-get">GET</span> <code>/bi/management-entity/{management_entity_id}/health-ranking</code></h3>
+            <h3><span class="badge badge-get">GET</span> <code>/bi/management-entity/{management_entity_id}/compliance-overdue</code></h3>
+        </section>
+    </main>
+</div>
+</body>
+</html>

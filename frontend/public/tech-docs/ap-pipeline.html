@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>AP Automation Pipeline — Technical Reference</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="guide-container">
+    <h1>AP Automation Pipeline — Technical Reference</h1>
+    <p class="intro">
+        End-to-end accounts payable pipeline: OCR invoice ingestion,
+        ABN validation, duplicate detection, invoice lifecycle state machine,
+        recurring bill templates, and strata-jurisdiction approval gates.
+    </p>
+
+    <h2>Collections</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Collection</th>
+            <th>Tenant-scoped</th>
+            <th>Purpose</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>invoice_documents</code></td>
+            <td>Yes</td>
+            <td>All AP invoices (all states)</td>
+        </tr>
+        <tr>
+            <td><code>recurring_bill_templates</code></td>
+            <td>Yes</td>
+            <td>Scheduled recurring bill definitions</td>
+        </tr>
+        <tr>
+            <td><code>abn_validation_cache</code></td>
+            <td>No (global ABN)</td>
+            <td>90-day TTL cache of ATO ABR lookups</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Endpoints</h2>
+
+    <h3>Supplier Upload</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Method</th>
+            <th>Path</th>
+            <th>Auth</th>
+            <th>Description</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>POST</td>
+            <td><code>/api/ap/supplier-upload/</code></td>
+            <td><code>can_submit_supplier_invoice</code> permission</td>
+            <td>Accept PDF, run OCR, validate ABN, check duplicates, create draft invoice. Returns 201 with extracted
+                fields.
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>AP Approval Queue</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Method</th>
+            <th>Path</th>
+            <th>Auth</th>
+            <th>Description</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>GET</td>
+            <td><code>/api/ap/invoices</code></td>
+            <td>Manager</td>
+            <td>List invoices by <code>status</code> query param. Paginated (page, page_size).</td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td><code>/api/ap/invoices/{id}</code></td>
+            <td>Manager</td>
+            <td>Full invoice detail including transitions history.</td>
+        </tr>
+        <tr>
+            <td>POST</td>
+            <td><code>/api/ap/invoices/{id}/submit</code></td>
+            <td>Manager</td>
+            <td>draft → submitted. Validates mandatory fields.</td>
+        </tr>
+        <tr>
+            <td>POST</td>
+            <td><code>/api/ap/invoices/{id}/validate</code></td>
+            <td>Manager</td>
+            <td>submitted → validated. Re-runs duplicate check (exclude_id to skip self).</td>
+        </tr>
+        <tr>
+            <td>POST</td>
+            <td><code>/api/ap/invoices/{id}/approve</code></td>
+            <td>Manager</td>
+            <td>validated → approved. NSW s.102 and QLD BCCM gates applied.</td>
+        </tr>
+        <tr>
+            <td>POST</td>
+            <td><code>/api/ap/invoices/{id}/reject</code></td>
+            <td>Manager</td>
+            <td>Any state → rejected (terminal).</td>
+        </tr>
+        <tr>
+            <td>POST</td>
+            <td><code>/api/ap/invoices/{id}/schedule</code></td>
+            <td>Manager</td>
+            <td>approved → scheduled. Requires <code>outbound_payment_initiation_enabled</code> toggle.</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Invoice Lifecycle State Machine</h2>
+    <p>Defined in <code>backend/domain/invoice_lifecycle.py</code>.</p>
+    <pre>
+draft → submitted → validated → approved → scheduled → paid → reconciled
+                  ↘ rejected (terminal)
+                  ↘ on_hold ↔ submitted/validated/approved
+validated → pending_resolution → approved/rejected
+approved → disputed ↔ on_hold/reconciled
+scheduled → failed → scheduled/rejected</pre>
+
+    <h2>Duplicate Detection</h2>
+    <p>Three layers, checked in order (<code>backend/domain/duplicate_detection.py</code>):</p>
+    <ol>
+        <li><strong>Layer 1 — Exact:</strong> DB unique match on <code>(tenant_id, vendor_abn, invoice_number)</code>.
+        </li>
+        <li><strong>Layer 2 — Near-dup:</strong> Same vendor_abn + total_cents + issue_date ±3 days; Levenshtein ≤2 on
+            invoice_number. Bounded <code>.to_list(20)</code>.
+        </li>
+        <li><strong>Layer 3 — Content hash:</strong> SHA-256 of normalised OCR text.</li>
+    </ol>
+    <p>
+        <code>exclude_id</code> parameter skips the current document on re-validation —
+        prevents a draft from flagging itself as a duplicate.
+    </p>
+
+    <h2>ABN Validation</h2>
+    <p>Implemented in <code>backend/integrations/abn_validator.py</code>.</p>
+    <ul>
+        <li>Local weighted checksum (ATO mod-89 algorithm) runs first — no network needed.</li>
+        <li>Cache lookup in <code>abn_validation_cache</code> (90-day TTL).</li>
+        <li>Live lookup via ATO ABR JSON service if <code>ABR_API_GUID</code> env var is set.</li>
+        <li>Offline graceful degradation: returns <code>abn_status="Offline"</code>, treats ABN as valid.</li>
+        <li>47% withholding flag: <code>not is_valid AND supply_ex_gst > $75</code>.</li>
+    </ul>
+
+    <h2>Jurisdictional Approval Gates</h2>
+    <p>Applied during <code>validated → approved</code> transition:</p>
+    <ul>
+        <li><strong>NSW (SSMA s.102):</strong> Rejects if invoice would push budget line &gt;10% over cap. Requires
+            <code>lot_count</code>, <code>budget_line_current_cents</code>, <code>budget_line_cap_cents</code> in the
+            request body.
+        </li>
+        <li><strong>QLD (BCCM):</strong> Rejects if invoice total exceeds <code>$200 × lot_count</code>. Pass <code>lot_count</code>
+            in request body.
+        </li>
+        <li><strong>ACT / other:</strong> No gate — always allowed.</li>
+    </ul>
+    <p><em>Phase 5 note:</em> These inline <code>if jurisdiction ==</code> branches will be refactored into a <code>JurisdictionalRuleEngine</code>.
+        Do not add further inline branches; extend the rule engine instead.</p>
+
+    <h2>Recurring Bill Templates</h2>
+    <p>Defined in <code>backend/domain/recurring_bills.py</code>. Run nightly via
+        <code>instantiate_recurring_bills()</code>.</p>
+    <table>
+        <thead>
+        <tr>
+            <th>Type</th>
+            <th>Amount logic</th>
+            <th>Use case</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>fixed_monthly</code></td>
+            <td>Static <code>amount_cents</code></td>
+            <td>Management fees, cleaning, CCTV</td>
+        </tr>
+        <tr>
+            <td><code>variable_cadence</code></td>
+            <td>3-period trailing median of reconciled invoices</td>
+            <td>Utilities</td>
+        </tr>
+        <tr>
+            <td><code>annual_with_instalments</code></td>
+            <td><code>amount_cents / num_instalments</code> per month</td>
+            <td>Insurance premiums</td>
+        </tr>
+        <tr>
+            <td><code>one_off</code></td>
+            <td>Static <code>amount_cents</code></td>
+            <td>One-time repairs, claims</td>
+        </tr>
+        </tbody>
+    </table>
+    <p>Idempotency key: <code>sha256(template_id + ":" + due_date.isoformat())</code> — re-running never creates
+        duplicate drafts.</p>
+
+    <h2>OCR Pipeline</h2>
+    <p>
+        <code>MockOCR</code> (<code>backend/integrations/mocks/mock_ocr.py</code>) is used in development.
+        Replace with a production OCR integration (e.g. Mindee, Claude Vision) by implementing
+        the same <code>extract_invoice(raw_bytes, content_type)</code> interface.
+        Fields with confidence &lt;0.70 are flagged in <code>low_confidence_fields</code>.
+    </p>
+
+    <h2>Permissions</h2>
+    <p>
+        <code>can_submit_supplier_invoice</code> is a field on the <code>Permission</code> model
+        (<code>backend/models/user.py</code>). Enabled by default for:
+        <code>super_admin</code>, <code>building_admin</code>, <code>strata_manager</code>,
+        <code>ec_member</code>, <code>service_provider</code>.
+    </p>
+
+    <h2>Feature Toggles</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Key</th>
+            <th>Controls</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>financial_integration_layer_v2</code></td>
+            <td>All matching and AP endpoints</td>
+        </tr>
+        <tr>
+            <td><code>outbound_payment_initiation_enabled</code></td>
+            <td>approved → scheduled transition</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Frontend Pages</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Page component</th>
+            <th>App Router path</th>
+            <th>Role</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>pages/supplier/InvoiceUploadPage.tsx</code></td>
+            <td><code>/supplier/invoice-upload</code></td>
+            <td>service_provider (+ any with permission)</td>
+        </tr>
+        <tr>
+            <td><code>pages/dashboard/financial/APApprovalQueuePage.tsx</code></td>
+            <td><code>/financials/ap-approval</code></td>
+            <td>Manager (strata_manager, building_admin, super_admin)</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

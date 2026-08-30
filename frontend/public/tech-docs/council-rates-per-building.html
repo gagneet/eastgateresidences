@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Council Rates — Per-Building Configuration · Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .mermaid-block {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 1.2rem;
+            margin: 1rem 0;
+            font-family: monospace;
+            font-size: 0.85rem;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+        }
+
+        th {
+            background: #f1f3f5;
+        }
+
+        code {
+            background: #f1f3f5;
+            padding: 0.1em 0.3em;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .callout {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 0.75rem 1rem;
+            margin: 1rem 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .callout.info {
+            background: #cff4fc;
+            border-color: #0dcaf0;
+        }
+    </style>
+</head>
+<body>
+<div class="guide-container">
+
+    <h1>Council Rates — Per-Building Configuration</h1>
+    <p class="intro">
+        Council rates (water access charges, land tax allocations, and related council levies)
+        are calculated using building-specific parameters stored in the
+        <code>council_rate_settings</code> collection. Each building maintains its own
+        Annual Unimproved Value (AUV) and total block entitlement — never inheriting
+        another building's values.
+    </p>
+
+    <hr/>
+
+    <h2>Collection: <code>council_rate_settings</code></h2>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Field</th>
+            <th>Type</th>
+            <th>Description</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>building_id</code></td>
+            <td>string</td>
+            <td>Building partition key (e.g. <code>"16244"</code>)</td>
+        </tr>
+        <tr>
+            <td><code>financial_year</code></td>
+            <td>string</td>
+            <td>e.g. <code>"2025-26"</code></td>
+        </tr>
+        <tr>
+            <td><code>block_auv</code></td>
+            <td>float</td>
+            <td>Annual Unimproved Value for the whole block (ACT Valuation Services figure)</td>
+        </tr>
+        <tr>
+            <td><code>total_block_entitlement</code></td>
+            <td>int</td>
+            <td>Sum of all unit entitlements (default 10,000)</td>
+        </tr>
+        <tr>
+            <td><code>is_configured</code></td>
+            <td>bool</td>
+            <td><code>true</code> = authoritative figure; <code>false</code> = estimated/pending confirmation</td>
+        </tr>
+        <tr>
+            <td><code>updated_at</code></td>
+            <td>datetime</td>
+            <td>Last update timestamp</td>
+        </tr>
+        <tr>
+            <td><code>note</code></td>
+            <td>string?</td>
+            <td>Optional free-text note (e.g. source of the AUV figure)</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <p>
+        Unique index: <code>{ building_id: 1, financial_year: 1 }</code>. Each building
+        has at most one settings document per financial year.
+    </p>
+
+    <hr/>
+
+    <h2>AUV Resolution Logic — <code>_get_block_auv(settings)</code></h2>
+
+    <p>The router function <code>_get_block_auv(settings: dict) → (float, bool)</code>
+        resolves the block AUV in this order:</p>
+
+    <ol>
+        <li>If <code>settings["block_auv"]</code> is set and non-zero → use it.
+            <code>is_estimated = not settings.get("is_configured", False)</code></li>
+        <li>Otherwise → fall back to <code>_DEFAULT_BLOCK_AUV</code> (the module constant).
+            <code>is_estimated = False</code> (default is defined, not a guess)
+        </li>
+    </ol>
+
+    <div class="callout info">
+        The return value is <code>(auv: float, is_estimated: bool)</code>. Reports display
+        <em>"(estimated)"</em> next to the AUV when <code>is_estimated=True</code>.
+    </div>
+
+    <hr/>
+
+    <h2>Per-Building Settings Lookup — <code>_get_council_settings()</code></h2>
+
+    <p>The async function queries by <strong>both</strong> <code>financial_year</code>
+        and <code>building_id</code>:</p>
+
+    <pre><code>async def _get_council_settings(financial_year: str, building_id: str) -&gt; dict:
+    coll = db["council_rate_settings"]
+    doc = await coll.find_one({
+        "financial_year": financial_year,
+        "building_id": building_id,
+    })
+    return doc or {}</code></pre>
+
+    <div class="callout">
+        <strong>Multi-tenant guarantee:</strong> Every query includes <code>building_id</code>.
+        Sierra (16244) querying council_rate_settings will never return East Gate's (13195) record,
+        even if both buildings share the same financial year.
+    </div>
+
+    <hr/>
+
+    <h2>Data Flow — Council Rates Report</h2>
+
+    <div class="mermaid-block">flowchart TD
+        A[GET /council-rates/report\n?financial_year=2025-26\n?building_id=16244] -->
+        B[_get_council_settings\n'2025-26', '16244']
+        B --> C{Document found?}
+        C -- Yes --> D[_get_block_auv\nsettings doc]
+        C -- No --> E[_get_block_auv\nempty dict {}]
+        D --> F[Use configured AUV\nis_estimated = not is_configured]
+        E --> G[Use _DEFAULT_BLOCK_AUV\nis_estimated = False]
+        F --> H[Calculate per-unit rates\nrate = unit_entitlement / total_entitlement × block_auv × council_rate]
+        G --> H
+        H --> I[Return report JSON\nwith assumptions block]
+    </div>
+
+    <p><em>Mermaid source — render at <a href="https://mermaid.live" target="_blank">mermaid.live</a> or in any
+        Mermaid-enabled viewer.</em></p>
+
+    <hr/>
+
+    <h2>PDF Report — Assumptions Section</h2>
+
+    <p>When the annual financial report is generated (<code>_generate_full_report_impl</code>
+        in <code>services/report_service.py</code>), the council rate settings for the
+        <em>current building</em> are fetched and embedded in the report's assumptions block:</p>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Assumption field</th>
+            <th>Source</th>
+            <th>Fallback</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Block AUV</td>
+            <td><code>council_rate_settings.block_auv</code></td>
+            <td><code>_DEFAULT_BLOCK_AUV</code></td>
+        </tr>
+        <tr>
+            <td>Total entitlement</td>
+            <td><code>council_rate_settings.total_block_entitlement</code></td>
+            <td><code>_TOTAL_BLOCK_ENTITLEMENT = 10,000</code></td>
+        </tr>
+        <tr>
+            <td>AUV string in PDF</td>
+            <td><code>f"${float(block_auv):,.0f}"</code></td>
+            <td><code>"not configured"</code> when <code>block_auv</code> is None/0</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <hr/>
+
+    <h2>Seeding / Configuring a New Building</h2>
+
+    <p>Run the migration or insert directly:</p>
+
+    <pre><code># Via admin API (requires super_admin token):
+POST /api/council-rates/settings
+{
+    "building_id": "16244",
+    "financial_year": "2025-26",
+    "block_auv": 4708728.0,
+    "total_block_entitlement": 10000,
+    "is_configured": true,
+    "note": "ACT Valuation Services notice dated 2025-07-01"
+}</code></pre>
+
+    <hr/>
+
+    <h2>Known Building Values</h2>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Building</th>
+            <th><code>building_id</code></th>
+            <th>FY2025-26 Block AUV</th>
+            <th>Entitlement</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>East Gate Residences</td>
+            <td>13195</td>
+            <td>$4,200,000 (default)</td>
+            <td>10,000</td>
+        </tr>
+        <tr>
+            <td>Sierra Gungahlin</td>
+            <td>16244</td>
+            <td>$4,708,728 (configured)</td>
+            <td>10,000</td>
+        </tr>
+        <tr>
+            <td>Harbourview Residences</td>
+            <td>18932</td>
+            <td>Not yet configured</td>
+            <td>10,000</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="callout">
+        Values are for reference only. Always verify against the current ACT Valuation Services
+        notice for each financial year. Run <code>GET /api/council-rates/settings?building_id=&lt;id&gt;</code>
+        to check the live configured value.
+    </div>
+
+    <hr/>
+
+    <h2>Related Files</h2>
+
+    <ul>
+        <li><code>backend/routers/council_rates.py</code> — <code>_get_block_auv()</code>,
+            <code>_get_council_settings()</code></li>
+        <li><code>backend/services/report_service.py</code> — <code>_generate_full_report_impl()</code> line ~383</li>
+        <li><code>tests/backend/test_council_rates_per_building.py</code> — 19 unit tests</li>
+        <li><code>backend/scripts/migrations/migration_017_populate_settings.py</code> — populates
+            <code>plan_number</code>/<code>strata_address</code> in db.settings
+        </li>
+    </ul>
+
+</div>
+</body>
+</html>

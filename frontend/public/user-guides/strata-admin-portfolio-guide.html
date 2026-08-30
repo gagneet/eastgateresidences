@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Strata Admin Portfolio Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform</div>
+            </div>
+        </div>
+        <div class="badge">User Guide</div>
+    </div>
+</header>
+
+<main style="display:block">
+    <article class="content">
+
+        <h1>Strata Admin Portfolio Management Guide</h1>
+        <p>This guide is for <strong>Strata Admin</strong> users — typically the principal or senior administrator
+            of a strata management company. It covers how to set up and manage your company's portfolio of buildings
+            on StrataOS.</p>
+
+        <div class="card callout success">
+            <strong>Your role in brief:</strong> You create and manage the overall structure — the company,
+            its teams (management entities), and which buildings belong to which team. Strata managers work
+            within the structure you set up.
+        </div>
+
+        <h2>Setting Up Your Strata Management Company</h2>
+        <p>When your company is first registered on StrataOS, a super admin will create your company profile.
+            Once that is in place, you can manage it from <strong>Admin → Company Settings</strong>.</p>
+        <p>Here you can:</p>
+        <ul>
+            <li>Update your company name, ABN, contact details, and logo.</li>
+            <li>Set your default levy notice templates and communication preferences.</li>
+            <li>View a summary of all buildings managed under your company.</li>
+        </ul>
+
+        <h2>Adding Buildings (Schemes) to Your Company</h2>
+        <p>Each building you manage is called a <strong>scheme</strong> in StrataOS. To add a building:</p>
+        <ol>
+            <li>Go to <strong>Admin → Buildings</strong> and select <strong>Add New Building</strong>.</li>
+            <li>Enter the building's unit plan number, address, and lot count.</li>
+            <li>Assign it to a management entity (see below).</li>
+            <li>StrataOS will create the building profile and prompt you to complete onboarding (levy setup,
+                owner details, EC members).</li>
+        </ol>
+
+        <div class="card callout warn">
+            <strong>Important:</strong> Buildings cannot be permanently deleted once created — they can only
+            be archived. This is required under strata legislation for record retention. Use
+            <strong>Archive Building</strong> if a building leaves your portfolio.
+        </div>
+
+        <h2>Creating and Managing Management Entities</h2>
+        <p>A <strong>management entity</strong> is a team or office within your company. You might have one
+            entity per state, one per region, or one per team leader. To create one:</p>
+        <ol>
+            <li>Go to <strong>Admin → Management Entities</strong> and select <strong>New Entity</strong>.</li>
+            <li>Give it a name (for example, "Canberra Office" or "ACT Residential Team").</li>
+            <li>Assign the buildings that belong to this entity.</li>
+            <li>Optionally, set a team lead or default contact for the entity.</li>
+        </ol>
+        <p>You can move a building from one entity to another at any time without losing data.</p>
+
+        <h2>Assigning Strata Managers to Buildings</h2>
+        <p>Once a building is assigned to an entity, you can appoint an individual strata manager to it:</p>
+        <ol>
+            <li>Open the building from <strong>Admin → Buildings</strong>.</li>
+            <li>Go to the <strong>Management</strong> tab.</li>
+            <li>Select <strong>Appoint Manager</strong> and choose from your company's strata managers.</li>
+            <li>Set the contract start date and any relevant details.</li>
+        </ol>
+        <p>The appointed manager will immediately see the building in their portfolio and can begin work.
+            EC members and owners in that building will see the manager's name and contact details update
+            automatically.</p>
+
+        <div class="card callout success">
+            <strong>Tip:</strong> If a manager is on leave, you can temporarily appoint a relief manager
+            to the building. The relief appears to owners and EC members just like the regular manager.
+        </div>
+
+        <h2>Viewing Agency-Level Analytics</h2>
+        <p>As a strata admin, you have access to the <strong>Agency BI Analytics</strong> dashboard. This
+            gives you a cross-building view of your entire portfolio:</p>
+        <ul>
+            <li><strong>Collection rate</strong> — which buildings have strong levy collection and which
+                are falling behind.</li>
+            <li><strong>Arrears hotspots</strong> — buildings with the highest outstanding amounts.</li>
+            <li><strong>Compliance status</strong> — how many buildings across your portfolio have overdue
+                compliance items.</li>
+            <li><strong>Maintenance SLA performance</strong> — how quickly work orders are being resolved
+                across the portfolio.</li>
+            <li><strong>Budget vs. actuals</strong> — at a glance across all buildings.</li>
+        </ul>
+        <p>Access this from <strong>Dashboard → Agency Analytics</strong>. You can drill down from any
+            portfolio-level figure into the specific building that is driving it.</p>
+
+    </article>
+</main>
+
+<footer>
+    <span data-bldg="name">your building</span> | Executive Committee | Strata Manager &nbsp;·&nbsp; E: <a
+        data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC email</a>
+    &nbsp;·&nbsp; P: <span data-bldg="contact_phone">(contact number)</span>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Finance Extensions — Technical Reference</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #0f172a;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px 60px;
+        }
+
+        section {
+            background: #111827;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #f8fafc;
+            margin-bottom: 4px;
+        }
+
+        h2 {
+            color: #f8fafc;
+            margin-top: 0;
+        }
+
+        h3 {
+            color: #cbd5e1;
+        }
+
+        p, li {
+            color: #cbd5e1;
+        }
+
+        code, pre {
+            background: #020617;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+        }
+
+        code {
+            padding: 2px 6px;
+            font-size: 13px;
+            color: #a5f3fc;
+        }
+
+        pre {
+            padding: 16px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            border-bottom: 1px solid #334155;
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            color: #94a3b8;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            color: #cbd5e1;
+        }
+
+        .method {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: monospace;
+            margin-right: 6px;
+        }
+
+        .post {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        .get {
+            background: #1e3a5f;
+            color: #93c5fd;
+        }
+
+        .put {
+            background: #4c1d95;
+            color: #c4b5fd;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-ok {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        .badge-warn {
+            background: #78350f;
+            color: #fcd34d;
+        }
+
+        .badge-info {
+            background: #1e3a5f;
+            color: #93c5fd;
+        }
+
+        .sub {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-top: 0;
+        }
+
+        .toc {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .toc a {
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .module-header {
+            border-bottom: 1px solid #334155;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+        }
+
+        .flow {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .flow-node {
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #cbd5e1;
+        }
+
+        .flow-arrow {
+            color: #64748b;
+            font-size: 18px;
+        }
+
+        .flow-terminal {
+            background: #0f172a;
+            border: 1px solid #64748b;
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Finance Extensions — Technical Reference</h1>
+    <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role lists on this page naming "chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+    <p class="sub">Covers: NSW Payment Plans (GAP-JUR-NSW-002) &nbsp;|&nbsp; Levy Reminder Settings (GAP-FIN-012) &nbsp;|&nbsp;
+        Arrears Risk Scoring (GAP-FIN-006) &nbsp;|&nbsp; Updated: 2026-04-23</p>
+
+    <!-- ── TOC ── -->
+    <section>
+        <h2>Contents</h2>
+        <div class="toc">
+            <a href="#payment-plans">1. NSW Payment Plans</a>
+            <a href="#pp-feature-toggle">&nbsp;&nbsp;&nbsp;Feature Toggle</a>
+            <a href="#pp-endpoints">&nbsp;&nbsp;&nbsp;API Endpoints</a>
+            <a href="#pp-models">&nbsp;&nbsp;&nbsp;Pydantic Models</a>
+            <a href="#pp-status-flow">&nbsp;&nbsp;&nbsp;Status Flow</a>
+            <a href="#pp-security">&nbsp;&nbsp;&nbsp;Security &amp; Roles</a>
+            <a href="#levy-reminders">2. Levy Reminder Settings</a>
+            <a href="#lr-feature-toggle">&nbsp;&nbsp;&nbsp;Feature Toggle</a>
+            <a href="#lr-endpoints">&nbsp;&nbsp;&nbsp;API Endpoints</a>
+            <a href="#lr-models">&nbsp;&nbsp;&nbsp;Pydantic Models</a>
+            <a href="#lr-cron">&nbsp;&nbsp;&nbsp;Cron Integration</a>
+            <a href="#arrears-risk">3. Arrears Risk Scoring</a>
+            <a href="#ar-feature-toggle">&nbsp;&nbsp;&nbsp;Feature Toggle</a>
+            <a href="#ar-endpoints">&nbsp;&nbsp;&nbsp;API Endpoints</a>
+            <a href="#ar-scoring">&nbsp;&nbsp;&nbsp;Scoring Logic</a>
+            <a href="#ar-security">&nbsp;&nbsp;&nbsp;Security &amp; Roles</a>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- PAYMENT PLANS                                                           -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+    <section id="payment-plans">
+        <div class="module-header">
+            <h2>1. NSW Payment Plans</h2>
+            <p class="sub">GAP-JUR-NSW-002 &nbsp;|&nbsp; Router: <code>backend/routers/payment_plans.py</code> &nbsp;|&nbsp;
+                Tag: <code>Finance</code></p>
+        </div>
+        <p>
+            Implements the NSW Form 1 payment plan process under sections 83A–83C of the <em>Strata Schemes
+            Management Act 2015</em> (SSMA 2015). Owners in levy arrears may formally request a payment plan;
+            the owners corporation must respond within <strong>28 days</strong>. The router manages the full
+            lifecycle from request through to completion or cancellation.
+        </p>
+        <p>
+            All buildings on the platform can use this feature. The NSW compliance framing (28-day rule) is
+            informational — the system does not auto-enforce it, but the submission timestamp on each record
+            enables manual tracking.
+        </p>
+    </section>
+
+    <section id="pp-feature-toggle">
+        <h2>Payment Plans — Feature Toggle</h2>
+        <table>
+            <tr>
+                <th>Key</th>
+                <td><code>payment_plans</code></td>
+            </tr>
+            <tr>
+                <th>Category</th>
+                <td>financial</td>
+            </tr>
+            <tr>
+                <th>Default</th>
+                <td>enabled (global, <code>building_id = null</code>)</td>
+            </tr>
+            <tr>
+                <th>Allowed roles</th>
+                <td>all authenticated (submit); super_admin, chairman, strata_manager, ec_member, admin_staff (manage)
+                </td>
+            </tr>
+            <tr>
+                <th>Nav path</th>
+                <td>/financials/payment-plans</td>
+            </tr>
+        </table>
+    </section>
+
+    <section id="pp-endpoints">
+        <h2>Payment Plans — API Endpoints</h2>
+        <p>Prefix: <code>/payment-plans</code>. Collection: <code>payment_plans</code> (building-scoped).</p>
+
+        <h3><span class="method post">POST</span> /api/payment-plans</h3>
+        <p>Submit a payment plan request. Any authenticated user may submit for their own unit.
+            Managers may submit on behalf of an owner. Returns <code>201</code> with the created document.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>unit_number</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>Lot/unit with arrears.</td>
+            </tr>
+            <tr>
+                <td><code>outstanding_amount_cents</code></td>
+                <td>int &gt; 0</td>
+                <td>Yes</td>
+                <td>Total arrears in cents.</td>
+            </tr>
+            <tr>
+                <td><code>requested_instalment_cents</code></td>
+                <td>int &gt; 0</td>
+                <td>Yes</td>
+                <td>Proposed instalment per period (cents).</td>
+            </tr>
+            <tr>
+                <td><code>instalment_frequency</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td><code>weekly</code>, <code>fortnightly</code>, or <code>monthly</code>.</td>
+            </tr>
+            <tr>
+                <td><code>proposed_start_date</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>ISO-8601 proposed start date.</td>
+            </tr>
+            <tr>
+                <td><code>hardship_reason</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Max 2000 chars. Optional hardship statement.</td>
+            </tr>
+            <tr>
+                <td><code>notes</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Max 1000 chars.</td>
+            </tr>
+            </tbody>
+        </table>
+        <p><strong>Errors:</strong> 400 invalid instalment_frequency.</p>
+
+        <h3><span class="method get">GET</span> /api/payment-plans</h3>
+        <p>List payment plans. Managers see all plans; owners see only their own
+            (<code>owner_id == current_user.id</code>). Paginated.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Query param</th>
+                <th>Type</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>status</code></td>
+                <td>string?</td>
+                <td>Filter by status. Must be a valid PLAN_STATUSES value.</td>
+            </tr>
+            <tr>
+                <td><code>unit_number</code></td>
+                <td>string?</td>
+                <td>Filter by unit. Manager only (owners are always scoped to their own unit).</td>
+            </tr>
+            <tr>
+                <td><code>page</code></td>
+                <td>int</td>
+                <td>Default 1.</td>
+            </tr>
+            <tr>
+                <td><code>page_size</code></td>
+                <td>int</td>
+                <td>Default 20, max 100.</td>
+            </tr>
+            </tbody>
+        </table>
+        <p><strong>Response:</strong> <code>{ data: [...], total: int, page: int, page_size: int }</code></p>
+
+        <h3><span class="method get">GET</span> /api/payment-plans/{plan_id}</h3>
+        <p>Get a single plan by its UUID <code>id</code> field. Non-managers receive 403 if the plan's
+            <code>owner_id</code> does not match their user ID.</p>
+
+        <h3><span class="method post">POST</span> /api/payment-plans/{plan_id}/approve</h3>
+        <p>Approve a payment plan request. Manager only. Plan must be in <code>requested</code> status.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>approved_instalment_cents</code></td>
+                <td>int &gt; 0</td>
+                <td>Yes</td>
+                <td>Approved instalment per period (may differ from requested).</td>
+            </tr>
+            <tr>
+                <td><code>instalment_frequency</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>weekly, fortnightly, monthly.</td>
+            </tr>
+            <tr>
+                <td><code>instalment_count</code></td>
+                <td>int &gt; 0</td>
+                <td>Yes</td>
+                <td>Total number of instalments in the plan.</td>
+            </tr>
+            <tr>
+                <td><code>start_date</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>ISO-8601 first instalment date.</td>
+            </tr>
+            <tr>
+                <td><code>notes</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Max 1000 chars.</td>
+            </tr>
+            </tbody>
+        </table>
+        <p><strong>Errors:</strong> 404 not found, 409 plan not in <code>requested</code> state, 400 invalid frequency.
+        </p>
+
+        <h3><span class="method post">POST</span> /api/payment-plans/{plan_id}/decline</h3>
+        <p>Decline a payment plan request. Manager only. Plan must be in <code>requested</code> status.
+            Body: <code>{ "reason": "..." }</code> (min 10, max 2000 chars).</p>
+        <p><strong>Errors:</strong> 404 not found, 409 plan not in <code>requested</code> state.</p>
+
+        <h3><span class="method put">PUT</span> /api/payment-plans/{plan_id}/status</h3>
+        <p>Update plan status to <code>active</code>, <code>completed</code>, or <code>cancelled</code>.
+            Manager only. Cannot update a plan already in a terminal status (declined, completed, cancelled).</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>status</code></td>
+                <td>string</td>
+                <td>One of: <code>active</code>, <code>completed</code>, <code>cancelled</code>.</td>
+            </tr>
+            <tr>
+                <td><code>notes</code></td>
+                <td>string?</td>
+                <td>Optional update notes.</td>
+            </tr>
+            </tbody>
+        </table>
+        <p><strong>Errors:</strong> 404 not found, 409 plan is in terminal status.</p>
+    </section>
+
+    <section id="pp-models">
+        <h2>Payment Plans — Pydantic Models</h2>
+
+        <h3>Enum values</h3>
+        <pre>PLAN_STATUSES = [
+  "requested", "approved", "declined", "active", "completed", "cancelled"
+]
+INSTALMENT_FREQUENCIES = ["weekly", "fortnightly", "monthly"]</pre>
+
+        <h3>Response document shape</h3>
+        <pre>{
+  "id": "&lt;UUID string&gt;",              // system-generated UUID (not _id)
+  "building_id": "&lt;building_id&gt;",
+  "unit_number": "12",
+  "owner_id": "&lt;user_id&gt;",
+  "owner_name": "Jane Smith",
+  "outstanding_amount_cents": 306000,  // $3,060.00
+  "requested_instalment_cents": 51000, // $510.00
+  "instalment_frequency": "monthly",
+  "proposed_start_date": "2026-05-01",
+  "hardship_reason": "Recent job loss.",
+  "notes": null,
+  "status": "approved",
+  // Set on approval:
+  "approved_instalment_cents": 51000,
+  "instalment_count": 6,
+  "start_date": "2026-05-01",
+  "approved_by": "&lt;user_id&gt;",
+  "approved_at": "ISO-8601",
+  // Set on decline:
+  "declined_by": null,
+  "declined_at": null,
+  "decline_reason": null,
+  "submitted_by": "&lt;user_id&gt;",
+  "created_at": "ISO-8601",
+  "updated_at": "ISO-8601"
+}</pre>
+    </section>
+
+    <section id="pp-status-flow">
+        <h2>Payment Plans — Status Flow</h2>
+        <div class="flow">
+            <div class="flow-node">requested</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">approved</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">active</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-terminal">completed</div>
+        </div>
+        <div class="flow" style="margin-top:8px;">
+            <div class="flow-node">requested</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-terminal">declined</div>
+        </div>
+        <div class="flow" style="margin-top:8px;">
+            <span style="color:#94a3b8; font-size:13px;">(any non-terminal)</span>
+            <div class="flow-arrow">→</div>
+            <div class="flow-terminal">cancelled</div>
+        </div>
+        <p style="margin-top:12px;">Terminal statuses (<code>declined</code>, <code>completed</code>,
+            <code>cancelled</code>) cannot transition to any other state.
+            The <code>PUT /{id}/status</code> endpoint enforces this with a 409 response.</p>
+        <p>Audit log events: <code>payment_plan_requested</code>, <code>payment_plan_approved</code>,
+            <code>payment_plan_declined</code>, <code>payment_plan_active</code>, <code>payment_plan_completed</code>,
+            <code>payment_plan_cancelled</code>.</p>
+    </section>
+
+    <section id="pp-security">
+        <h2>Payment Plans — Security Notes</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Concern</th>
+                <th>Mitigation</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Building isolation</td>
+                <td>All queries include <code>building_id</code>. UUID <code>id</code> field is looked up with <code>{"id":
+                    plan_id, "building_id": building_id}</code>.
+                </td>
+            </tr>
+            <tr>
+                <td>Owner access scoping</td>
+                <td><code>_can_view(user, plan)</code> returns True for managers (all plans) or non-managers only when
+                    <code>plan.owner_id == user.id</code>.
+                </td>
+            </tr>
+            <tr>
+                <td>Role guard</td>
+                <td><code>_require_manager()</code> checks <code>effective_role or role</code>. Approve/decline/status
+                    update are manager-only.
+                </td>
+            </tr>
+            <tr>
+                <td>State guard</td>
+                <td>Approve and decline only work on <code>requested</code> plans (409 otherwise). Status update blocked
+                    on terminal states.
+                </td>
+            </tr>
+            <tr>
+                <td>Retention</td>
+                <td>Records are not hard-deleted. Maintain for 7-year statutory period.</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- LEVY REMINDERS                                                          -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+    <section id="levy-reminders">
+        <div class="module-header">
+            <h2>2. Levy Reminder Settings</h2>
+            <p class="sub">GAP-FIN-012 &nbsp;|&nbsp; Router: <code>backend/routers/levy_reminders.py</code> &nbsp;|&nbsp;
+                Tag: <code>Levy Reminders</code></p>
+        </div>
+        <p>
+            Admin-configurable reminder cadence for overdue levy notices. Settings are stored in
+            <code>levy_reminder_settings</code> (building-scoped) and read by the existing
+            <code>cron/cron_levy_reminders.py</code> cron job on each run. This router provides the admin
+            UI surface for configuring and triggering reminders.
+        </p>
+    </section>
+
+    <section id="lr-feature-toggle">
+        <h2>Levy Reminders — Feature Toggle</h2>
+        <table>
+            <tr>
+                <th>Key</th>
+                <td><code>levy_reminders</code></td>
+            </tr>
+            <tr>
+                <th>Category</th>
+                <td>financial</td>
+            </tr>
+            <tr>
+                <th>Default</th>
+                <td>enabled (global, <code>building_id = null</code>)</td>
+            </tr>
+            <tr>
+                <th>Allowed roles</th>
+                <td>super_admin, chairman, strata_manager, ec_member, admin_staff</td>
+            </tr>
+            <tr>
+                <th>Nav path</th>
+                <td>/financials/levy-reminders</td>
+            </tr>
+        </table>
+    </section>
+
+    <section id="lr-endpoints">
+        <h2>Levy Reminders — API Endpoints</h2>
+
+        <h3><span class="method get">GET</span> /api/levy-reminders/settings</h3>
+        <p>Return the levy reminder cadence config for the current building. Falls back to defaults if
+            no building-specific settings have been saved yet. Response includes <code>is_default: true</code>
+            when returning defaults.</p>
+        <p><strong>Default response:</strong></p>
+        <pre>{
+  "building_id": "&lt;building_id&gt;",
+  "enabled": true,
+  "pre_due_days": [14, 7, 3],
+  "overdue_days": [1, 7, 14, 30],
+  "overdue_threshold_cents": 100,
+  "channels": { "email": true, "in_app": true, "sms": false },
+  "max_escalation_tier": 4,
+  "is_default": true              // true when no building-specific settings saved
+}</pre>
+
+        <h3><span class="method put">PUT</span> /api/levy-reminders/settings</h3>
+        <p>Update levy reminder config (upsert). Partial update — only provided fields are changed.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>enabled</code></td>
+                <td>bool</td>
+                <td>Master on/off switch for this building.</td>
+            </tr>
+            <tr>
+                <td><code>pre_due_days</code></td>
+                <td>int[]</td>
+                <td>Days before due date to send courtesy reminders. E.g. <code>[14, 7, 3]</code>.</td>
+            </tr>
+            <tr>
+                <td><code>overdue_days</code></td>
+                <td>int[]</td>
+                <td>Days after due date for each escalation tier. E.g. <code>[1, 7, 14, 30]</code>.</td>
+            </tr>
+            <tr>
+                <td><code>overdue_threshold_cents</code></td>
+                <td>int ≥ 0</td>
+                <td>Skip overdue notice if balance below this (cents). Default 100 = $1.00.</td>
+            </tr>
+            <tr>
+                <td><code>channels</code></td>
+                <td>object</td>
+                <td><code>{ email: bool, in_app: bool, sms: bool }</code>. SMS is not yet wired.</td>
+            </tr>
+            <tr>
+                <td><code>max_escalation_tier</code></td>
+                <td>int 1–10</td>
+                <td>Stop sending overdue tiers after this count. Default 4.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3><span class="method post">POST</span> /api/levy-reminders/trigger</h3>
+        <p>Manually trigger a levy reminder run for this building. Dry-run is the default.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Query param</th>
+                <th>Type</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>dry_run</code></td>
+                <td>bool</td>
+                <td>Default <code>true</code>. When true: returns preview list, no emails/notifications sent. Set <code>false</code>
+                    to dispatch live.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <p><strong>Logic:</strong></p>
+        <ol>
+            <li>Loads settings (or defaults if not configured).</li>
+            <li>Queries <code>unit_levy_ledger</code> for current year units with outstanding balance ≥ threshold.</li>
+            <li>Returns a list of <code>{ unit_number, outstanding_cents, outstanding_aud }</code> objects.</li>
+            <li>If <code>dry_run=false</code> and units found: fires <code>asyncio.create_task(run_levy_reminders(building_id,
+                tier=1))</code>.
+            </li>
+        </ol>
+        <p><strong>Response:</strong></p>
+        <pre>{
+  "dry_run": true,
+  "overdue_unit_count": 3,
+  "overdue_units": [
+    { "unit_number": "5", "outstanding_cents": 51000, "outstanding_aud": 510.0 },
+    ...
+  ],
+  "message": "Dry run complete — 3 unit(s) would receive reminders."
+}</pre>
+
+        <h3><span class="method get">GET</span> /api/levy-reminders/log</h3>
+        <p>List recent reminder dispatch events from <code>audit_logs</code>.
+            Filters: <code>action: {$in: ["levy_reminder_triggered", "levy_reminder_sent"]}</code>.
+            Paginated, sorted by <code>created_at DESC</code>.</p>
+    </section>
+
+    <section id="lr-models">
+        <h2>Levy Reminders — Models</h2>
+
+        <h3>ReminderChannel</h3>
+        <pre>{
+  "email": true,    // bool, default true
+  "in_app": true,   // bool, default true
+  "sms": false      // bool, default false — not yet wired to dispatch
+}</pre>
+
+        <h3>LevyReminderSettings (stored document)</h3>
+        <pre>{
+  "building_id": "&lt;building_id&gt;",
+  "enabled": true,
+  "pre_due_days": [14, 7, 3],
+  "overdue_days": [1, 7, 14, 30],
+  "overdue_threshold_cents": 100,
+  "channels": { "email": true, "in_app": true, "sms": false },
+  "max_escalation_tier": 4,
+  "updated_at": "ISO-8601",
+  "updated_by": "&lt;user_id&gt;"
+}</pre>
+    </section>
+
+    <section id="lr-cron">
+        <h2>Levy Reminders — Cron Integration</h2>
+        <p>
+            The trigger endpoint fires <code>cron/cron_levy_reminders.py:run_levy_reminders()</code> as an
+            <code>asyncio.create_task</code> (fire-and-forget). The cron job is also scheduled externally
+            (systemd timer or PM2 cron) for automated daily runs.
+        </p>
+        <p>The cron job reads <code>levy_reminder_settings</code> (falling back to <code>_DEFAULT_SETTINGS</code>
+            if absent) to determine cadence. No code change is needed in the cron when settings are updated via
+            the API — the next run picks up the new config automatically.</p>
+        <p>Collection used: <code>levy_reminder_settings</code> (building-scoped; upserted on PUT).</p>
+        <p>Audit events written: <code>levy_reminder_settings_updated</code> (on PUT settings),
+            <code>levy_reminder_triggered</code> (on POST trigger), <code>levy_reminder_sent</code> (written by cron
+            job).</p>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- ARREARS RISK SCORING                                                    -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+    <section id="arrears-risk">
+        <div class="module-header">
+            <h2>3. Arrears Risk Scoring</h2>
+            <p class="sub">GAP-FIN-006 &nbsp;|&nbsp; Router: <code>backend/routers/arrears_risk.py</code> &nbsp;|&nbsp;
+                Tag: <code>Finance</code></p>
+        </div>
+        <p>
+            Exposes a rule-based predictive risk score for units with outstanding levies. The scoring
+            engine lives in <code>backend/services/arrears_analytics.py</code>. This router is a thin
+            wrapper that calls <code>compute_arrears_risk(db, building_id)</code> and returns the results.
+            Owners cannot access any endpoint — this is a finance/management-only view.
+        </p>
+    </section>
+
+    <section id="ar-feature-toggle">
+        <h2>Arrears Risk — Feature Toggle</h2>
+        <table>
+            <tr>
+                <th>Key</th>
+                <td><code>arrears_risk</code></td>
+            </tr>
+            <tr>
+                <th>Category</th>
+                <td>financial</td>
+            </tr>
+            <tr>
+                <th>Default</th>
+                <td>enabled (global, <code>building_id = null</code>)</td>
+            </tr>
+            <tr>
+                <th>Allowed roles</th>
+                <td>super_admin, chairman, strata_manager, ec_member, admin_staff (finance access only)</td>
+            </tr>
+            <tr>
+                <th>Nav path</th>
+                <td>/financials/arrears-risk</td>
+            </tr>
+        </table>
+    </section>
+
+    <section id="ar-endpoints">
+        <h2>Arrears Risk — API Endpoints</h2>
+        <p>All endpoints require finance access. Owners, tenants, and guests receive 403.</p>
+
+        <h3><span class="method get">GET</span> /api/arrears-risk/summary</h3>
+        <p>Band distribution and totals for the building's arrears risk profile.
+            Calls <code>compute_arrears_risk(db, building_id)</code> and aggregates the results.</p>
+        <p><strong>Response:</strong></p>
+        <pre>{
+  "building_id": "&lt;building_id&gt;",
+  "units_with_arrears": 7,
+  "total_outstanding_aud": 18420.50,
+  "band_distribution": {
+    "CRITICAL": 1,
+    "HIGH": 2,
+    "MODERATE": 3,
+    "LOW": 1
+  },
+  "hardship_flagged": 2,
+  "form1_eligible": 3
+}</pre>
+
+        <h3><span class="method get">GET</span> /api/arrears-risk</h3>
+        <p>Risk-scored list of all units with outstanding levies, sorted by score descending (highest risk first).
+            Calls <code>compute_arrears_risk(db, building_id)</code>.</p>
+        <p><strong>Response:</strong> <code>{ data: [...], total: int }</code> — see unit risk shape below.</p>
+
+        <h3><span class="method get">GET</span> /api/arrears-risk/{unit_number}</h3>
+        <p>Risk score for a single unit. If the unit has no arrears (no match in the scored list),
+            returns a zero-risk response rather than 404:</p>
+        <pre>{
+  "unit_number": "42",
+  "outstanding_aud": 0.0,
+  "score": 0,
+  "band": "LOW",
+  "signals": [],
+  "hardship_flag": false,
+  "form1_eligible": false
+}</pre>
+    </section>
+
+    <section id="ar-scoring">
+        <h2>Arrears Risk — Scoring Logic</h2>
+        <p>Scoring is performed by <code>services/arrears_analytics.py:compute_arrears_risk()</code>.
+            The router does not contain scoring logic — it is a pure delegation layer.</p>
+
+        <h3>Risk bands</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Band</th>
+                <th>Score range</th>
+                <th>Meaning</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><span class="badge badge-ok">LOW</span></td>
+                <td>0–24</td>
+                <td>Minor arrears, low risk of escalation</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-info">MODERATE</span></td>
+                <td>25–49</td>
+                <td>Moderate arrears; monitor</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-warn">HIGH</span></td>
+                <td>50–74</td>
+                <td>Significant arrears; proactive contact warranted</td>
+            </tr>
+            <tr>
+                <td><span class="badge" style="background:#4c0519; color:#fda4af;">CRITICAL</span></td>
+                <td>75–100</td>
+                <td>High arrears with escalation signals; legal referral may apply</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>Risk signals</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Signal</th>
+                <th>Description</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>overdue_90d</code></td>
+                <td>Balance has been outstanding for 90+ days</td>
+            </tr>
+            <tr>
+                <td><code>overdue_180d</code></td>
+                <td>Balance has been outstanding for 180+ days</td>
+            </tr>
+            <tr>
+                <td><code>repeat_offender</code></td>
+                <td>Unit has had arrears in multiple prior periods</td>
+            </tr>
+            <tr>
+                <td><code>legal_action_risk</code></td>
+                <td>Outstanding amount exceeds typical legal referral threshold</td>
+            </tr>
+            <tr>
+                <td><code>hardship_flag</code></td>
+                <td>Owner has indicated hardship (e.g. via a payment plan hardship statement)</td>
+            </tr>
+            <tr>
+                <td><code>form1_eligible</code></td>
+                <td>Unit meets criteria for a NSW Form 1 payment plan request</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>Unit risk document shape</h3>
+        <pre>{
+  "unit_number": "5",
+  "outstanding_aud": 3060.00,
+  "score": 72,
+  "band": "HIGH",
+  "signals": ["overdue_90d", "repeat_offender"],
+  "hardship_flag": false,
+  "form1_eligible": true
+}</pre>
+    </section>
+
+    <section id="ar-security">
+        <h2>Arrears Risk — Security Notes</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Concern</th>
+                <th>Mitigation</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Owner access blocked</td>
+                <td><code>_require_finance()</code> explicitly excludes owner, tenant, and guest roles. Risk scores are
+                    sensitive financial data not for resident consumption.
+                </td>
+            </tr>
+            <tr>
+                <td>Building isolation</td>
+                <td><code>compute_arrears_risk(db, building_id)</code> is always called with the authenticated user's
+                    building_id. Cross-building access is not possible.
+                </td>
+            </tr>
+            <tr>
+                <td>Role guard</td>
+                <td>Uses <code>effective_role or role</code> — never raw <code>user["role"]</code>. Handles elevated
+                    users correctly.
+                </td>
+            </tr>
+            <tr>
+                <td>No data stored</td>
+                <td>Risk scores are computed on-the-fly from the levy ledger. No risk scores are persisted — always
+                    reflects current data.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+</main>
+</body>
+</html>

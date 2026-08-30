@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Registered Units Plan UP 13195</title>
+    <script src="auth-guard.js"></script>
+    <style>
+        /* ── Replicated from  ── */
+        :root {
+            --bg: #0b1220;
+            --card: #0f1a30;
+            --muted: #9aa4b2;
+            --text: #e8eef7;
+            --brand: #4f8cff;
+            --brand2: #22c55e;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --border: rgba(255, 255, 255, .10);
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            background: linear-gradient(180deg, #070b14 0%, #0b1220 35%, #0b1220 100%);
+            color: var(--text);
+        }
+
+        a {
+            color: var(--brand);
+            text-decoration: none
+        }
+
+        a:hover {
+            text-decoration: underline
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(11, 18, 32, .85);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 14px 18px;
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .brand {
+            display: flex;
+            gap: 12px;
+            align-items: center
+        }
+
+        .badge {
+            font-size: 12px;
+            color: #b9c2cf;
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 999px
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns:280px 1fr;
+            gap: 18px;
+            padding: 18px
+        }
+
+        nav {
+            position: sticky;
+            top: 76px;
+            align-self: start;
+            background: rgba(15, 26, 48, .65);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 14px;
+        }
+
+        nav h3 {
+            margin: 6px 0 10px 0;
+            font-size: 13px;
+            color: #cbd5e1;
+            text-transform: uppercase;
+            letter-spacing: .08em
+        }
+
+        nav a {
+            display: block;
+            padding: 9px 10px;
+            border-radius: 12px;
+            color: #dbe6ff
+        }
+
+        nav a:hover {
+            background: rgba(79, 140, 255, .12)
+        }
+
+        nav .nav-sub {
+            padding-left: 14px;
+            font-size: 13px;
+            color: var(--muted)
+        }
+
+        .content {
+            background: rgba(15, 26, 48, .55);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px;
+        }
+
+        h1 {
+            font-size: 34px;
+            margin: 8px 0 12px
+        }
+
+        h2 {
+            font-size: 22px;
+            margin: 26px 0 10px
+        }
+
+        h3 {
+            font-size: 16px;
+            margin: 18px 0 8px;
+            color: #dbe6ff
+        }
+
+        p {
+            color: #d6deea;
+            line-height: 1.55
+        }
+
+        ul, ol {
+            color: #d6deea;
+            line-height: 1.6
+        }
+
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+            margin: 12px 0;
+            background: rgba(11, 18, 32, .55);
+        }
+
+        .callout {
+            border-left: 6px solid var(--brand);
+            background: rgba(79, 140, 255, .10);
+        }
+
+        .callout.success {
+            border-left-color: var(--brand2);
+            background: rgba(34, 197, 94, .10)
+        }
+
+        .callout.warn {
+            border-left-color: var(--warn);
+            background: rgba(245, 158, 11, .12)
+        }
+
+        .callout.info {
+            border-left-color: var(--brand);
+            background: rgba(79, 140, 255, .10)
+        }
+
+        /* ── Plan sheet viewer ── */
+        .sheet-section {
+            margin: 28px 0
+        }
+
+        .sheet-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .sheet-label span {
+            background: rgba(79, 140, 255, .15);
+            border: 1px solid rgba(79, 140, 255, .3);
+            color: var(--brand);
+            padding: 3px 10px;
+            border-radius: 999px;
+        }
+
+        .sheet-img-wrap {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            background: #040810;
+            cursor: zoom-in;
+            position: relative;
+        }
+
+        .sheet-img-wrap img {
+            width: 100%;
+            display: block;
+            transition: transform .25s ease;
+        }
+
+        .sheet-img-wrap:hover img {
+            transform: scale(1.015);
+        }
+
+        /* Lightbox */
+        #lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(4, 8, 16, .93);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        #lightbox.active {
+            display: flex
+        }
+
+        #lightbox img {
+            max-width: 95vw;
+            max-height: 88vh;
+            border-radius: 10px;
+            box-shadow: 0 0 60px rgba(0, 0, 0, .8)
+        }
+
+        #lightbox-caption {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        #lightbox-close {
+            position: fixed;
+            top: 18px;
+            right: 22px;
+            font-size: 28px;
+            color: #fff;
+            cursor: pointer;
+            background: rgba(255, 255, 255, .1);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, .2);
+        }
+
+        #lightbox-close:hover {
+            background: rgba(255, 255, 255, .2)
+        }
+
+        .kv {
+            display: grid;
+            grid-template-columns:1fr 2fr;
+            gap: 10px
+        }
+
+        .kv div {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(11, 18, 32, .55)
+        }
+
+        .kv .label {
+            color: var(--muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .06em
+        }
+
+        .kv .value {
+            color: var(--text);
+            font-weight: 600
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: rgba(11, 18, 32, .55);
+            margin: 12px 0;
+        }
+
+        .table th, .table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top
+        }
+
+        .table th {
+            color: #e5efff;
+            text-align: left;
+            font-weight: 600;
+            background: rgba(79, 140, 255, .10)
+        }
+
+        .table tr:last-child td {
+            border-bottom: none
+        }
+
+        .table td:first-child {
+            font-weight: 600;
+            color: var(--brand)
+        }
+
+        footer {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 26px 18px;
+            color: var(--muted)
+        }
+
+        @media (max-width: 980px) {
+            main {
+                grid-template-columns:1fr
+            }
+
+            nav {
+                position: relative;
+                top: auto
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform
+                </div>
+            </div>
+        </div>
+        <div class="badge">Reference Document</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Contents</h3>
+        <a href="#overview">Overview</a>
+        <a href="#land-details">Land Details</a>
+        <a href="#entitlements">Unit Entitlements</a>
+        <a href="#floor-plans">Floor Plans</a>
+        <a class="nav-sub" href="#floor-ground">Ground Floor</a>
+        <a class="nav-sub" href="#floor-first">First Floor</a>
+        <a class="nav-sub" href="#floor-second">Second Floor</a>
+        <a class="nav-sub" href="#floor-third">Third Floor</a>
+        <a class="nav-sub" href="#floor-fourth">Fourth Floor</a>
+        <a class="nav-sub" href="#floor-fifth">Fifth Floor</a>
+        <a class="nav-sub" href="#floor-sixth">Sixth Floor</a>
+        <a class="nav-sub" href="#floor-seventh">Seventh Floor</a>
+        <a href="#covenants">Lease Covenants</a>
+        <a href="#common-property">Common Property</a>
+        <br>
+        <div style="font-size:12px;color:var(--muted);padding:8px 10px;border-top:1px solid var(--border);margin-top:4px">
+            Click any plan image to view full size.
+        </div>
+    </nav>
+
+    <article class="content">
+
+        <h1>Registered Units Plan No. 13195</h1>
+        <p>Official registered units plan for <span data-bldg="name">your building</span>, being Block 4, Section 75,
+            Division of Denman
+            Prospect, ACT. Deposited Plan DP 11618. Approved 25 November 2020 under the <em>Unit Titles Act 2001</em>.
+        </p>
+
+        <div class="card callout success">
+            <strong>Document Summary</strong>
+            <ul>
+                <li><strong>87 residential units</strong> across two buildings plus townhouses</li>
+                <li>Units 1–34: 5-storey residential with 2 levels basement parking</li>
+                <li>Units 35–70: 5-storey residential with 3 levels basement parking</li>
+                <li>Units 71–78 &amp; 79–87: 2-storey townhouses</li>
+                <li>Total aggregate unit entitlement: <strong>10,000</strong></li>
+                <li>Total unit subsidiaries: <strong>370</strong></li>
+            </ul>
+        </div>
+
+        <!-- ── SHEET 1 – SITE PLAN ── -->
+        <h2 id="overview">Site Plan</h2>
+        <p>Overall site plan showing the layout of all buildings on the block, bounded by Hoolihan Street (north), John
+            Gorton Drive (south), and Territory land (east and west). Total site area 5,509 m².</p>
+
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 1 of 26</span> Site Plan – Scale 1:300</div>
+            <div class="sheet-img-wrap" onclick="openLightbox('units_plan_images/page_01.jpg','Sheet 1 – Site Plan')">
+                <img alt="Site Plan – UP 13195" loading="lazy" src="units_plan_images/page_01.jpg"/>
+            </div>
+        </div>
+
+        <!-- ── LAND DETAILS ── -->
+        <h2 id="land-details">Land Details</h2>
+        <div class="kv" style="margin:14px 0">
+            <div>
+                <div class="label">Block</div>
+                <div class="value">4</div>
+            </div>
+            <div>
+                <div class="label">Section</div>
+                <div class="value">75</div>
+            </div>
+            <div>
+                <div class="label">Division</div>
+                <div class="value">Denman Prospect</div>
+            </div>
+            <div>
+                <div class="label">Territory</div>
+                <div class="value">Australian Capital Territory</div>
+            </div>
+            <div>
+                <div class="label">Deposited Plan</div>
+                <div class="value">DP 11618</div>
+            </div>
+            <div>
+                <div class="label">Volume / Folio</div>
+                <div class="value">2384 : 16</div>
+            </div>
+            <div>
+                <div class="label">Class of Units</div>
+                <div class="value">A</div>
+            </div>
+            <div>
+                <div class="label">Units Plan No.</div>
+                <div class="value">13195</div>
+            </div>
+            <div>
+                <div class="label">Approval Date</div>
+                <div class="value">25 November 2020</div>
+            </div>
+            <div>
+                <div class="label">Registrar-General</div>
+                <div class="value">David Pryce</div>
+            </div>
+            <div>
+                <div class="label">Address</div>
+                <div class="value"><span data-bldg="address">your building's address</span></div>
+            </div>
+            <div>
+                <div class="label">Site Area</div>
+                <div class="value">5,509 m²</div>
+            </div>
+        </div>
+
+        <!-- ── UNIT ENTITLEMENTS ── -->
+        <h2 id="entitlements">Schedule of Unit Entitlements</h2>
+        <p>Full schedule as registered (Sheets 2–5). The aggregate unit entitlement is <strong>10,000</strong>.
+            Individual entitlements reflect unit size and type — apartments range 82–161, townhouses are 160–161.</p>
+
+        <div class="card callout info" style="margin-bottom:16px">
+            <strong>Reading the entitlement schedule:</strong> Each unit's levy contribution is calculated as its
+            entitlement divided by 10,000 (the aggregate). E.g. a unit with entitlement 139 contributes 1.39% of the
+            Owners Corporation budget.
+        </div>
+
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 2 of 26</span> Unit Entitlements – Units 1–25</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_02.jpg','Sheet 2 – Unit Entitlements (Units 1–25)')">
+                <img alt="Unit Entitlements Sheet 2" loading="lazy" src="units_plan_images/page_02.jpg"/>
+            </div>
+        </div>
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 3 of 26</span> Unit Entitlements – Units 26–50</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_03.jpg','Sheet 3 – Unit Entitlements (Units 26–50)')">
+                <img alt="Unit Entitlements Sheet 3" loading="lazy" src="units_plan_images/page_03.jpg"/>
+            </div>
+        </div>
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 4 of 26</span> Unit Entitlements – Units 51–75</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_04.jpg','Sheet 4 – Unit Entitlements (Units 51–75)')">
+                <img alt="Unit Entitlements Sheet 4" loading="lazy" src="units_plan_images/page_04.jpg"/>
+            </div>
+        </div>
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 5 of 26</span> Unit Entitlements – Units 76–87 &amp; Totals</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_05.jpg','Sheet 5 – Unit Entitlements (Units 76–87)')">
+                <img alt="Unit Entitlements Sheet 5" loading="lazy" src="units_plan_images/page_05.jpg"/>
+            </div>
+        </div>
+
+        <!-- Quick reference table -->
+        <h3>Unit Entitlement Quick Reference</h3>
+        <p>Entitlement values by type as registered in the schedule:</p>
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Unit Type</th>
+                <th>Entitlement</th>
+                <th>Subsidiaries</th>
+                <th>Unit Range (examples)</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Small 1-bed</td>
+                <td>82</td>
+                <td>3</td>
+                <td>1, 4, 6, 7, 9, 12, 14, 15 …</td>
+            </tr>
+            <tr>
+                <td>Standard 1-bed</td>
+                <td>111</td>
+                <td>4</td>
+                <td>5, 8, 13, 16, 21, 24 …</td>
+            </tr>
+            <tr>
+                <td>2-bed standard</td>
+                <td>139</td>
+                <td>5</td>
+                <td>2, 3, 10, 11, 18, 26, 27 …</td>
+            </tr>
+            <tr>
+                <td>2-bed large</td>
+                <td>149</td>
+                <td>4</td>
+                <td>31, 67</td>
+            </tr>
+            <tr>
+                <td>Townhouse</td>
+                <td>160–161</td>
+                <td>6–8</td>
+                <td>71–87</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- ── FLOOR PLANS ── -->
+        <h2 id="floor-plans">Floor Plans &amp; Subsidiary Index</h2>
+        <p>Floor plans show each unit boundary, area, and subsidiary allocations (car spaces, storage,
+            balconies/courtyards). All units are at 14 Hoolihan Street.</p>
+
+        <div class="card callout warn" style="margin-bottom:16px">
+            <strong>Legend (Sheet 7):</strong> B = Balcony · CP = Common Property · Cs = Car Space · Cy = Courtyard · S
+            = Storage · St = Storage Subsidiary · Me = Metal Bar Fence · Pr = Pump Room. Storage rooms are 2.4 × 0.8 m
+            (1 m²) unless stated. Car spaces are 5.4 × 2.4 m (≈12 m²) unless stated.
+        </div>
+
+        <!-- Sheet 6: Subsidiary index 1-70 -->
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 6 of 26</span> Subsidiary Index – Units 1–70</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_06.jpg','Sheet 6 – Subsidiary Index Units 1–70')">
+                <img alt="Subsidiary Index Units 1-70" loading="lazy" src="units_plan_images/page_06.jpg"/>
+            </div>
+        </div>
+
+        <!-- Sheet 7: Legend + subsidiary index 71-87 -->
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 7 of 26</span> Legend, Notes &amp; Subsidiary Index – Units 71–87</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_07.jpg','Sheet 7 – Legend and Subsidiary Index Units 71–87')">
+                <img alt="Legend and Subsidiary Index Units 71-87" loading="lazy" src="units_plan_images/page_07.jpg"/>
+            </div>
+        </div>
+
+        <!-- Sheet 8: Ground floor -->
+        <h3 id="floor-ground">Ground Floor</h3>
+        <p>Townhouses (Units 71–87) and basement-level car spaces and storage for the apartment buildings. Includes all
+            courtyard areas.</p>
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 8 of 26</span> Floor Plan – Ground Level · Scale 1:250</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_08.jpg','Sheet 8 – Ground Floor Plan')">
+                <img alt="Ground Floor Plan" loading="lazy" src="units_plan_images/page_08.jpg"/>
+            </div>
+        </div>
+
+        <!-- Sheet 9: First floor -->
+        <h3 id="floor-first">First Floor</h3>
+        <p>Townhouse upper levels (Units 71–87) showing balconies and first-floor living areas, plus additional basement
+            car park level.</p>
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 9 of 26</span> Floor Plan – First Level · Scale 1:250</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_09.jpg','Sheet 9 – First Floor Plan')">
+                <img alt="First Floor Plan" loading="lazy" src="units_plan_images/page_09.jpg"/>
+            </div>
+        </div>
+
+        <!-- Sheet 10: Second floor -->
+        <h3 id="floor-second">Second Floor</h3>
+        <p>Apartment Units 1–6 (west building) and Units 47–50 (east building) at second-floor level, with garden
+            subsidiaries fronting Hoolihan Street.</p>
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 10 of 26</span> Floor Plan – Second Level · Scale 1:250</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_10.jpg','Sheet 10 – Second Floor Plan')">
+                <img alt="Second Floor Plan" loading="lazy" src="units_plan_images/page_10.jpg"/>
+            </div>
+        </div>
+
+        <!-- Sheet 11: Third floor -->
+        <h3 id="floor-third">Third Floor</h3>
+        <p>Apartment Units 7–14 (west building, Sheet 11 left) and Units 35–42 (east building, Sheet 11 right).</p>
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 11 of 26</span> Floor Plan – Third Level · Scale 1:250</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_11.jpg','Sheet 11 – Third Floor Plan')">
+                <img alt="Third Floor Plan" loading="lazy" src="units_plan_images/page_11.jpg"/>
+            </div>
+        </div>
+
+        <!-- Sheet 12: Fourth floor -->
+        <h3 id="floor-fourth">Fourth Floor</h3>
+        <p>Apartment Units 15–22 (west) and Units 43–50 (east).</p>
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 12 of 26</span> Floor Plan – Fourth Level · Scale 1:250</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_12.jpg','Sheet 12 – Fourth Floor Plan')">
+                <img alt="Fourth Floor Plan" loading="lazy" src="units_plan_images/page_12.jpg"/>
+            </div>
+        </div>
+
+        <!-- Sheet 13: Fifth floor -->
+        <h3 id="floor-fifth">Fifth Floor</h3>
+        <p>Apartment Units 23–30 (west) and Units 51–58 (east).</p>
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 13 of 26</span> Floor Plan – Fifth Level · Scale 1:250</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_13.jpg','Sheet 13 – Fifth Floor Plan')">
+                <img alt="Fifth Floor Plan" loading="lazy" src="units_plan_images/page_13.jpg"/>
+            </div>
+        </div>
+
+        <!-- Sheet 14: Sixth floor -->
+        <h3 id="floor-sixth">Sixth Floor</h3>
+        <p>Apartment Units 31–34 (west building, reduced footprint) and Units 59–66 (east building).</p>
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 14 of 26</span> Floor Plan – Sixth Level · Scale 1:250</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_14.jpg','Sheet 14 – Sixth Floor Plan')">
+                <img alt="Sixth Floor Plan" loading="lazy" src="units_plan_images/page_14.jpg"/>
+            </div>
+        </div>
+
+        <!-- Sheet 15: Seventh floor -->
+        <h3 id="floor-seventh">Seventh Floor</h3>
+        <p>Apartment Units 67–70 in the east building only (penthouse level). The west building does not extend to this
+            level.</p>
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheet 15 of 26</span> Floor Plan – Seventh Level · Scale 1:250</div>
+            <div class="sheet-img-wrap"
+                 onclick="openLightbox('units_plan_images/page_15.jpg','Sheet 15 – Seventh Floor Plan')">
+                <img alt="Seventh Floor Plan" loading="lazy" src="units_plan_images/page_15.jpg"/>
+            </div>
+        </div>
+
+        <!-- ── COVENANTS ── -->
+        <h2 id="covenants">Schedule of Lease Covenants (Form 4)</h2>
+        <p>Provisions, covenants and conditions subject to which leases of all units are held. Key provisions
+            include:</p>
+        <ul>
+            <li>Lease term expires <strong>7 November 2117</strong></li>
+            <li>Annual rent: <strong>five cents per annum</strong> if and when demanded</li>
+            <li>Units must be used as <strong>single dwellings only</strong> (no subsidiary used as habitation)</li>
+            <li>No structural alterations without prior written approval from the Authority</li>
+            <li>No solid fuel heating systems without prior written consent</li>
+            <li>Lessee must maintain the unit in good repair at all times</li>
+            <li>No removal of protected trees without Territory consent</li>
+            <li>All minerals and groundwater rights reserved to the Territory</li>
+        </ul>
+
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheets 16–21 of 26</span> Form 4 – Schedule of Provisions (Units)</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="sheet-img-wrap"
+                     onclick="openLightbox('units_plan_images/page_16.jpg','Sheet 16 – Form 4 Covenants (Page 1)')">
+                    <img alt="Form 4 Page 1" loading="lazy" src="units_plan_images/page_16.jpg"/>
+                </div>
+                <div class="sheet-img-wrap"
+                     onclick="openLightbox('units_plan_images/page_17.jpg','Sheet 17 – Form 4 Covenants (Page 2)')">
+                    <img alt="Form 4 Page 2" loading="lazy" src="units_plan_images/page_17.jpg"/>
+                </div>
+                <div class="sheet-img-wrap"
+                     onclick="openLightbox('units_plan_images/page_18.jpg','Sheet 18 – Form 4 Covenants (Page 3)')">
+                    <img alt="Form 4 Page 3" loading="lazy" src="units_plan_images/page_18.jpg"/>
+                </div>
+                <div class="sheet-img-wrap"
+                     onclick="openLightbox('units_plan_images/page_19.jpg','Sheet 19 – Form 4 Covenants (Page 4)')">
+                    <img alt="Form 4 Page 4" loading="lazy" src="units_plan_images/page_19.jpg"/>
+                </div>
+                <div class="sheet-img-wrap"
+                     onclick="openLightbox('units_plan_images/page_20.jpg','Sheet 20 – Form 4 Covenants (Page 5)')">
+                    <img alt="Form 4 Page 5" loading="lazy" src="units_plan_images/page_20.jpg"/>
+                </div>
+                <div class="sheet-img-wrap"
+                     onclick="openLightbox('units_plan_images/page_21.jpg','Sheet 21 – Form 4 Signatures')">
+                    <img alt="Form 4 Signatures" loading="lazy" src="units_plan_images/page_21.jpg"/>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── COMMON PROPERTY ── -->
+        <h2 id="common-property">Schedule of Common Property Covenants (Form 5)</h2>
+        <p>Provisions governing the lease of common property held by the Owners Corporation – Units Plan No. 13195. The
+            Owners Corporation covenants to maintain all common property including carparking, landscaping, lighting,
+            storage areas, vehicle and pedestrian access.</p>
+
+        <div class="card callout info">
+            <strong>Common Property Lease:</strong> Expires <strong>7 November 2117</strong>. The Owners Corporation is
+            the lessee. All common property minerals and groundwater are reserved to the Territory.
+        </div>
+
+        <div class="sheet-section">
+            <div class="sheet-label"><span>Sheets 22–26 of 26</span> Form 5 – Schedule of Provisions (Common Property)
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="sheet-img-wrap"
+                     onclick="openLightbox('units_plan_images/page_22.jpg','Sheet 22 – Form 5 Common Property (Page 1)')">
+                    <img alt="Form 5 Page 1" loading="lazy" src="units_plan_images/page_22.jpg"/>
+                </div>
+                <div class="sheet-img-wrap"
+                     onclick="openLightbox('units_plan_images/page_23.jpg','Sheet 23 – Form 5 Common Property (Page 2)')">
+                    <img alt="Form 5 Page 2" loading="lazy" src="units_plan_images/page_23.jpg"/>
+                </div>
+                <div class="sheet-img-wrap"
+                     onclick="openLightbox('units_plan_images/page_24.jpg','Sheet 24 – Form 5 Common Property (Page 3)')">
+                    <img alt="Form 5 Page 3" loading="lazy" src="units_plan_images/page_24.jpg"/>
+                </div>
+                <div class="sheet-img-wrap"
+                     onclick="openLightbox('units_plan_images/page_25.jpg','Sheet 25 – Form 5 Common Property (Page 4)')">
+                    <img alt="Form 5 Page 4" loading="lazy" src="units_plan_images/page_25.jpg"/>
+                </div>
+                <div class="sheet-img-wrap"
+                     onclick="openLightbox('units_plan_images/page_26.jpg','Sheet 26 – Form 5 Signatures')">
+                    <img alt="Form 5 Signatures" loading="lazy" src="units_plan_images/page_26.jpg"/>
+                </div>
+            </div>
+        </div>
+
+        <div class="card callout warn" style="margin-top:24px">
+            <strong>Legal Notice:</strong> This document is an official Land Titles record registered with ACT
+            Government under the <em>Unit Titles Act 2001</em>. Any amendments require formal application to Access
+            Canberra, Land Titles Office. Structural alterations to units or common property require prior written
+            approval from the Planning and Land Authority.
+        </div>
+
+    </article>
+</main>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+    <div id="lightbox-close" onclick="closeLightbox()">✕</div>
+    <img alt="" id="lightbox-img" src=""/>
+    <div id="lightbox-caption"></div>
+</div>
+
+<footer>
+    Units Plan No. 13195 – Registered 25 November 2020 •
+    Access Canberra Land Titles Office •
+    <a href="index.html">← Back to User Guides</a>
+</footer>
+
+<script>
+    function openLightbox(src, caption) {
+        document.getElementById('lightbox-img').src = src;
+        document.getElementById('lightbox-caption').textContent = caption;
+        document.getElementById('lightbox').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeLightbox();
+    });
+</script>
+<script src="building-config.js"></script>
+</body>
+</html>

@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>API Authentication & Multi-Tenant Architecture</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .code-block {
+            background: #1f2937;
+            color: #e5e7eb;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 12px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .code-block strong {
+            color: #fbbf24;
+        }
+
+        .api-endpoint {
+            background: #f9fafb;
+            border-left: 4px solid #2F4F4F;
+            border-radius: 4px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+
+        .request-response {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 12px 0;
+        }
+
+        .request-response > div {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .request-response h4 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+        }
+
+        .tech-badge {
+            display: inline-block;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .flow-diagram {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            line-height: 1.8;
+        }
+
+        .callout-info {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .callout-warn {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .claim-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 14px;
+        }
+
+        .claim-table th {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .claim-table td {
+            border: 1px solid #e5e7eb;
+            padding: 10px;
+        }
+
+        .claim-table code {
+            background: #f9fafb;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← Tech Docs</a>
+        <h1>API Authentication & Multi-Tenant Architecture</h1>
+        <p>Technical reference for integrating with StrataOS. Phase E: PostgreSQL identity + JWT + multi-tenant
+            isolation.</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2>Architecture Overview</h2>
+
+        <p><strong>StrataOS uses a hybrid PostgreSQL + JWT architecture for authentication and multi-tenant
+            isolation:</strong></p>
+
+        <div class="flow-diagram">
+            User registers with email, password, unit number
+            ↓
+            POST /auth/register writes to MongoDB (legacy) AND Postgres core.users (dual-write)
+            ↓
+            Password hashed with bcrypt (never stored plaintext)
+            ↓
+            Tenant ID assigned from building context
+            ↓
+            JWT generated with tenant_id claim (UUID) + legacy building_id string
+            ↓
+            JWT returned to client + stored in localStorage
+            ↓
+            Client includes JWT in Authorization header for all requests
+            ↓
+            Backend validates JWT + extracts tenant_id
+            ↓
+            PostgreSQL RLS uses tenant_id to filter all queries
+            ↓
+            Only user's building data visible
+        </div>
+
+        <p><strong>Key Components:</strong></p>
+        <ul>
+            <li><strong>MongoDB users</strong> — Legacy identity store; still the source-of-truth for existing business
+                logic
+            </li>
+            <li><strong>PostgreSQL core.users</strong> — New identity layer; authoritative for RLS and multi-tenant
+                isolation (Phase E dual-write)
+            </li>
+            <li><strong>JWT (JSON Web Token)</strong> — Signed token with user ID, email, tenant ID, and role</li>
+            <li><strong>Row-Level Security (RLS)</strong> — Database-level enforcement of tenant isolation</li>
+            <li><strong>GUC Variables</strong> — PostgreSQL config used to set per-request tenant context</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>JWT Payload Reference</h2>
+
+        <p>All authentication responses include a JWT token. The token contains these claims:</p>
+
+        <table class="claim-table">
+            <tr>
+                <th>Claim</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+            <tr>
+                <td><code>sub</code></td>
+                <td>string</td>
+                <td>Subject (user ID)</td>
+                <td><code>550e8400-e29b-41d4-a716-446655440000</code></td>
+            </tr>
+            <tr>
+                <td><code>email</code></td>
+                <td>string</td>
+                <td>User's email address</td>
+                <td><code>user@example.com</code></td>
+            </tr>
+            <tr>
+                <td><code>tenant_id</code></td>
+                <td>uuid</td>
+                <td><strong>CRITICAL:</strong> Building/tenant identifier for RLS</td>
+                <td><code>550e8400-e29b-41d4-a716-446655440000</code></td>
+            </tr>
+            <tr>
+                <td><code>building_id</code></td>
+                <td>string</td>
+                <td>Legacy building ID (for UI routing)</td>
+                <td><code>13195</code></td>
+            </tr>
+            <tr>
+                <td><code>role</code></td>
+                <td>string</td>
+                <td>User's role (owner, tenant, admin, manager, etc.)</td>
+                <td><code>owner</code></td>
+            </tr>
+            <tr>
+                <td><code>permissions</code></td>
+                <td>object</td>
+                <td>Fine-grained permissions (can_manage_finances, etc.)</td>
+                <td><code>{"can_manage_finances": true}</code></td>
+            </tr>
+            <tr>
+                <td><code>exp</code></td>
+                <td>integer</td>
+                <td>Token expiration (Unix timestamp)</td>
+                <td><code>1714675200</code></td>
+            </tr>
+            <tr>
+                <td><code>iat</code></td>
+                <td>integer</td>
+                <td>Issued at (Unix timestamp)</td>
+                <td><code>1714588800</code></td>
+            </tr>
+        </table>
+
+        <p><strong>Decoded JWT Example:</strong></p>
+        <div class="code-block">
+            {
+            "sub": "550e8400-e29b-41d4-a716-446655440000",
+            "email": "owner@example.com",
+            <strong>"tenant_id": "550e8400-e29b-41d4-a716-446655440001"</strong>,
+            "building_id": "13195",
+            "role": "owner",
+            "permissions": {
+            "can_view_finances": true,
+            "can_manage_levies": false
+            },
+            "iat": 1714588800,
+            "exp": 1714675200
+            }
+        </div>
+
+        <div class="callout-warn">
+            <strong>⚠️ CRITICAL:</strong> The <code class="tech-badge">tenant_id</code> claim is used by PostgreSQL RLS
+            to filter all queries. If this claim is missing or incorrect, the user can see data from other buildings.
+            Always validate and include it in every request.
+        </div>
+    </section>
+
+    <section>
+        <h2>Registration Endpoint: POST /auth/register</h2>
+
+        <div class="api-endpoint">
+            <h3>Create a new user account</h3>
+            <p><strong>Method:</strong> POST<br/><strong>Path:</strong> /api/auth/register<br/><strong>Auth:</strong>
+                None (public endpoint)</p>
+        </div>
+
+        <div class="callout-info">
+            <strong>Phase E Dual-Write:</strong> This endpoint now writes to both <strong>MongoDB</strong> (legacy
+            identity, business logic) and <strong>PostgreSQL <code>core.users</code></strong> (new identity layer, RLS)
+            via <code>identity_repo.create_user_for_registration()</code>. The Postgres write is <em>non-fatal</em>
+            — a Postgres failure still returns a successful registration with a JWT.
+        </div>
+
+        <h3>Request</h3>
+        <div class="code-block">
+            POST /api/auth/register
+            Content-Type: application/json
+
+            {
+            "email": "owner@example.com",
+            "password": "SecureP@ssw0rd123",
+            "full_name": "John Smith",
+            "phone": "+61412345678",
+            "unit_number": "101",
+            "building_id": "13195",
+            "role": "owner",
+            "invitation_token": "&lt;raw-token-from-email&gt;" <span style="color:#6b7280">// optional — invitation-based flow</span>
+            }
+        </div>
+
+        <p><strong>Request Fields:</strong></p>
+        <ul>
+            <li><code class="tech-badge">email</code> (required) — Unique email; validated against core.users</li>
+            <li><code class="tech-badge">password</code> (required) — Min 12 chars; bcrypt hashed server-side</li>
+            <li><code class="tech-badge">full_name</code> (required) — User's full name</li>
+            <li><code class="tech-badge">phone</code> (optional) — Contact number for notifications</li>
+            <li><code class="tech-badge">unit_number</code> (optional) — Property unit identifier</li>
+            <li><code class="tech-badge">building_id</code> (required for self-registration) — Building context for
+                tenant assignment
+            </li>
+            <li><code class="tech-badge">role</code> (optional) — Default: "owner" for self-registration</li>
+            <li><code class="tech-badge">invitation_token</code> (optional) — Raw token from an admin invitation email;
+                if provided, <code>building_id</code> and <code>role</code> are resolved from the invitation record
+            </li>
+        </ul>
+
+        <h3>Success Response (201 Created)</h3>
+        <div class="code-block">
+            {
+            "status": "success",
+            "user_id": "550e8400-e29b-41d4-a716-446655440000",
+            "email": "owner@example.com",
+            "token": "<strong>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</strong>",
+            "tenant_id": "550e8400-e29b-41d4-a716-446655440001",
+            "message": "Registration successful; you are now logged in"
+            }
+        </div>
+
+        <p><strong>Response Fields:</strong></p>
+        <ul>
+            <li><code class="tech-badge">user_id</code> — UUID of newly created user</li>
+            <li><code class="tech-badge">token</code> — JWT for authentication (store in localStorage)</li>
+            <li><code class="tech-badge">tenant_id</code> — Building tenant context (included in JWT claims)</li>
+        </ul>
+
+        <h3>Error Responses</h3>
+
+        <p><strong>409 Conflict — Email already exists</strong></p>
+        <div class="code-block">
+            {
+            "status": "error",
+            "error_code": "EMAIL_DUPLICATE",
+            "message": "Email already registered in this building"
+            }
+        </div>
+
+        <p><strong>400 Bad Request — Validation failure</strong></p>
+        <div class="code-block">
+            {
+            "status": "error",
+            "error_code": "VALIDATION_ERROR",
+            "errors": {
+            "password": ["Password must be at least 12 characters"],
+            "email": ["Invalid email format"]
+            }
+            }
+        </div>
+
+        <p><strong>503 Service Unavailable — Database error (graceful fallback)</strong></p>
+        <div class="code-block">
+            {
+            "status": "error",
+            "error_code": "DB_ERROR",
+            "message": "Registration service temporarily unavailable; please try again"
+            }
+        </div>
+    </section>
+
+    <section>
+        <h2>Invitation-Based Registration</h2>
+
+        <p>Administrators can pre-invite users via <code>POST /api/admin/invitations</code>. The invited user
+            receives an email with a time-limited token link; when they click it and complete registration, the
+            <code>invitation_token</code> is passed to <code>POST /auth/register</code> to claim the invite.</p>
+
+        <div class="flow-diagram">
+            Admin: POST /api/admin/invitations → core.user_invitations row created
+            claim_token_sha256 stored (raw token emailed)
+            ↓
+            Invitee receives email with /register?invitation_token=&lt;raw&gt;
+            ↓
+            Invitee submits registration form (invitation_token in body)
+            ↓
+            POST /auth/register → identity_repo.find_invitation_by_token()
+            Hashes raw token + queries using RLS bypass sentinel (migration 0015)
+            ↓
+            Match found: claim_invitation() stamps claimed_at + claimed_user_id
+            ↓
+            JWT minted with tenant_id + building_id from invitation record
+        </div>
+
+        <div class="callout-info">
+            <strong>RLS Bypass Sentinel (migration 0015):</strong> The pre-claim token lookup runs before the
+            invitee has a <code>tenant_id</code>. Migration <code>0015_rls_invitation_bypass</code> adds the sentinel
+            UUID <code>00000000-0000-0000-0000-000000000000</code> to the <code>core.user_invitations</code> RLS
+            policy, allowing the system role to perform this specific lookup without a valid
+            <code>app.tenant_id</code> GUC while still blocking arbitrary cross-tenant queries.
+        </div>
+
+        <h3>Admin Invitation Request</h3>
+        <div class="code-block">
+            POST /api/admin/invitations
+            Authorization: Bearer &lt;admin-jwt&gt;
+            Content-Type: application/json
+
+            {
+            "email": "newowner@example.com",
+            "invited_role": "owner",
+            "prefill_first_name": "Jane",
+            "prefill_last_name": "Smith",
+            "prefill_unit_id": "uuid-of-unit",
+            "expires_in_hours": 72
+            }
+        </div>
+
+        <section>
+            <h2>Login Endpoint: POST /auth/login</h2>
+
+            <div class="api-endpoint">
+                <h3>Authenticate with email and password</h3>
+                <p><strong>Method:</strong> POST<br/><strong>Path:</strong> /api/auth/login<br/><strong>Auth:</strong>
+                    None</p>
+            </div>
+
+            <h3>Request</h3>
+            <div class="code-block">
+                POST /api/auth/login
+                Content-Type: application/json
+
+                {
+                "email": "owner@example.com",
+                "password": "SecureP@ssw0rd123",
+                "building_id": "13195"
+                }
+            </div>
+
+            <h3>Success Response (200 OK)</h3>
+            <div class="code-block">
+                {
+                "status": "success",
+                "user_id": "550e8400-e29b-41d4-a716-446655440000",
+                "email": "owner@example.com",
+                "token": "<strong>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</strong>",
+                "tenant_id": "550e8400-e29b-41d4-a716-446655440001",
+                "role": "owner"
+                }
+            </div>
+        </section>
+
+        <section>
+            <h2>Authenticated Requests: Using the JWT</h2>
+
+            <p>For all endpoints requiring authentication, include the JWT in the <code
+                    class="tech-badge">Authorization</code> header:</p>
+
+            <div class="code-block">
+                GET /api/buildings/me
+                Authorization: Bearer <strong>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</strong>
+                X-Tenant-ID: 550e8400-e29b-41d4-a716-446655440001
+            </div>
+
+            <p><strong>Headers:</strong></p>
+            <ul>
+                <li><code class="tech-badge">Authorization</code> — Must include "Bearer " prefix + JWT token</li>
+                <li><code class="tech-badge">X-Tenant-ID</code> (optional) — Explicitly set tenant context (extracted
+                    from JWT if not provided)
+                </li>
+            </ul>
+
+            <div class="callout-info">
+                <strong>Tenant Context:</strong> If you're a super admin with access to multiple buildings, you can
+                override the JWT's tenant_id using the X-Tenant-ID header. Otherwise, the JWT's tenant_id is used
+                exclusively.
+            </div>
+        </section>
+
+        <section>
+            <h2>Multi-Tenant Isolation Mechanism</h2>
+
+            <p><strong>How does StrataOS prevent users from seeing other buildings' data?</strong></p>
+
+            <div class="flow-diagram">
+                JWT contains tenant_id = 550e8400-e29b-41d4-a716-446655440001
+                ↓
+                Request arrives at API endpoint
+                ↓
+                Backend validates JWT signature
+                ↓
+                Backend extracts tenant_id from JWT claims
+                ↓
+                Backend sets PostgreSQL GUC: SET app.tenant_id = tenant_id
+                ↓
+                All SQL queries automatically filtered:
+                WHERE building_id = app.tenant_id
+                ↓
+                Database returns only matching building's data
+                ↓
+                User gets correct data; other buildings invisible
+            </div>
+
+            <p><strong>PostgreSQL Row-Level Security (RLS) Implementation:</strong></p>
+
+            <p>Every tenant-scoped table has an RLS policy:</p>
+
+            <div class="code-block">
+                CREATE POLICY tenant_isolation ON public.users
+                USING (tenant_id = current_setting('app.tenant_id')::uuid);
+
+                ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+            </div>
+
+            <p>When a query executes:</p>
+            <ul>
+                <li>PostgreSQL checks the RLS policy</li>
+                <li>If the row's <code class="tech-badge">tenant_id</code> matches <code class="tech-badge">app.tenant_id</code>,
+                    the row is included
+                </li>
+                <li>Otherwise, the row is excluded (returns empty result)</li>
+            </ul>
+
+            <p><strong>Example: A user tries to query another building's data</strong></p>
+
+            <div class="code-block">
+                -- User from tenant A tries to query tenant B's users
+                -- Their JWT has tenant_id = A
+
+                -- Backend sets: SET app.tenant_id = A
+
+                -- Query executed:
+                SELECT * FROM core.users WHERE tenant_id = B
+
+                -- RLS policy evaluated:
+                -- WHERE tenant_id = B AND tenant_id = current_setting('app.tenant_id') -- A
+                -- No rows match (B ≠ A)
+
+                -- Result: Empty set returned (user sees nothing)
+            </div>
+
+            <div class="callout-warn">
+                <strong>⚠️ Critical Invariant:</strong> If the JWT's tenant_id is not validated or the GUC is not set,
+                RLS is bypassed. Always validate the JWT signature and always set the tenant context before querying
+                tenant-scoped tables.
+            </div>
+        </section>
+
+        <section>
+            <h2>Building Context Resolution (get_current_building)</h2>
+
+            <p>When a JWT is validated, <code>get_current_building()</code> resolves <code>building_id</code> in this
+                order (first match wins):</p>
+
+            <ol>
+                <li><strong>JWT claim <code class="tech-badge">building_id</code></strong> — If present and valid, use
+                    it
+                </li>
+                <li><strong><code>X-Building-ID</code> header</strong> — Super admin override only; allows operating on
+                    any building without re-issuing the JWT
+                </li>
+                <li><strong><code>user.building_id</code> in database</strong> — Fallback to stored value</li>
+                <li><strong>Single membership auto-resolve</strong> — If user has exactly one active building
+                    membership, use it
+                </li>
+                <li><strong>403 Forbidden</strong> — No building context can be resolved (<code>DEFAULT_BUILDING_ID =
+                    ""</code> — Phase E clean-break; no implicit fallback to any hardcoded building)
+                </li>
+            </ol>
+
+            <div class="callout-warn">
+                <strong>Phase E Clean-Break:</strong> <code>DEFAULT_BUILDING_ID = ""</code> — prior to Phase E this
+                fell back to <code>"13195"</code> (East Gate). That implicit fallback is removed. If building context
+                cannot be resolved via the chain above, the request is rejected with <code>403</code>. All three
+                buildings (<code>13195</code>, <code>16244</code>, <code>18932</code>) have equal treatment.
+            </div>
+
+            <p><strong>Tenant ID resolution</strong> (for Postgres RLS) follows a parallel chain:</p>
+            <ol>
+                <li><strong>JWT claim <code class="tech-badge">tenant_id</code></strong> — If present and valid, use it
+                </li>
+                <li><strong><code>user.tenant_id</code> in database</strong> — Fallback to stored value</li>
+                <li><strong>Building membership</strong> — Derive from the resolved building</li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>Multi-Building User Scenarios</h2>
+
+            <p>Some users (e.g. strata managers, super admins) belong to multiple buildings. The platform handles this
+                through building-scoped JWT tokens and an explicit switch endpoint.</p>
+
+            <div class="flow-diagram">
+                User logs in → JWT scoped to their primary building (user.building_id)
+                ↓
+                User calls POST /auth/switch-building { "building_id": "16244" }
+                ↓
+                Backend validates membership in target building
+                ↓
+                New JWT minted with building_id = "16244" + matching tenant_id
+                ↓
+                Client replaces stored JWT; all subsequent requests use new building context
+            </div>
+
+            <div class="callout-info">
+                <strong>Super admin building override:</strong> Super admins can also include
+                <code class="tech-badge">X-Building-ID: &lt;building_id&gt;</code> on any request to operate in a
+                different building without switching their JWT. This is how the admin dashboard accesses any building's
+                data within a single session.
+            </div>
+
+            <h3>JWT Building Claims by Scenario</h3>
+            <table class="claim-table">
+                <tr>
+                    <th>Scenario</th>
+                    <th>building_id in JWT</th>
+                    <th>tenant_id in JWT</th>
+                </tr>
+                <tr>
+                    <td>Owner of unit 101, East Gate</td>
+                    <td><code>"13195"</code></td>
+                    <td>East Gate tenant UUID</td>
+                </tr>
+                <tr>
+                    <td>Strata manager switched to Sierra</td>
+                    <td><code>"16244"</code></td>
+                    <td>Sierra tenant UUID</td>
+                </tr>
+                <tr>
+                    <td>Super admin (default session)</td>
+                    <td>Primary building (e.g. <code>"13195"</code>)</td>
+                    <td>Primary tenant UUID</td>
+                </tr>
+                <tr>
+                    <td>Super admin with X-Building-ID header</td>
+                    <td>JWT unchanged; header overrides context in-flight</td>
+                    <td>JWT unchanged; header-resolved building sets GUC</td>
+                </tr>
+            </table>
+        </section>
+
+        <section>
+            <h2>Error Codes Reference</h2>
+
+            <p>Common authentication errors and their meanings:</p>
+
+            <table class="claim-table">
+                <tr>
+                    <th>Error Code</th>
+                    <th>HTTP Status</th>
+                    <th>Meaning</th>
+                    <th>Action</th>
+                </tr>
+                <tr>
+                    <td><code>INVALID_TOKEN</code></td>
+                    <td>401</td>
+                    <td>JWT signature invalid or expired</td>
+                    <td>User must login again</td>
+                </tr>
+                <tr>
+                    <td><code>TOKEN_EXPIRED</code></td>
+                    <td>401</td>
+                    <td>JWT has expired</td>
+                    <td>Request refresh token; user re-authenticates</td>
+                </tr>
+                <tr>
+                    <td><code>NO_AUTH_HEADER</code></td>
+                    <td>401</td>
+                    <td>Authorization header missing</td>
+                    <td>Include JWT in header</td>
+                </tr>
+                <tr>
+                    <td><code>TENANT_MISMATCH</code></td>
+                    <td>403</td>
+                    <td>User's tenant doesn't match requested resource</td>
+                    <td>User cannot access this data (multi-tenant violation)</td>
+                </tr>
+                <tr>
+                    <td><code>INSUFFICIENT_PERMISSIONS</code></td>
+                    <td>403</td>
+                    <td>User lacks required permission for endpoint</td>
+                    <td>Request access from building admin or role change</td>
+                </tr>
+                <tr>
+                    <td><code>EMAIL_DUPLICATE</code></td>
+                    <td>409</td>
+                    <td>Email already exists in this building</td>
+                    <td>Use different email or login if existing account</td>
+                </tr>
+            </table>
+        </section>
+
+        <section>
+            <h2>Security Best Practices for API Consumers</h2>
+
+            <ul>
+                <li><strong>Never store JWT in cookies</strong> — Use localStorage or sessionStorage; be aware of XSS
+                    risks
+                </li>
+                <li><strong>Validate JWT signature</strong> — Always verify the signature using your public key</li>
+                <li><strong>Use HTTPS only</strong> — Never send JWT over unencrypted HTTP</li>
+                <li><strong>Refresh tokens</strong> — Implement token refresh flow before expiration</li>
+                <li><strong>Logout clears token</strong> — Remove JWT from storage; invalidate on server</li>
+                <li><strong>Don't trust tenant_id from user input</strong> — Always verify against JWT or database</li>
+                <li><strong>Rate limit authentication endpoints</strong> — Prevent brute-force password attacks</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>cURL Examples</h2>
+
+            <h3>Register a new user</h3>
+            <div class="code-block">
+                curl -X POST http://localhost:8003/api/auth/register \
+                -H "Content-Type: application/json" \
+                -d '{
+                "email": "owner@example.com",
+                "password": "SecureP@ssw0rd123",
+                "full_name": "John Smith",
+                "unit_number": "101",
+                "building_id": "13195",
+                "role": "owner"
+                }'
+            </div>
+
+            <h3>Login</h3>
+            <div class="code-block">
+                curl -X POST http://localhost:8003/api/auth/login \
+                -H "Content-Type: application/json" \
+                -d '{
+                "email": "owner@example.com",
+                "password": "SecureP@ssw0rd123",
+                "building_id": "13195"
+                }'
+            </div>
+
+            <h3>Authenticated API request</h3>
+            <div class="code-block">
+                curl -X GET http://localhost:8003/api/buildings/me \
+                -H "Authorization: Bearer $<strong>{TOKEN}</strong>" \
+                -H "X-Tenant-ID: 550e8400-e29b-41d4-a716-446655440001"
+            </div>
+        </section>
+
+        <section>
+            <h2>Related Documentation</h2>
+            <ul>
+                <li><a href="../user-guides/registration-guide.html">Registration Guide</a> — User perspective on registration</li>
+                <li><a href="#">API Reference</a> — Complete endpoint documentation</li>
+                <li><a href="#">Role-Based Access Control</a> — Permission and role definitions</li>
+                <li><a href="#">Database Schema</a> — PostgreSQL schema + RLS policies</li>
+            </ul>
+        </section>
+
+</main>
+
+<footer>
+    <p>StrataOS Tech Docs | Last updated: Phase E — May 2026</p>
+    <p>Questions? Visit the <a href="https://eastgateresidences.com.au/developers">developer portal</a>.</p>
+</footer>
+
+</body>
+</html>

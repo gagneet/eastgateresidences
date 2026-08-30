@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Payment Plans — User Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-requested {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-active {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .badge-completed {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .badge-declined {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-cancelled {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .role-table td, .role-table th {
+            padding: 8px 14px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .role-table th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        .step {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #2F4F4F;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .tip-box {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+
+        .warn-box {
+            background: #fefce8;
+            border-left: 4px solid #f59e0b;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+
+        .flow {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .flow-arrow {
+            color: #94a3b8;
+            font-size: 18px;
+        }
+
+        dl dt {
+            font-weight: 700;
+            margin-top: 16px;
+        }
+
+        dl dd {
+            margin-left: 0;
+            margin-top: 4px;
+            color: #555;
+        }
+
+        .audience-pill {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .audience-owner {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .audience-manager {
+            background: #fae8ff;
+            color: #7e22ce;
+        }
+    </style>
+</head>
+<body>
+<div class="guide-container">
+    <header class="guide-header">
+        <h1>Payment Plans</h1>
+        <p class="guide-subtitle">Request, approve, and manage formal levy payment plans under the NSW Strata Schemes
+            Management Act 2015</p>
+        <p style="margin-top:8px;">
+            <span class="audience-pill audience-owner">Owners</span>
+            <span class="audience-pill audience-manager">Strata Managers</span>
+            <span class="audience-pill audience-manager">EC Members</span>
+        </p>
+    </header>
+
+    <section class="guide-section">
+        <h2>What is a payment plan?</h2>
+        <p>
+            If you fall behind on levy payments, you may formally request a payment plan through your building's
+            strata portal. A payment plan is a written agreement between you and the owners corporation that allows
+            you to repay arrears in structured instalments rather than as a single lump sum.
+        </p>
+        <p>
+            This feature implements the <strong>NSW Form 1 payment plan process</strong> under sections 83A–83C
+            of the <em>Strata Schemes Management Act 2015</em> (SSMA 2015). It is available to all buildings on
+            this platform — not just NSW properties.
+        </p>
+        <div class="info-box">
+            <strong>28-day response window.</strong> Under the SSMA 2015, the owners corporation must respond
+            to a payment plan request within 28 days. Your strata manager will be notified immediately when
+            you submit a request.
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <h2>Who can use this feature?</h2>
+        <table class="role-table" style="width:100%; border-collapse: collapse; margin-top: 12px;">
+            <thead>
+            <tr>
+                <th>Role</th>
+                <th>Submit a request</th>
+                <th>View own plans</th>
+                <th>View all plans</th>
+                <th>Approve / Decline</th>
+                <th>Update status</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Owner / Tenant</td>
+                <td>&#10003; Yes (own unit)</td>
+                <td>&#10003; Yes</td>
+                <td>&#10007; No</td>
+                <td>&#10007; No</td>
+                <td>&#10007; No</td>
+            </tr>
+            <tr>
+                <td>EC Member</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+            </tr>
+            <tr>
+                <td>Chairman</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+            </tr>
+            <tr>
+                <td>Strata Manager</td>
+                <td>&#10003; Yes (on behalf)</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ── OWNER SECTION ── -->
+    <section class="guide-section">
+        <h2>For owners: how to request a payment plan</h2>
+
+        <div class="step">
+            <div class="step-num">1</div>
+            <div>Go to <strong>Dashboard &rarr; Finance &rarr; Payment Plans</strong>.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <div>Click <strong>Request a Payment Plan</strong>. A form will open.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <div>
+                Fill in the required details:
+                <ul style="margin-top:8px;">
+                    <li><strong>Unit number</strong> — the lot with arrears</li>
+                    <li><strong>Total outstanding amount</strong> — your current arrears balance in dollars</li>
+                    <li><strong>Proposed instalment amount</strong> — how much you can pay each period</li>
+                    <li><strong>Frequency</strong> — weekly, fortnightly, or monthly</li>
+                    <li><strong>Proposed start date</strong> — when you would like instalments to begin</li>
+                    <li><strong>Hardship reason</strong> (optional) — a brief statement explaining your circumstances
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">4</div>
+            <div>Click <strong>Submit Request</strong>. The request is immediately visible to your strata manager.</div>
+        </div>
+
+        <div class="warn-box">
+            <strong>Important:</strong> Submitting a payment plan request does not pause levy interest
+            or legal action. Continue making any payments you can while awaiting a decision.
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <h2>For managers: approving or declining a request</h2>
+
+        <h3>Approving a plan</h3>
+        <div class="step">
+            <div class="step-num">1</div>
+            <div>Go to <strong>Dashboard &rarr; Finance &rarr; Payment Plans</strong>. Requests with status
+                <span class="badge badge-requested">Requested</span> are pending your action.
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <div>Click on a plan to open its details. Review the owner's proposed instalment amount,
+                frequency, and hardship statement.
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <div>
+                Click <strong>Approve</strong> and complete the approval form:
+                <ul style="margin-top:8px;">
+                    <li><strong>Approved instalment amount</strong> — may differ from what the owner proposed</li>
+                    <li><strong>Frequency</strong> — weekly, fortnightly, or monthly</li>
+                    <li><strong>Number of instalments</strong> — total count for the plan</li>
+                    <li><strong>Start date</strong> — when the first instalment is due</li>
+                    <li><strong>Internal notes</strong> (optional)</li>
+                </ul>
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">4</div>
+            <div>Click <strong>Confirm Approval</strong>. The plan moves to
+                <span class="badge badge-approved">Approved</span> status.
+            </div>
+        </div>
+
+        <h3>Declining a request</h3>
+        <p>
+            If the plan cannot be accommodated, click <strong>Decline</strong> and provide a written reason
+            (minimum 10 characters). The reason is stored on the record and visible to the owner.
+            The plan moves to <span class="badge badge-declined">Declined</span> status.
+        </p>
+
+        <div class="info-box">
+            <strong>28-day deadline.</strong> Act on payment plan requests within 28 days of submission.
+            The submission date is shown on every plan record.
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <h2>Plan status reference</h2>
+
+        <div class="flow">
+            <span class="badge badge-requested">Requested</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="badge badge-approved">Approved</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="badge badge-active">Active</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="badge badge-completed">Completed</span>
+        </div>
+        <div class="flow" style="margin-top:-8px;">
+            <span class="badge badge-requested">Requested</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="badge badge-declined">Declined</span>
+        </div>
+        <div class="flow" style="margin-top:-8px;">
+            <em style="font-size:13px;color:#555;">(any active status)</em>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="badge badge-cancelled">Cancelled</span>
+        </div>
+
+        <table class="role-table" style="width:100%; border-collapse:collapse; margin-top:16px;">
+            <thead>
+            <tr>
+                <th>Status</th>
+                <th>Meaning</th>
+                <th>Next action</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><span class="badge badge-requested">Requested</span></td>
+                <td>Owner has submitted a request; awaiting manager decision</td>
+                <td>Manager approves or declines within 28 days</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-approved">Approved</span></td>
+                <td>Plan has been approved with agreed terms</td>
+                <td>Manager marks active once instalments begin</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-active">Active</span></td>
+                <td>Instalments are in progress</td>
+                <td>Manager marks completed when all instalments paid</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-completed">Completed</span></td>
+                <td>All agreed instalments have been paid; arrears cleared</td>
+                <td>No further action required</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-declined">Declined</span></td>
+                <td>Plan was not approved; reason is recorded</td>
+                <td>Owner may submit a new request with revised terms</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-cancelled">Cancelled</span></td>
+                <td>Plan was cancelled before completion</td>
+                <td>Normal levy recovery process resumes</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="guide-section">
+        <h2>Multi-building support</h2>
+        <p>
+            Payment plans are scoped to your building — each building's plans are completely separate
+            from other buildings on the platform. Managers with access to multiple buildings must select
+            the correct building context before viewing or actioning plans.
+        </p>
+    </section>
+
+    <section class="guide-section">
+        <h2>Frequently asked questions</h2>
+        <dl>
+            <dt>Can I have more than one active payment plan at a time?</dt>
+            <dd>The system allows multiple plan records per unit, but in practice the strata manager will
+                only approve one active plan at a time. Talk to your manager if your circumstances change.
+            </dd>
+
+            <dt>What happens if I miss an instalment?</dt>
+            <dd>Missing an instalment does not automatically update the plan — this is a manual process.
+                Contact your strata manager immediately if you cannot make a payment. They may cancel the plan
+                or renegotiate terms.
+            </dd>
+
+            <dt>Can I change the instalment amount after approval?</dt>
+            <dd>Approved plans cannot be edited. If you need to change the terms, the current plan can be
+                cancelled and a new request submitted with revised amounts.
+            </dd>
+
+            <dt>What does "hardship reason" mean?</dt>
+            <dd>This is an optional written statement explaining your circumstances — for example a job loss,
+                medical expenses, or other financial difficulty. It helps the strata manager assess your request
+                fairly. It is stored securely and only visible to management.
+            </dd>
+
+            <dt>Is the 28-day response requirement mandatory?</dt>
+            <dd>Yes. Under the NSW Strata Schemes Management Act 2015 (ss.83A–83C), the owners corporation
+                must respond within 28 days. This applies to NSW-based buildings. Other states may have different
+                requirements — check with your strata manager.
+            </dd>
+
+            <dt>Can a tenant request a payment plan?</dt>
+            <dd>Tenants are not responsible for levies — that obligation falls on the owner. A tenant
+                experiencing payment difficulty should speak with their landlord.
+            </dd>
+        </dl>
+    </section>
+
+    <footer class="guide-footer">
+        <p>Your strata portal &nbsp;|&nbsp; Payment Plans &nbsp;|&nbsp; For help contact your strata manager</p>
+    </footer>
+</div>
+</body>
+</html>

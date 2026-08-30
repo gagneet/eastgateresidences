@@ -1,0 +1,106 @@
+{
+  "_meta": {
+    "jurisdiction": "WA",
+    "primary_legislation": "Strata Titles Act 1985 (WA)",
+    "trust_law": "Strata Titles Act 1985 (WA); Strata Titles (General) Regulations 2019",
+    "last_reviewed": "2026-08-03"
+  },
+  "max_interest_rate_pa": {
+    "value": 15,
+    "unit": "percent",
+    "legislation": "Strata Titles Act 1985 (WA); scheme by-laws dependent",
+    "effective": "1985-01-01",
+    "notes": "Operational ceiling placeholder pending scheme-law review; production levy interest must use the scheme-approved rule."
+  },
+  "interest_grace_period_days": {
+    "value": 0,
+    "unit": "days",
+    "legislation": "Strata Titles Act 1985 (WA)",
+    "effective": "1985-01-01",
+    "notes": "No generic grace period encoded."
+  },
+  "trial_balance_deadline_days": {
+    "value": 30,
+    "unit": "calendar_days",
+    "legislation": "Strata Titles Act 1985 (WA); manager contract dependent",
+    "effective": "1985-01-01",
+    "notes": "Operational default for managed schemes; confirm against manager contract and applicable licensing obligations."
+  },
+  "min_withholding_pct_no_abn": {
+    "value": 47,
+    "unit": "percent",
+    "legislation": "ITAA 1997 (Commonwealth) s.12-190",
+    "effective": "2000-07-01",
+    "notes": "ATO PAYG withholding: 47% on payments to suppliers without ABN."
+  },
+  "agm_notice_days": {
+    "value": 14,
+    "unit": "days",
+    "legislation": "Strata Titles Act 1985 (WA) s.129",
+    "effective": "1985-01-01",
+    "notes": "General meeting notice must be given to owners and first mortgagees."
+  },
+  "capital_funding_standard_notice_days": {
+    "value": null,
+    "unit": "days",
+    "legislation": "Strata Titles Act 1985 (WA) s.129; Landgate strata guidance",
+    "effective": "1985-01-01",
+    "notes": "No verified generic capital-funding levy payment period is encoded. WA guidance ties contribution approval to meeting notice and unit entitlement/by-law controls."
+  },
+  "capital_funding_emergency_notice_days": {
+    "value": null,
+    "unit": "days",
+    "legislation": "Strata Titles Act 1985 (WA) s.129",
+    "effective": "1985-01-01",
+    "notes": "No shorter generic emergency period is encoded."
+  },
+  "capital_funding_notice_period_verified": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "Strata Titles Act 1985 (WA)",
+    "effective": "1985-01-01",
+    "notes": "Payment-period validation must rely on legal-review evidence, registered by-laws and approved motion text, not a generic platform default."
+  },
+  "capital_funding_resolution_required": {
+    "value": "ordinary",
+    "unit": "enum",
+    "legislation": "Strata Titles Act 1985 (WA)",
+    "effective": "1985-01-01",
+    "notes": "Contribution approvals must follow the strata company meeting and by-law framework."
+  },
+  "capital_funding_allocation_basis": {
+    "value": "unit_entitlement_subject_to_by_laws",
+    "unit": "enum",
+    "legislation": "Strata Titles Act 1985 (WA) s.37; Landgate unit entitlement guidance",
+    "effective": "1985-01-01",
+    "notes": "Unit entitlement determines levy contributions, subject to scheme by-laws."
+  },
+  "capital_funding_benefit_principle_available": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "Strata Titles Act 1985 (WA)",
+    "effective": "1985-01-01",
+    "notes": "No generic benefit-principle allocator is enabled; mixed-use by-law allocation needs legal review."
+  },
+  "capital_funding_tenant_consultation_required": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "Strata Titles Act 1985 (WA)",
+    "effective": "1985-01-01",
+    "notes": "Tenant consultation is not a default contribution-approval condition."
+  },
+  "capital_funding_hardship_notice_required": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "Strata Titles Act 1985 (WA)",
+    "effective": "1985-01-01",
+    "notes": "No WA-specific hardship notice requirement is encoded; hardship workflows should remain available by policy."
+  },
+  "capital_funding_hybrid_legal_review_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "Strata Titles Act 1985 (WA); lender/legal-advice dependent",
+    "effective": "1985-01-01",
+    "notes": "Hybrid owner-funded and loan-funded structures require recorded legal approval before notices or credits are issued."
+  }
+}

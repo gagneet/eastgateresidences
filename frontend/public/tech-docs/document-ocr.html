@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Document OCR Workspace - Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">Strata Management Platform</div>
+            <div class="sub">Document OCR Workspace · GAP-OCR-001</div>
+        </div>
+    </div>
+    <span class="header-badge">All approved roles (building-scoped)</span>
+</header>
+
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">Docs</span> Overview</a>
+            <a data-page="api.html" href="api.html"><span class="icon">API</span> API Reference</a>
+            <a class="active" data-page="document-ocr.html" href="document-ocr.html"><span class="icon">OCR</span> Document OCR Workspace</a>
+            <a data-page="historical-reconstruction.html" href="historical-reconstruction.html"><span class="icon">Batch</span> Historical Reconstruction</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">Back</span> Dashboard</a>
+            <a href="/documents/ocr" target="_blank"><span class="icon">App</span> Open In App</a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <h1>Document OCR Workspace</h1>
+        <p style="color:var(--muted);font-size:15px;margin-bottom:24px">
+            Reference for the building-scoped OCR job workspace: upload a document, run it through a
+            configured OCR provider, review the extracted fields, and optionally publish the raw text into the
+            document library (GAP-OCR-001, completed 2026-07-27).
+        </p>
+
+        <div class="callout warn">
+            <strong>Unlimited OCR is opt-in, not on by default.</strong> Every environment ships with
+            <code>mock_ocr</code> (deterministic fallback) always available. The advanced <code>unlimited_ocr</code>
+            provider only becomes selectable once <code>UNLIMITED_OCR_ENABLED=true</code> and a backend
+            (<code>local</code> GPU worker, <code>baidu_cloud</code>, or <code>private_endpoint</code> sidecar) is
+            actually configured — most environments will only ever see <code>auto</code>, <code>claude_vision</code>,
+            <code>mindee</code>, and <code>tesseract</code> (the existing invoice-OCR providers) plus <code>mock_ocr</code>
+            here. Check <code>GET /ocr/providers</code>' <code>available</code>/<code>unavailable_reason</code> fields
+            before assuming it's usable.
+        </div>
+
+        <h2>Data Flow</h2>
+        <pre><code>document upload (PDF/JPEG/PNG/WebP/plain text, scanned by utils.file_scan.scan_upload)
+  -> POST /ocr/jobs                     (creates job, status=processing, returns immediately)
+  -> [FastAPI BackgroundTasks — dispatched, never awaited inline in the request handler]
+  -> ProviderRegistry.get_ocr(building_id) -> OCRProvider.extract_invoice(...)
+  -> ocr_results (Mongo, building-scoped) + ocr_jobs.status updated to completed/needs_review/failed
+  -> [optional] POST /ocr/jobs/{id}/publish-document -> documents (Mongo, base64 file_data)</code></pre>
+
+        <p><strong>Why background dispatch matters:</strong> the <code>private_endpoint</code>
+            <code>unlimited_ocr</code> backend calls out to an external sidecar/cloud service with a default
+            20-minute timeout (<code>UNLIMITED_OCR_TIMEOUT_SECONDS</code>). Running that inline inside the HTTP
+            request/response cycle would hold the connection open for the same duration and could exhaust the
+            server's worker pool under load — <code>create_ocr_job</code> returns a <code>processing</code> job
+            immediately via <code>BackgroundTasks.add_task(...)</code>; the frontend polls
+            <code>GET /ocr/jobs/{id}</code> every ~2 seconds (bounded to ~60s) until a terminal status is reached.</p>
+
+        <h2>Endpoints</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Method + Route</th>
+                <th>Feature toggle</th>
+                <th>Roles</th>
+                <th>Mutates?</th>
+                <th>Idempotent?</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr><td><code>GET /ocr/providers</code></td><td><code>document_ocr</code></td><td>super_admin, strata_admin, strata_manager, ec_member, owner, tenant, real_estate_agent, admin_staff</td><td>No</td><td>Yes (read)</td></tr>
+            <tr><td><code>POST /ocr/jobs</code></td><td><code>document_ocr</code></td><td>same as above</td><td>Yes — creates a job (background-dispatched extraction)</td><td>No — always creates a new job id</td></tr>
+            <tr><td><code>GET /ocr/jobs</code></td><td><code>document_ocr</code></td><td>same as above</td><td>No</td><td>Yes (read); excludes <code>is_test_data=true</code> rows</td></tr>
+            <tr><td><code>GET /ocr/jobs/{id}</code></td><td><code>document_ocr</code></td><td>same as above</td><td>No</td><td>Yes (read); excludes <code>is_test_data=true</code> rows</td></tr>
+            <tr><td><code>POST /ocr/jobs/{id}/publish-document</code></td><td><code>document_ocr</code></td><td>same as above</td><td>Yes — creates a <code>documents</code> row from the job's raw OCR text</td><td>No — creates a new document each call; reachable for a job's own <code>is_test_data</code> value regardless of whether it's true or false</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Job Status Lifecycle</h2>
+        <ul>
+            <li><code>processing</code> — job created, extraction dispatched via <code>BackgroundTasks</code>,
+                not yet finished. This is what <code>POST /ocr/jobs</code> always returns immediately.</li>
+            <li><code>completed</code> — extraction finished, <code>overall_confidence &gt;= 0.85</code>.</li>
+            <li><code>needs_review</code> — extraction finished, <code>overall_confidence &lt; 0.85</code>. Same
+                data shape as <code>completed</code>, just flagged for a human to double-check before trusting it.</li>
+            <li><code>failed</code> — the provider raised (unavailable, timeout, malformed response, etc.).
+                <code>error_code</code>/<code>error_message</code> are populated; the job is never left dangling
+                in <code>processing</code> forever — the background task's own try/except always reaches a
+                terminal status.</li>
+        </ul>
+
+        <h2><code>source_type</code> Options</h2>
+        <p>Every job is tagged with one of: <code>general_document</code>, <code>invoice</code>, <code>quote</code>,
+            <code>bank_statement</code>, <code>agm_minutes</code>, <code>rates_notice</code>, <code>insurance</code>,
+            <code>contract</code>, <code>maintenance_evidence</code>. This is metadata only — it does not change
+            which provider runs or how the result is parsed; it exists so the job list and any future
+            per-type review workflow can filter meaningfully. Publishing to the document library currently
+            redistributes the raw extracted text as-is for any of these types — it does not (yet) turn OCR output
+            into a structured AGM-minutes or rates-notice record; that would be separate, larger scope.</p>
+
+        <h2>Auth And Building Context</h2>
+        <ul>
+            <li>Gated on the <code>document_ocr</code> feature toggle (global default: enabled) plus an explicit
+                role allowlist checked in <code>_can_use_ocr()</code> — broader than most finance-adjacent
+                endpoints since OCR is a general document-parsing utility, not itself a ledger-mutating action.</li>
+            <li><code>building_id</code> always comes from the authenticated caller's resolved building
+                (<code>get_current_building</code>) — never inferred from uploaded content, never accepted from
+                the client. Confirmed cross-building isolation: a job created for one building is invisible to
+                <code>GET /ocr/jobs</code>/<code>GET /ocr/jobs/{id}</code> from another.</li>
+            <li><code>is_test_data</code> (form field, defaults <code>false</code>) is stamped on the created job,
+                its eventual result, and any document it's later published into — matches this repo's mandatory
+                test-data convention. List/get endpoints exclude <code>is_test_data=true</code> rows.</li>
+        </ul>
+
+        <h2>Providers</h2>
+        <table>
+            <thead><tr><th>Provider</th><th>Where it runs</th><th>Notes</th></tr></thead>
+            <tbody>
+            <tr><td><code>mock_ocr</code></td><td>In-process, deterministic</td><td>Always registered — the guaranteed fallback if a requested provider is unavailable (<code>ProviderRegistry.get_ocr()</code> falls back automatically, logging a warning).</td></tr>
+            <tr><td><code>unlimited_ocr</code></td><td>Depends on <code>UNLIMITED_OCR_BACKEND</code>: <code>local</code> (in-process GPU — not yet implemented, raises a clear error), <code>baidu_cloud</code> (not yet implemented, raises a clear error), or <code>private_endpoint</code> (a configured HTTP sidecar — implemented)</td><td>Only registered in the provider registry at all when <code>get_unlimited_ocr_config().is_available</code> is true. See <code>tasks/GAP-OCR-001-unlimited-ocr-provider-per-building.md</code> for the full rollout plan and open infrastructure/data-residency decisions.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Operational Examples</h2>
+        <pre><code>curl -X POST "$API_BASE/api/ocr/jobs" \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@invoice.pdf;type=application/pdf" \
+  -F "source_type=invoice" -F "provider=auto"
+
+curl -X GET "$API_BASE/api/ocr/jobs?limit=25" \
+  -H "Authorization: Bearer $TOKEN"
+
+curl -X GET "$API_BASE/api/ocr/jobs/JOB_ID" \
+  -H "Authorization: Bearer $TOKEN"
+
+curl -X POST "$API_BASE/api/ocr/jobs/JOB_ID/publish-document" \
+  -H "Authorization: Bearer $TOKEN" -F "category=ocr_extracted"</code></pre>
+
+        <h2>Frontend</h2>
+        <p>Workspace UI: <a href="/documents/ocr" target="_blank">Document OCR</a> (nav entry gated on
+            <code>hasFeatureAccess('document_ocr')</code> plus the same role list as the backend). Component:
+            <code>frontend/src/pages/dashboard/OCRPage.jsx</code>. Invoice upload's confidence badge
+            (<code>frontend/src/components/invoices/InvoiceUploadModal.jsx</code>) recognises
+            <code>unlimited_ocr</code> as a labelled source, not a generic "Manual entry" fallback.</p>
+    </main>
+</div>
+</body>
+</html>

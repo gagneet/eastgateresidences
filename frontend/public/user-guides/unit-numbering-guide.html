@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Unit Numbering – User Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">StrataOS</div>
+            <div class="sub">User Guide · Unit Numbering</div>
+        </div>
+    </div>
+    <span class="header-badge">Managers &amp; Committee</span>
+</header>
+<div class="layout">
+    <main id="content">
+        <h1>Configuring Unit Numbering for Your Building</h1>
+
+        <h2>What it does</h2>
+        <p>Every lot in your building is identified by its lot number (1, 2, 3, …).
+            Many buildings display units with a prefix — for example apartments as
+            <code>UA001</code> and townhouses as <code>TH071</code>. Unit Numbering rules tell
+            the portal which prefix and zero-padding to use for each range of lots, so
+            owner accounts, levies, and payments always line up no matter how a unit
+            was typed in (<code>87</code>, <code>U87</code>, or <code>Unit 87</code>).</p>
+
+        <h2>Where to find it</h2>
+        <ol>
+            <li>Sign in with a manager or committee account.</li>
+            <li>Go to <strong>Dashboard → Settings → General</strong>.</li>
+            <li>Scroll to the <strong>Unit Numbering</strong> card.</li>
+        </ol>
+
+        <h2>Setting up rules</h2>
+        <ol>
+            <li>Click <strong>Add Rule</strong> for each distinct range of lots in your building.</li>
+            <li>Enter the <strong>Prefix</strong> (letters only, up to 5 — e.g. <code>UA</code>,
+                <code>TH</code>, or <code>A</code>), the <strong>From lot</strong> and
+                <strong>To lot</strong> range, and the number of <strong>Digits</strong>
+                (zero-padding). The badge next to each rule previews the result.</li>
+            <li>Ranges must not overlap. Lots outside every rule display as plain numbers.</li>
+            <li>Click <strong>Save Numbering Rules</strong>.</li>
+        </ol>
+        <p><em>Example:</em> a building with 70 apartments and 17 townhouses uses two
+            rules — <code>UA</code> for lots 1–70 and <code>TH</code> for lots 71–87, both with
+            3 digits — so lot 87 displays as <code>TH087</code>.</p>
+
+        <h2>Good to know</h2>
+        <ul>
+            <li>Changing rules only affects how unit numbers are <strong>displayed and
+                matched</strong>. Your building's stored records, levies, and payment
+                history are never rewritten.</li>
+            <li>Co-owners of the same unit always see the same finance figures — the
+                portal resolves any unit format they were registered with to the same
+                ledger record.</li>
+            <li>Only accounts with user-management permission can change the rules;
+                owners can view but not edit them.</li>
+        </ul>
+    </main>
+</div>
+</body>
+</html>

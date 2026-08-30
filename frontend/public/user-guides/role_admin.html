@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Super Admin Resident Handbook</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform
+                </div>
+            </div>
+        </div>
+        <div class="badge">Resident Handbook</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Navigation</h3>
+        <div class="card callout warn" style="margin-top:14px">
+            <strong>Screenshots</strong><br/>
+            This HTML pack includes screenshot placeholders. Replace each <em>Screenshot placeholder</em> block with
+            real images from your environment.
+        </div>
+    </nav>
+
+    <article class="content">
+
+        <h1>Super Admin Resident Handbook</h1>
+        <p>The Super Admin role is responsible for the technical configuration, security, and administrative management
+            of the <span data-bldg="name">your building</span> platform.</p>
+
+        <div class="card callout danger">
+            <strong>High Privilege Role</strong>
+            <p>You have access to all system data and configurations. Use these permissions carefully to maintain system
+                integrity and user privacy.</p>
+        </div>
+
+        <h2 id="configuration">System Configuration</h2>
+        <ul>
+            <li><strong>Site Settings:</strong> Manage global platform parameters, including contact information and
+                branding.
+            </li>
+            <li><strong>Feature Toggles:</strong> Enable or disable specific modules (e.g., Chat, Marketplace, Bookings)
+                building-wide.
+            </li>
+            <li><strong>External API Access:</strong> Enable or disable the External API for integrations and control
+                API availability for third parties.
+            </li>
+            <li><strong>Email Configuration:</strong> Set up and test system-wide email templates and delivery settings.
+            </li>
+            <li><strong>Scraper Settings:</strong> Configure data synchronization with external property and utility
+                providers.
+            </li>
+            <li><strong>Building Management:</strong> Create, edit, and switch between building profiles in the
+                multi-tenant platform.
+            </li>
+            <li><strong>Rate Limiting:</strong> Control global API throttling from Site Settings (toggle + multiplier).
+            </li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Feature Toggles & System Configuration</div>
+
+        <h2 id="management">Administrative Management</h2>
+        <ul>
+            <li><strong>User Directory & Access Control:</strong> Manage all user accounts, approve registrations, and
+                assign granular permissions.
+            </li>
+            <li><strong>Units & Owners:</strong> Maintain the master database of units, lot numbers, and current owners.
+            </li>
+            <li><strong>Ownership & Lease Management:</strong> Process ownership transfers and lease renewals.</li>
+            <li><strong>Audit Logs:</strong> Monitor comprehensive system logs for security and troubleshooting
+                purposes.
+            </li>
+        </ul>
+
+        <h3>Multi-Building Context</h3>
+        <p>Super Admins can switch active building context using the header building selector. This updates the
+            tenant-scoped view across dashboards, requests, and reporting. Always confirm the selected building before
+            making changes.</p>
+
+        <h2 id="registration-notifications">Registration Notifications</h2>
+        <p>When a new user submits the registration form, you receive an immediate bell notification (🔔) in the top
+            navigation bar.</p>
+        <ul>
+            <li><strong>Bell icon:</strong> Shows a count badge for unread notifications. Click to expand the list.</li>
+            <li><strong>Direct link:</strong> Each registration notification links directly to
+                <code>/dashboard/users</code> with the registrant's name pre-filled in the search box — no manual
+                searching required.
+            </li>
+            <li><strong>Email alert:</strong> An email is sent to all Super Admins and the Chairman with the same
+                pre-populated link.
+            </li>
+        </ul>
+
+        <h3>Reviewing a Registration</h3>
+        <ol>
+            <li>Click the bell notification or the link in the email.</li>
+            <li>The Users page opens with the registrant's name already in the search field.</li>
+            <li>Find the pending user and expand their record.</li>
+            <li>Choose one of three actions:
+                <ul>
+                    <li><strong>Approve</strong> — grants full dashboard access immediately.</li>
+                    <li><strong>Request Profile Info</strong> — sends the user a bell notification and email asking them
+                        to update their profile details. Their status changes to <em>Info Requested</em>.
+                    </li>
+                    <li><strong>Reject</strong> — archives the account and notifies the user.</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>Owner Name Mismatch Alert</h3>
+        <p>For <em>owner</em> registrations only, the Users page shows a warning triangle (⚠️) if the registered full
+            name does not closely match the name on the strata roll (from the units collection). This helps catch typos
+            or incorrect names before approval.</p>
+        <ul>
+            <li>The comparison is fuzzy — it ignores punctuation, case, and common title words (Mr, Mrs, Ms, Dr).</li>
+            <li>Tenants, guests, and service providers are excluded from this check.</li>
+        </ul>
+
+        <h3>Returning Archived Users</h3>
+        <p>If a previously archived user re-registers with the same email address, the system does not create a
+            duplicate account. Instead it captures their new details for your review and keeps the original archived
+            record untouched (required for the 7-year compliance retention period).</p>
+        <ol>
+            <li>The user fills in the registration form as normal. They see a blue informational banner confirming
+                their return request has been submitted.
+            </li>
+            <li>You receive a bell notification and email showing the old vs. new details side-by-side (name, unit,
+                end date). The email links directly to <strong>Expired &amp; Archived Accounts</strong>.
+            </li>
+            <li>Go to <strong>Admin → Expired &amp; Archived Accounts</strong> and find the record with the
+                <em>Return Requested</em> indicator.
+            </li>
+            <li>Click <strong>Restore</strong>. The system will:
+                <ul>
+                    <li>Apply the new name, phone, and end date from the return request to the live account.</li>
+                    <li>If the user requested a different unit, deactivate the old unit assignment and create a new
+                        one for the new unit.
+                    </li>
+                    <li>Re-activate the user's building membership (always happens, regardless of unit change).</li>
+                </ul>
+            </li>
+        </ol>
+        <p><strong>Note:</strong> Only super admins can restore archived users. If the new unit is already occupied
+            by another active resident of the same role, the restore will <strong>fail</strong> with a conflict
+            error — the account is not modified. Resolve the existing occupancy first (e.g. archive or reassign
+            the current occupant), then retry the restore.</p>
+
+        <h2 id="financials">Financial Administration</h2>
+        <ul>
+            <li><strong>Financial Intelligence & Projections:</strong> Access high-level AI-powered analytics and
+                interactive budget forecasts for the building.
+            </li>
+            <li><strong>Financial Data Upload:</strong> Import financial statements, levy data, and utility bills from
+                external sources.
+            </li>
+            <li><strong>Spending Categories:</strong> Configure the categories used for financial reporting and
+                transparency.
+            </li>
+            <li><strong>Credential Manager:</strong> Securely manage system-wide mail passwords and API keys for
+                integrations.
+            </li>
+        </ul>
+
+        <h2 id="support">Maintenance & Support</h2>
+        <ul>
+            <li><strong>Administrative Requests:</strong> Review and process requests for system changes or technical
+                support from other users.
+            </li>
+            <li><strong>Account Expiry:</strong> Manage temporary accounts and ensured access is revoked when no longer
+                required.
+            </li>
+        </ul>
+
+        <h2 id="advanced-financial">Advanced Financial Enhancements</h2>
+        <p>As Super Admin, you have full access to all advanced financial tools on the platform.</p>
+
+        <h3>Arrears Recovery Board</h3>
+        <p>Access and manage the Debt Recovery Board at <strong>Dashboard → Debt Recovery Board</strong>. Units in
+            arrears are classified across four severity tiers:</p>
+        <ul>
+            <li><strong>Monitor</strong> — Balance owing, no action yet taken.</li>
+            <li><strong>Contacted</strong> — Section 83 notice has been sent (within 14 days).</li>
+            <li><strong>DCA Eligible</strong> — More than $1,500 owing and 14+ days have elapsed since the notice.</li>
+            <li><strong>DCA Referred</strong> — Formally referred to a Debt Collection Agency.</li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Arrears Recovery Board – 4-tier severity view</div>
+
+        <h3>Generate Section 83 Notice</h3>
+        <p>Issue a formal demand letter under <strong>Section 83 of the Unit Titles Management Act 2011 (ACT)</strong>
+            directly from the Debt Recovery Board. The PDF is auto-generated and can be sent to the owner or retained
+            for compliance records.</p>
+
+        <h3>DCA Referral</h3>
+        <p>Refer a unit to a Debt Collection Agency when arrears exceed $1,500 and at least 14 days have passed since
+            the Section 83 notice was issued. All referrals are logged in the recovery audit trail.</p>
+
+        <h3>Special Levies</h3>
+        <p>Create one-off special levy charges allocated across all units by their Unit of Entitlement (UOE) at <strong>Finance
+            → Special Levies</strong>.</p>
+
+        <h3>Bank Reconciliation</h3>
+        <p>Record and verify monthly bank statement entries at <strong>Finance → Bank Reconciliation</strong>. Match
+            payments against the platform's financial records and mark statements as reconciled.</p>
+
+        <h3>Payment Plans</h3>
+        <p>Create structured instalment arrangements for owners in arrears at <strong>Finance → Payment Plans</strong>.
+            Set the schedule, instalment amounts, and monitor compliance over time.</p>
+
+        <h3>Record Expenses &amp; Income</h3>
+        <ul>
+            <li><strong>Record Expenses:</strong> Log building expenses against approved budget categories to maintain
+                accurate fund tracking.
+            </li>
+            <li><strong>Record Income:</strong> Log non-levy income such as bank interest, rebates, and grants.</li>
+        </ul>
+
+        <h3>Financial Health Score</h3>
+        <p>The Financial Health Score (0–100) provides a composite view of the building's financial position based on
+            seven components: Surplus Ratio, Arrears Percentage, Cashflow Buffer, Forecast Stability, Budget Discipline,
+            Expense Volatility, and Reserve Adequacy.</p>
+
+        <h3>Financial Onboarding — Historical Reconstruction</h3>
+        <p>Navigate to <strong>Dashboard → Financial → Financial Onboarding</strong> (or <strong>Historical
+            Reconstruction</strong> directly) to add or reconstruct a building's financial history after it has
+            already been onboarded — for example a building migrating onto the platform with incomplete or no prior
+            payment records. As Super Admin you have full access to every stage of the workflow, including the two
+            actions restricted to Super Admin only: reversing a batch, and applying a levy-item GST regeneration.</p>
+        <p>Creating a batch offers a <strong>Generation source</strong> choice: <strong>Generate from proposed
+            budget</strong> (the default, building-agnostic — computes owner levy payments directly from the
+            building's proposed Admin/Sinking/GST budget, automatically skipping any lot/year/fund period that
+            already has a real recorded payment) or <strong>Link existing Demo Bank rows</strong> (an older option
+            that only works if matching Demo Bank rows already exist for the building). A status card on the page
+            tells you upfront whether the building has any existing financial history for the selected years before
+            you commit to generating anything.</p>
+        <p>Full operator workflow, including the two-person review/approve control and what Reverse does and does
+            not undo: <a href="historical-reconstruction.html">Historical Reconstruction guide</a>.</p>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Financial Onboarding — generation source picker and
+            historical-data status card
+        </div>
+        <table>
+            <thead>
+            <tr>
+                <th>Score</th>
+                <th>Rating</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>80–100</td>
+                <td>Excellent</td>
+            </tr>
+            <tr>
+                <td>65–79</td>
+                <td>Good</td>
+            </tr>
+            <tr>
+                <td>50–64</td>
+                <td>Fair</td>
+            </tr>
+            <tr>
+                <td>35–49</td>
+                <td>Poor</td>
+            </tr>
+            <tr>
+                <td>0–34</td>
+                <td>Critical</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>True Cost of Ownership</h3>
+        <p>View a per-unit cost breakdown at <strong>Finance → True Cost of Ownership</strong>, showing admin levies,
+            sinking fund contributions, special levies, council rates, and water charges for each lot.</p>
+
+        <h3>Tax Summary PDF</h3>
+        <p>Generate and download an annual levy breakdown PDF for any unit — useful for verifying owner records or
+            assisting owners with investment property tax queries. Navigate to <strong>Finance → Levy Status</strong>,
+            select a unit, and choose <strong>Download Tax Summary</strong>.</p>
+
+        <h2 id="access-control">Access Control Management</h2>
+        <p>Navigate to <strong>Dashboard → Admin → Access Control Management</strong> (<code>/dashboard/admin/user-permissions</code>)
+            to manage the 14 granular permission flags for individual users, independent of their role defaults.</p>
+
+        <h3>Understanding the Permission System</h3>
+        <p>Every user inherits a set of default permissions based on their role (e.g., Owners can view finances; Tenants
+            cannot). The Access Control page lets you elevate or restrict individual users beyond those defaults without
+            changing their role.</p>
+
+        <div class="card callout info">
+            <strong>Three states per permission:</strong>
+            <ul>
+                <li><strong>Default (grey)</strong> — follows the role's default for this permission.</li>
+                <li><strong>Elevated (green badge)</strong> — explicitly granted beyond the role default.</li>
+                <li><strong>Restricted (red badge)</strong> — explicitly denied even if the role would normally grant
+                    it.
+                </li>
+            </ul>
+        </div>
+
+        <h3>How to Modify Permissions</h3>
+        <ol>
+            <li>Select a user from the left panel (use the search box or role filter to narrow the list).</li>
+            <li>The right panel shows the user's current permissions grouped into six categories: <em>Documents,
+                Financial, Communication, Governance, Administration, Operations</em>.
+            </li>
+            <li>Toggle individual permissions on or off. Each row shows the role default label so you can see whether
+                your change is an elevation or restriction.
+            </li>
+            <li>An amber save bar appears at the top whenever you have unsaved changes. Click <strong>Save
+                Changes</strong> to apply.
+            </li>
+            <li>To revert all changes for a user back to their role defaults, click <strong>Role Defaults</strong>
+                (reset button in the user summary card).
+            </li>
+        </ol>
+
+        <h3>Permission Categories</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Category</th>
+                <th>Permissions Covered</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Documents</td>
+                <td>View, upload, and manage document folder permissions</td>
+            </tr>
+            <tr>
+                <td>Financial</td>
+                <td>View and manage finance records and levy payments</td>
+            </tr>
+            <tr>
+                <td>Communication</td>
+                <td>Chat, post announcements, send notifications, access building email</td>
+            </tr>
+            <tr>
+                <td>Governance</td>
+                <td>View meetings, manage meetings, create and manage marketplace listings</td>
+            </tr>
+            <tr>
+                <td>Administration</td>
+                <td>Manage users and core building administration settings</td>
+            </tr>
+            <tr>
+                <td>Operations</td>
+                <td>View service schedule</td>
+            </tr>
+            </tbody>
+        </table>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Access Control Management — user list with badge
+            counts, grouped permissions panel, amber save bar
+        </div>
+
+        <h2 id="feature-access-controls">Feature Access Controls</h2>
+        <p>Navigate to <strong>Dashboard → Admin → Feature Access Controls</strong> (<code>/dashboard/admin/user-feature-permissions</code>)
+            to grant or restrict access to specific feature pages for individual users, independently of their role and
+            the site-wide feature toggle.</p>
+
+        <h3>The Three-Layer Access Model</h3>
+        <p>Feature access is evaluated in three layers, in order:</p>
+        <ol>
+            <li><strong>Site-Wide Toggle</strong> — the feature toggle in Feature Toggles (<code>/dashboard/admin/feature-toggles</code>)
+                controls the default availability of the feature for the entire building. When it is OFF, the feature is
+                hidden for everyone except users with an explicit per-user <em>Grant</em> override and the
+                chairman/super_admin roles.
+            </li>
+            <li><strong>User Override</strong> — a Super Admin can grant or deny access to a specific user, overriding
+                the site toggle by explicitly <em>Granting</em> access even when the site toggle is OFF or
+                <em>Denying</em> access even when it is ON (within the constraints above for chairman/super_admin).
+            </li>
+            <li><strong>Effective Access</strong> — the computed result shown as a green check or red X in the Override
+                column. This is what the user actually experiences.
+            </li>
+        </ol>
+
+        <div class="card callout warn">
+            <strong>Super Admin bypass:</strong> This role always has effective access to all features regardless of
+            site toggles or per-user overrides. Overrides cannot restrict Super Admin access.
+        </div>
+
+        <h3>Override States</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Override State</th>
+                <th>Meaning</th>
+                <th>Button Style</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><strong>Site Default</strong></td>
+                <td>No override set — access follows the site-wide toggle.</td>
+                <td>Grey (neutral)</td>
+            </tr>
+            <tr>
+                <td><strong>Grant</strong></td>
+                <td>User is explicitly granted access even if the site toggle is OFF.</td>
+                <td>Green</td>
+            </tr>
+            <tr>
+                <td><strong>Deny</strong></td>
+                <td>User is explicitly denied access even if the site toggle is ON.</td>
+                <td>Red</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>How to Set an Override</h3>
+        <ol>
+            <li>Select a user from the left panel. Their override count badge shows how many features have active
+                overrides.
+            </li>
+            <li>The right panel shows all 63 features grouped into categories (Core, Financial, Governance, etc.).</li>
+            <li>Use the search box, category filter, or <strong>Overrides only</strong> toggle to find specific features
+                quickly.
+            </li>
+            <li>Each feature row shows: the site toggle state, an inline 3-button override selector, and the computed
+                effective access badge.
+            </li>
+            <li>Click <strong>Site Default / Grant / Deny</strong> to change the override. The change saves immediately
+                (no save button needed).
+            </li>
+            <li>To clear all overrides for the selected user at once, click <strong>Clear All Overrides</strong>.</li>
+        </ol>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Feature Access Controls — category-grouped list,
+            inline 3-state selectors, effective access badges, user summary with grant/deny stat chips
+        </div>
+
+        <h3>Feature Categories (63 Toggles)</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Category</th>
+                <th>Examples</th>
+                <th>Count</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Core</td>
+                <td>Dashboard, Announcements, Calendar, Chat, Marketplace</td>
+                <td>~10</td>
+            </tr>
+            <tr>
+                <td>Financial</td>
+                <td>Levy Payments, Budget Projections, Collection Rate, Arrears Recovery</td>
+                <td>~12</td>
+            </tr>
+            <tr>
+                <td>Governance</td>
+                <td>Strata Roll, Tenant Approvals, Access Control Mgmt, Feature Access Controls</td>
+                <td>~10</td>
+            </tr>
+            <tr>
+                <td>Communication</td>
+                <td>Announcements, Notice Board, Manual Email</td>
+                <td>~5</td>
+            </tr>
+            <tr>
+                <td>Community</td>
+                <td>Resident Directory, Pet Register, Events</td>
+                <td>~5</td>
+            </tr>
+            <tr>
+                <td>Safety</td>
+                <td>Emergency Services, Incident Reports</td>
+                <td>~3</td>
+            </tr>
+            <tr>
+                <td>Facilities</td>
+                <td>Bookings, Facility Management</td>
+                <td>~3</td>
+            </tr>
+            <tr>
+                <td>Maintenance</td>
+                <td>Maintenance Requests, Maintenance Intelligence, Digital Twin</td>
+                <td>~5</td>
+            </tr>
+            <tr>
+                <td>System</td>
+                <td>Site Settings, Email Config, Security Logs, Scraper Settings</td>
+                <td>~10</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2 id="rate-limiting">Rate Limiting &amp; Security Throttling</h2>
+        <p>All authentication endpoints enforce per-IP rate limits to protect against brute-force and
+            credential-stuffing attacks. Limits are configurable from <strong>Site Settings &rarr; Registration &amp;
+                Approvals &rarr; Rate Limiting</strong>, and can be scaled globally using the multiplier.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Default Limit</th>
+                <th>Purpose</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>POST /auth/register</code></td>
+                <td>5 / minute</td>
+                <td>Prevent bulk account creation</td>
+            </tr>
+            <tr>
+                <td><code>POST /auth/login</code></td>
+                <td>10 / minute</td>
+                <td>Prevent password brute-force</td>
+            </tr>
+            <tr>
+                <td><code>POST /auth/forgot-password</code></td>
+                <td>5 / minute</td>
+                <td>Prevent email enumeration via timing</td>
+            </tr>
+            <tr>
+                <td><code>POST /auth/reset-password</code></td>
+                <td>5 / minute</td>
+                <td>Prevent token brute-force</td>
+            </tr>
+            <tr>
+                <td><code>POST /auth/change-password</code></td>
+                <td>10 / minute</td>
+                <td>Prevent credential stuffing</td>
+            </tr>
+            <tr>
+                <td><code>POST /auth/registration-decision</code></td>
+                <td>10 / minute</td>
+                <td>Protect one-click owner approval links</td>
+            </tr>
+            </tbody>
+        </table>
+        <p><strong>When a limit is exceeded:</strong> the endpoint returns <code>HTTP 429 Too Many Requests</code>. The
+            portal displays a user-friendly message ("Too many attempts — please wait a moment"). Limits reset after 60
+            seconds per IP.</p>
+        <p><strong>To change limits:</strong> navigate to Site Settings &rarr; Registration &amp; Approvals, scroll to
+            the <em>Rate Limiting</em> card, update the values and multiplier, and save. Changes apply within about a
+            minute for new requests. To disable rate limiting entirely, use <strong>Feature Toggles &rarr; Rate
+                Limiting</strong> (Super Admin only).</p>
+
+
+        <h2 id="community-os">Community OS — New Features (April 2026)</h2>
+        <p>The following features were added as part of the Community OS update. As Super Admin you have unrestricted
+            access to all features, including full control of feature toggles, workflow governance, and the portfolio
+            command centre.</p>
+
+        <h3 id="management-triage">Management Triage — Full Building Cockpit</h3>
+        <p>On your <strong>Dashboard Home</strong>, the Management Cockpit gives you a complete operational view of the
+            building.</p>
+        <ul>
+            <li><strong>Executive Oversight tiles:</strong> Arrears, Collection Rate, Compliance, Fund Balance, Pending
+                Approvals — all live.
+            </li>
+            <li><strong>Needs Attention Now:</strong> SLA-breached requests, high-arrears units, and compliance
+                deadlines ranked by urgency.
+            </li>
+            <li><strong>Automation ROI metrics:</strong> Deflection Rate % and Auto-resolved Today count.</li>
+            <li><strong>Building Health Score card</strong> with multi-year KPI trend charts.</li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Management Cockpit — Super Admin full view</div>
+
+        <h3 id="smart-request">Smart Request — Full Triage &amp; Administration</h3>
+        <p>Navigate to <strong>Dashboard → Requests</strong>.</p>
+        <p>View, triage, assign, close, and delete all requests. Adjust SLA configurations via <strong>Site Settings →
+            Workflow SLAs</strong>.</p>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Requests — Super Admin triage and SLA configuration
+        </div>
+
+        <h3 id="workflow-governance">Workflow Governance — Full Automation Control</h3>
+        <p>Navigate to <strong>Dashboard → Platform Admin → Workflow Governance</strong>.</p>
+        <p>The complete automation observability console with full catalogue admin capabilities.</p>
+        <ul>
+            <li><strong>Summary bar:</strong> X/Y workflows active, coverage %, health breakdown (Healthy / Stale /
+                Failing / Never Run).
+            </li>
+            <li><strong>Automation Catalogue:</strong> All workflows across all categories. Expand any row to view run
+                history. Super Admins can also trigger manual runs and edit workflow configuration.
+            </li>
+            <li><strong>Admin actions:</strong> Enable/disable individual workflows, adjust schedules, and view full
+                error logs for failed runs.
+            </li>
+        </ul>
+        <div class="card callout warn">
+            <strong>Production Warning:</strong> Manually triggering financial workflows (e.g. levy SLA checks, arrears
+            reminders) outside their scheduled window may send duplicate notifications to residents. Only trigger
+            manually if you have confirmed no scheduled run is pending.
+        </div>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Workflow Governance — full catalogue with admin
+            trigger controls
+        </div>
+
+        <h3 id="portfolio">Portfolio Command Centre — Full Portfolio Admin</h3>
+        <p>Navigate to <strong>Dashboard → Platform Admin → Portfolio Command Centre</strong>.</p>
+        <p>Full access to all buildings and onboarding tools.</p>
+        <ul>
+            <li><strong>Summary cards:</strong> Total Buildings, Total Lots, Average Health Score, Active Alerts across
+                the entire portfolio.
+            </li>
+            <li><strong>Portfolio Alerts:</strong> Any building with low health or high arrears is flagged immediately.
+            </li>
+            <li><strong>Buildings table:</strong> Health grade (A–D), arrears rate, last activity per building. Drill
+                down into any building's management view.
+            </li>
+            <li><strong>Onboard Building:</strong> The Building Onboarding Wizard steps through: building name and
+                address, Unit Plan number, EC member setup, levy schedule, and feature toggle defaults for the new
+                scheme.
+            </li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Portfolio Command Centre — buildings table and
+            Onboard Building wizard
+        </div>
+
+        <h3 id="feature-toggles-community-os">Feature Toggles — Controlling Community OS</h3>
+        <p>Navigate to <strong>Dashboard → Admin → Feature Toggles</strong>. All Community OS features have dedicated
+            toggles that can be enabled or disabled per building.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Feature</th>
+                <th>Toggle Key</th>
+                <th>Default</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Smart Requests</td>
+                <td><code>smart_requests</code></td>
+                <td>✅ On</td>
+            </tr>
+            <tr>
+                <td>Workflow Governance</td>
+                <td><code>workflow_governance</code></td>
+                <td>✅ On</td>
+            </tr>
+            <tr>
+                <td>Portfolio Dashboard</td>
+                <td><code>portfolio_dashboard</code></td>
+                <td>✅ On</td>
+            </tr>
+            <tr>
+                <td>Owner Finance</td>
+                <td><code>owner_finance</code></td>
+                <td>✅ On</td>
+            </tr>
+            <tr>
+                <td>Morning Card</td>
+                <td><code>morning_card</code></td>
+                <td>✅ On</td>
+            </tr>
+            <tr>
+                <td>Tenancy Passport</td>
+                <td><code>tenancy_passport</code></td>
+                <td>✅ On</td>
+            </tr>
+            <tr>
+                <td>Progressive Navigation</td>
+                <td><code>progressive_nav</code></td>
+                <td>✅ On</td>
+            </tr>
+            <tr>
+                <td>Adaptive Navigation</td>
+                <td><code>adaptive_nav</code></td>
+                <td>✅ On</td>
+            </tr>
+            <tr>
+                <td>Nav Customisation</td>
+                <td><code>nav_customisation</code></td>
+                <td>✅ On</td>
+            </tr>
+            <tr>
+                <td>Nav Discovery Nudges</td>
+                <td><code>nav_discovery_nudges</code></td>
+                <td>✅ On</td>
+            </tr>
+            </tbody>
+        </table>
+        <p>To disable a feature for a specific building, find the toggle, click the building override switch, and set it
+            to Off. The global default remains unchanged for all other buildings.</p>
+
+        <h3 id="morning-card">Morning Card — Platform Health Summary</h3>
+        <p>On your <strong>Dashboard Home</strong>, the Morning Card surfaces the most critical platform-level item:</p>
+        <ul>
+            <li>A failing automation workflow in the Workflow Governance catalogue</li>
+            <li>A portfolio alert (building health drop or arrears spike)</li>
+            <li>A security or rate-limiting event requiring investigation</li>
+            <li>A pending user registration requiring admin approval</li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Morning Card — Super Admin platform health summary
+            card
+        </div>
+
+        <h3 id="suburb-radar">Suburb Radar &amp; Weekly Digest</h3>
+        <p>Every Sunday evening residents receive automated digests. As Super Admin you can monitor delivery success via
+            <strong>Workflow Governance → Community → suburb_radar</strong> and <strong>notification_digest</strong> run
+            history. Failed delivery runs appear in red and include error detail.</p>
+
+    </article>
+</main>
+
+<footer>
+    Generated 1 April 2026 • Support: noreply@ • A vision by: Silverfox Technologies, Australia
+    • Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

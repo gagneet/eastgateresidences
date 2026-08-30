@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Guides</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+    <!-- Last updated: 2026-05-02 — Phase E: added Identity & Registration Enhancements section -->
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform
+                </div>
+            </div>
+        </div>
+        <div class="badge">Resident Handbook</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Navigation</h3>
+        <div class="card callout warn" style="margin-top:14px">
+            <strong>Screenshots</strong><br/>
+            This HTML pack includes screenshot placeholders. Replace each <em>Screenshot placeholder</em> block with
+            real images from your environment.
+        </div>
+    </nav>
+
+    <article class="content">
+
+        <h1><span data-bldg="name">your building</span> – User Guides</h1>
+        <p>Welcome! This portal contains all the information you need to effectively use the <span data-bldg="name">your building</span>
+            platform. Based on your user role, you will have access to different guides on the left.</p>
+
+        <div class="card callout success">
+            <strong>Recommended:</strong> Start with the <strong>Handbook</strong> for your role to see your most common
+            tasks and where to find them.
+        </div>
+
+        <div class="card">
+            <h3>What's inside</h3>
+            <ul>
+                <li><strong>Resident Handbook:</strong> A comprehensive guide for all residents.</li>
+                <li><strong>Role Handbooks:</strong> Role-specific deep-dives for Owners, Tenants, EC Members
+                    (including chairperson appointments), Admin Staff, Strata Managers, Strata Admins, and Super Admins.
+                </li>
+                <li><strong>Unit Plan:</strong> Official registered units plan (your unit plan) including floor plans
+                    and
+                    entitlements.
+                </li>
+                <li><strong>Unit Inclusions:</strong> A detailed list of standard inclusions for your building\'s units.
+                </li>
+            </ul>
+        </div>
+
+        <div class="card callout info">
+            <strong>Note:</strong> Access to these guides is protected based on your registered role. Newly registered
+            users can access the User Guide while their account is pending approval; all other portal features unlock
+            after approval.
+        </div>
+
+        <div class="card callout warn">
+            <strong>Multi-Building Access:</strong> Super Admins and multi-property owners will see a Building Selector
+            on login and in the header. The selected building controls which data you are viewing.
+        </div>
+
+        <div class="card callout info">
+            <strong>Developer and API docs:</strong> Super Admins can use the generated <a
+                href="/tech-docs/swagger.html">Swagger API documentation</a>, <a
+                href="/tech-docs/strataos-openapi.json">OpenAPI JSON</a>, and <a
+                href="/tech-docs/postman/strataos_demo_collection.json">Postman collection</a>. The shared Postman
+            environment defaults to the demo building (<code>building_id=demo</code>) so test calls do not target East
+            Gate production data unless deliberately changed.
+        </div>
+
+        <div class="card callout info">
+            <strong>Menu discovery:</strong> The sidebar is driven by the backend navigation configuration. New advanced
+            menu suggestions rotate through unseen items on login/config refresh; clicking a suggestion marks that
+            feature as seen, while dismissing a suggestion applies the configured cooldown.
+        </div>
+
+        <div class="card callout info">
+            <strong>Simple vs. Advanced menu mode:</strong> In Simple mode (the default for every role), your sidebar
+            shows only your role's core destinations plus an "Advanced" section that starts collapsed — click it to
+            reveal the rest of the platform's features without permanently changing your menu. Switching to Advanced or
+            Classic mode from the Customise menu shows everything expanded by default instead. Your last-chosen mode is
+            remembered per building.
+        </div>
+
+        <div class="card">
+            <h3>Advanced Financial Enhancements — What's New</h3>
+            <p>The platform now includes a comprehensive suite of advanced financial management tools:</p>
+            <ul>
+                <li><strong>Debt Recovery Board</strong> — 4-tier arrears severity tracking (Monitor → Contacted → DCA
+                    Eligible → DCA Referred)
+                </li>
+                <li><strong>Section 83 Notices</strong> — Formal ACT demand letter PDFs generated instantly</li>
+                <li><strong>DCA Referral</strong> — Automated eligibility checks with agency referral workflow</li>
+                <li><strong>Payment Plans</strong> — Structured instalment arrangements for arrears owners</li>
+                <li><strong>Special Levies</strong> — One-off charges with automatic UOE-based apportionment</li>
+                <li><strong>Capital Funding &amp; Special Levy Workspace</strong> — Planned/Pilot workflow for major
+                    repairs: compare funding options, collect owner voting/elections, and generate levy-notice PDF
+                    preview batches. See the <a href="capital-funding-special-levies.html">Capital Funding guide</a>.
+                </li>
+                <li><strong>Bank Reconciliation</strong> — Monthly statement verification for both funds</li>
+                <li><strong>Payment Matching</strong> — Review bank-feed payments that need manager confirmation before
+                    allocation
+                </li>
+                <li><strong>Historical Reconstruction</strong> — Rebuild levy/expense history for financial years with
+                    incomplete dated payment records, through a reviewed, human-approved batch workflow. Includes an
+                    <strong>Import & Generate</strong> step to upload a CSV/JSON of proposed budget, fund closing
+                    balances, and actual expense-category spend from whatever source document you have on hand — it
+                    tolerates gaps in any of these figures.
+                </li>
+                <li><strong>Financial Health Score</strong> — 0–100 composite rating across 7 financial metrics</li>
+                <li><strong>True Cost of Ownership</strong> — Annual per-unit cost breakdown across all charge types
+                </li>
+                <li><strong>Tax Summary PDFs</strong> — Annual levy summaries for owner tax returns</li>
+            </ul>
+            <p>See your role handbook for which of these features you can access, and use the
+                <a href="payment-matching.html">Payment Matching Guide</a> for queue review steps or the
+                <a href="historical-reconstruction.html">Historical Reconstruction Guide</a> for the batch approval
+                workflow.</p>
+        </div>
+
+        <div class="card callout info">
+            <strong>Financial core migration status:</strong> As of 24 July 2026, East Gate's identity/ownership domain
+            is PostgreSQL read/write. Settings, occupancy, trust ledger, trust reconciliation, and governance now read
+            from PostgreSQL but still write to MongoDB until write-promotion gates pass. Finance remains in shadow mode,
+            so finance workflows continue to use the existing live MongoDB paths until its shadow diffs and
+            reconciliation gaps are closed. See the
+            <a href="financial-core-migration-guide.html">Financial System Upgrade Guide</a>.
+        </div>
+
+        <div class="card">
+            <h3>Identity & Registration Enhancements — What's New (May 2026)</h3>
+            <p>Registration and account management have been upgraded with a more secure, building-scoped identity
+                system:</p>
+            <ul>
+                <li><strong>Invitation-link registration</strong> — Admins can send personalised invitation emails that
+                    pre-fill your registration form. Just click the link, set a password, and your account is ready.
+                </li>
+                <li><strong>Building-scoped accounts</strong> — Every account is precisely scoped to its building from
+                    the moment it is created. You can only see your building's data; nothing crosses between buildings.
+                </li>
+                <li><strong>Multi-building access</strong> — Users who belong to more than one building (e.g. portfolio
+                    owners, multi-site strata managers) see a building selector on login. Each building remains fully
+                    isolated.
+                </li>
+                <li><strong>Improved session security</strong> — Sessions now carry a building context so that role and
+                    feature checks are always applied to the correct building, even for Super Admins.
+                </li>
+            </ul>
+            <p>See the <a href="registration-guide.html">Registration Guide</a> and the <a
+                    href="staff-invitations-guide.html">Staff Invitations Guide</a> for full details.</p>
+        </div>
+
+        <div class="card">
+            <h3>Access Control Enhancements — What's New (March 2026)</h3>
+            <p>Super Admins now have granular, per-user control over both permission flags and feature page access:</p>
+            <ul>
+                <li><strong>192 Seeded Feature Toggle Registry Entries</strong> — product modules, cutover controls, safety
+                    gates, and preview features are managed through the feature-toggle registry.
+                </li>
+                <li><strong>Feature Access Controls</strong> — grant or deny individual users access to specific
+                    features independently of the site toggle and their role. Uses an inline 3-state selector: Site
+                    Default / Grant / Deny.
+                </li>
+                <li><strong>Access Control Management</strong> — set granular permission flags per user with
+                    elevation/restriction badges showing at a glance how a user deviates from their role defaults.
+                </li>
+                <li><strong>3-Layer Access Model</strong> — Site Toggle → User Override → Effective Access. Super Admin
+                    always bypasses all restrictions.
+                </li>
+            </ul>
+            <p>See the <a href="role_admin.html#access-control">Super Admin Handbook</a> for full instructions.</p>
+        </div>
+
+        <div class="card">
+            <h3>Document OCR Workspace — What's New (July 2026)</h3>
+            <p>A new general-purpose OCR workspace reads text and structured fields out of scanned or photographed
+                documents — AGM minutes, rates notices, insurance certificates, contracts, maintenance evidence,
+                bank statements, or any other paperwork — and can publish the extracted text straight into your
+                building's document library. It runs in the background so large files never block your upload, and
+                automatically falls back to a safe provider if your building's configured provider is unavailable.
+                See the <a href="document-ocr.html">Document OCR Workspace Guide</a>.</p>
+        </div>
+
+        <div class="card">
+            <h3>File Upload Safety — What's New (April 2026)</h3>
+            <p>Every file you upload is now automatically scanned to verify it is a safe, recognised file type.
+                The platform checks the actual file content — not just the file name — so harmful programs
+                renamed to look like documents are detected and blocked.</p>
+            <ul>
+                <li><strong>Accepted:</strong> PDF, Word, Excel, PowerPoint, images (JPEG, PNG, WebP, HEIC), CSV, plain
+                    text
+                </li>
+                <li><strong>Blocked:</strong> executable programs, shell scripts, code files, Java packages</li>
+                <li><strong>Size limits:</strong> 25 MB for documents, 10 MB for photos, 10 MB for CSV imports</li>
+            </ul>
+            <p>If your upload is rejected with "This file type is not permitted", see the
+                <a href="document-upload-safety.html">Document Upload Safety Guide</a> for help.</p>
+        </div>
+
+    </article>
+</main>
+
+<footer>
+    Generated 3 March 2026 • Support: noreply@ • A vision by: Silverfox Technologies, Australia
+    • Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

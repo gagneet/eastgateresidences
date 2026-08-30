@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Real Estate Agent Handbook</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform
+                </div>
+            </div>
+        </div>
+        <div class="badge">Agent Handbook</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Navigation</h3>
+        <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#agent-dashboard">Agent Dashboard</a></li>
+            <li><a href="#properties">Managing Properties</a></li>
+            <li><a href="#tenants">Tenant Communications</a></li>
+            <li><a href="#maintenance">Maintenance Requests</a></li>
+            <li><a href="#inspections">Inspections</a></li>
+            <li><a href="#lease-renewals">Lease Renewals</a></li>
+            <li><a href="#pm-letter">PM Engagement Letter</a></li>
+            <li><a href="#permissions">Access Permissions</a></li>
+        </ul>
+        <div class="card callout warn" style="margin-top:14px">
+            <strong>Screenshots</strong><br/>
+            This HTML pack includes screenshot placeholders. Replace each <em>Screenshot placeholder</em> block with
+            real images from your environment.
+        </div>
+    </nav>
+
+    <article class="content">
+
+        <h1>Real Estate Agent Handbook</h1>
+        <p>Welcome to the <span data-bldg="name">your building</span> platform as a Real Estate Agent. This guide
+            explains how to use the
+            platform to manage properties on behalf of owners, communicate with tenants, and oversee maintenance and
+            inspections.</p>
+
+        <div class="card callout info">
+            <strong>Your Role:</strong> As a Real Estate Agent, you are appointed by specific property owners to manage
+            their units on their behalf. You will only see the properties explicitly assigned to you. Owners retain full
+            visibility of their own properties and can interact with the system directly.
+        </div>
+
+        <h2 id="overview">Role Overview</h2>
+        <p>The Real Estate Agent role bridges the gap between property owners and tenants. Your responsibilities on this
+            platform include:</p>
+        <ul>
+            <li>Managing tenancies and lease records for assigned properties</li>
+            <li>Handling tenant maintenance requests (triage, assignment, follow-up)</li>
+            <li>Scheduling and documenting property inspections</li>
+            <li>Communicating with both owners and tenants via the messaging system</li>
+            <li>Monitoring lease renewal dates and alerting owners ahead of expiry</li>
+            <li>Recording rent transactions in the ledger</li>
+        </ul>
+
+        <h2 id="agent-dashboard">Agent Dashboard</h2>
+        <p>Navigate to <strong>Dashboard → OwnerHub → Agent Dashboard</strong>. Your dashboard shows:</p>
+        <ul>
+            <li><strong>Properties Managed</strong> — total count of your assigned properties</li>
+            <li><strong>Active Tenancies</strong> — current occupied properties</li>
+            <li><strong>Pending Maintenance</strong> — open requests requiring action</li>
+            <li><strong>Leases Expiring Soon</strong> — properties within 90 days of lease end</li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Agent Dashboard — summary cards and property list
+        </div>
+
+        <h2 id="properties">Managing Properties</h2>
+        <p>Go to <strong>Dashboard → OwnerHub → My Properties</strong>. You will only see properties where the owner has
+            listed your user ID in their assigned agents. For each property you can:</p>
+        <ul>
+            <li>View property details (address, type, bedrooms, current rent)</li>
+            <li>See the active tenant and lease information</li>
+            <li>Check the property health score</li>
+            <li>Update property notes</li>
+        </ul>
+        <div class="card callout warn">
+            <strong>Note:</strong> You cannot add, delete, or transfer ownership of properties. Only the property owner
+            or a Super Admin can perform those actions.
+        </div>
+
+        <h2 id="tenants">Tenant Communications</h2>
+        <p>All tenant communications flow through the platform's messaging system. When a tenant submits a maintenance
+            request or sends a message, you receive a notification and can respond from the request thread.</p>
+        <p>To contact a tenant directly:</p>
+        <ol>
+            <li>Navigate to <strong>Dashboard → OwnerHub → Tenancies &amp; Leases</strong></li>
+            <li>Select the relevant tenancy</li>
+            <li>Use the <strong>Contact Tenant</strong> button to open a message thread</li>
+        </ol>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Tenancy detail — tenant contact information and
+            message thread
+        </div>
+
+        <h2 id="maintenance">Maintenance Requests</h2>
+        <p>Navigate to <strong>Dashboard → My Tenancy → Maintenance Requests</strong> or <strong>Dashboard → Agent
+            Dashboard → Maintenance Queue</strong>. You will see all open requests for your assigned properties, sorted
+            by urgency (Emergency first).</p>
+
+        <h3>Processing a Request</h3>
+        <ol>
+            <li>Click on the request to open the detail view.</li>
+            <li>Review the tenant's description and photos.</li>
+            <li>Click <strong>Update Request</strong> to:
+                <ul>
+                    <li>Acknowledge the request (status → Acknowledged)</li>
+                    <li>Assign a tradesperson (name, phone number)</li>
+                    <li>Schedule a date for the work</li>
+                    <li>Add a cost estimate</li>
+                </ul>
+            </li>
+            <li>Once works are complete, mark the request as <strong>Completed</strong> and record the actual cost.</li>
+            <li>Close the request once confirmed with the tenant.</li>
+        </ol>
+
+        <h3>Urgency Levels</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Level</th>
+                <th>Description</th>
+                <th>Target Response</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>🔴 Emergency</td>
+                <td>Safety/habitability risk (gas, electrical, no hot water)</td>
+                <td>Same day</td>
+            </tr>
+            <tr>
+                <td>🟡 Urgent</td>
+                <td>Significant inconvenience (appliance failure, water leak)</td>
+                <td>Within 3 days</td>
+            </tr>
+            <tr>
+                <td>🟢 Routine</td>
+                <td>Minor issues, cosmetic repairs</td>
+                <td>Within 2 weeks</td>
+            </tr>
+            </tbody>
+        </table>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Maintenance Queue — requests sorted by urgency with
+            status badges
+        </div>
+
+        <h2 id="inspections">Property Inspections</h2>
+        <p>Navigate to <strong>Dashboard → OwnerHub → Inspections</strong>. You can schedule three types of inspections:
+        </p>
+        <ul>
+            <li><strong>Entry (Ingoing)</strong> — Document property condition before a new tenant moves in.</li>
+            <li><strong>Routine</strong> — Typically every 3–4 months during the tenancy.</li>
+            <li><strong>Exit (Outgoing)</strong> — Assess condition after tenant vacates; compare with entry report.
+            </li>
+        </ul>
+        <p>For each inspection, record a condition score (1–10), notes, and attach the inspection report or photos. ACT
+            law requires landlords to give tenants at least 7 days' notice for routine inspections.</p>
+        <div class="card callout info">
+            <strong>Frequency Reminder:</strong> Under ACT residential tenancy law, routine inspections cannot occur
+            more than 4 times per year.
+        </div>
+
+        <h2 id="lease-renewals">Lease Renewals</h2>
+        <p>The platform automatically flags leases expiring within 90 days in your Agent Dashboard. When a lease is
+            approaching expiry:</p>
+        <ol>
+            <li>Contact the tenant to confirm their intentions (renew / vacate).</li>
+            <li>If renewing, update the lease end date and new rent amount in <strong>Tenancies &amp; Leases</strong>.
+            </li>
+            <li>Notify the owner of the renewal terms for approval.</li>
+            <li>If tenant is vacating, schedule an exit inspection.</li>
+        </ol>
+
+        <h2 id="pm-letter">Property Management Engagement Letter</h2>
+        <p>When onboarding a new owner client, you can share a pre-formatted engagement summary that covers your
+            agency's fees, the owner's ACT compliance obligations, and invoice redirect options. This document is
+            ready to print or save as a PDF directly from the browser.</p>
+        <div class="card callout info">
+            <strong>Template available:</strong>
+            <a href="property_manager_engagement_letter.html" target="_blank">Property Manager Engagement Letter ↗</a>
+            — covers fees, insurance, land tax, water rates, smoke alarms, pool compliance, ceiling insulation, and
+            owner ID requirements.
+        </div>
+        <div class="card callout warn">
+            <strong>Coming soon:</strong> The platform will add an <em>Email to Owner</em> action inside
+            <strong>OwnerHub → My Properties</strong> to generate and send this letter directly from the property
+            record once the <code>pm_engagement_letter</code> feature toggle is enabled by your Super Admin.
+        </div>
+
+        <h2 id="permissions">Access Permissions</h2>
+        <p>As a Real Estate Agent, your access is deliberately scoped to protect owner privacy:</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Feature</th>
+                <th>Access</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Properties (assigned only)</td>
+                <td>✅ View &amp; Update notes</td>
+            </tr>
+            <tr>
+                <td>Tenancies (assigned properties)</td>
+                <td>✅ Full CRUD</td>
+            </tr>
+            <tr>
+                <td>Maintenance Requests</td>
+                <td>✅ View, Update, Assign</td>
+            </tr>
+            <tr>
+                <td>Inspections</td>
+                <td>✅ Create, View, Update</td>
+            </tr>
+            <tr>
+                <td>Building Finances (strata)</td>
+                <td>❌ Not accessible</td>
+            </tr>
+            <tr>
+                <td>Strata Levy Data</td>
+                <td>❌ Not accessible</td>
+            </tr>
+            <tr>
+                <td>Other owners' data</td>
+                <td>❌ Not accessible</td>
+            </tr>
+            <tr>
+                <td>Documents (building docs)</td>
+                <td>✅ View (public docs only)</td>
+            </tr>
+            <tr>
+                <td>Messaging</td>
+                <td>✅ Full access</td>
+            </tr>
+            </tbody>
+        </table>
+
+    </article>
+</main>
+
+<footer>
+    Generated 12 March 2026 • Support: noreply@ • A vision by: Silverfox Technologies,
+    Australia • Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

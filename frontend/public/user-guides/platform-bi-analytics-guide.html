@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>StrataOS – Platform BI Analytics Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em">StrataOS Platform</div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform</div>
+            </div>
+        </div>
+        <div class="badge">User Guide</div>
+    </div>
+</header>
+
+<main style="display:block">
+    <article class="content">
+
+        <h1>Platform Analytics Guide</h1>
+        <p>This guide is for <strong>Super Admins</strong> — the StrataOS platform operators who oversee all
+            strata companies and all buildings. Platform Analytics gives you visibility across the entire
+            platform, not just a single company or building.</p>
+
+        <div class="card callout warn">
+            <strong>Access note:</strong> Platform Analytics is only visible to super admin accounts. Strata
+            admins and strata managers see their own company's data only. If you believe you should have access
+            and do not, contact your StrataOS system administrator.
+        </div>
+
+        <h2>Accessing Platform Analytics</h2>
+        <ol>
+            <li>Log in with your super admin account.</li>
+            <li>Go to <strong>Super Admin → Platform Analytics</strong> from the main navigation.</li>
+            <li>The platform analytics dashboard loads, showing aggregate data across all strata companies and
+                all buildings registered on the platform.</li>
+        </ol>
+
+        <h2>Monitoring All Buildings Across All Companies</h2>
+        <p>The <strong>Platform Overview</strong> panel at the top of the page shows platform-wide metrics:</p>
+        <ul>
+            <li><strong>Total active buildings</strong> — all buildings currently live on the platform.</li>
+            <li><strong>Total active owners and tenants</strong> — registered portal users across all buildings.</li>
+            <li><strong>Platform-wide levy collection rate</strong> — the average across all buildings. Useful
+                for benchmarking individual companies.</li>
+            <li><strong>Total arrears (platform)</strong> — the aggregate outstanding levy balance across every
+                building. This is a platform health indicator.</li>
+            <li><strong>Compliance overdue count (platform)</strong> — how many compliance items are currently
+                overdue across all buildings.</li>
+        </ul>
+
+        <h2>Building Health Ranking</h2>
+        <p>The <strong>Building Health Ranking</strong> table lists every building on the platform with a
+            composite health score. Buildings are ranked from best to worst. You can filter by:</p>
+        <ul>
+            <li>Strata company (to compare performance across companies).</li>
+            <li>Health score range (for example, show only buildings scoring below 50).</li>
+            <li>State or territory.</li>
+        </ul>
+        <p>Click any building row to open that building's detailed analytics view. You can also use the
+            building switcher to enter any building's management interface directly.</p>
+
+        <div class="card callout success">
+            <strong>Tip:</strong> The building health ranking is a useful tool for identifying which strata
+            companies may need a support conversation. A company with many low-scoring buildings may be
+            under-resourced or need platform training.
+        </div>
+
+        <h2>Feature Adoption Tracking</h2>
+        <p>The <strong>Feature Adoption</strong> panel shows which platform features are being used, and by
+            how many buildings:</p>
+        <ul>
+            <li>Features that are enabled but rarely accessed — a signal that training or onboarding may
+                be needed.</li>
+            <li>Features that are disabled for many buildings — useful for prioritising outreach to companies
+                that are not yet using key capabilities.</li>
+            <li>Rollout percentage — for features that are being gradually enabled, the current percentage
+                of buildings with access.</li>
+        </ul>
+
+        <h2>Data Freshness and ETL Health</h2>
+        <p>StrataOS processes data from various sources to populate analytics dashboards. The <strong>Data
+            Health</strong> panel shows:</p>
+        <ul>
+            <li><strong>Last refresh time</strong> — when the analytics data was last updated for each
+                building or data source.</li>
+            <li><strong>Stale data warnings</strong> — buildings whose analytics data has not refreshed
+                within the expected window are flagged amber or red.</li>
+            <li><strong>Processing errors</strong> — if a data pipeline has failed for a specific building,
+                it appears here with an error description.</li>
+        </ul>
+
+        <h3>Triggering an ETL Refresh</h3>
+        <p>If a building's data appears stale or incorrect, you can manually trigger a data refresh:</p>
+        <ol>
+            <li>Find the building in the Data Health panel or the Building Health Ranking table.</li>
+            <li>Click the building name to open its data health detail.</li>
+            <li>Click <strong>Trigger Refresh</strong>.</li>
+            <li>The refresh runs in the background. Most refreshes complete within a few minutes. Reload
+                the page to see updated figures.</li>
+        </ol>
+
+        <div class="card callout warn">
+            <strong>Important:</strong> Triggering a refresh for a building with many years of data may
+            take longer. Avoid triggering multiple refreshes for the same building simultaneously.
+            If the refresh fails more than twice, raise a support ticket.
+        </div>
+
+    </article>
+</main>
+
+<footer>
+    StrataOS Platform &nbsp;·&nbsp; Super Admin &nbsp;·&nbsp; <a href="mailto:support@strataos.com.au">support@strataos.com.au</a>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

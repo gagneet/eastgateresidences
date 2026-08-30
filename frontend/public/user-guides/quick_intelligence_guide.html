@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Intelligence Module Guide — <span data-bldg="name">your building</span></title>
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <h1>Intelligence Module — Quick Reference Guide</h1>
+    <p class="subtitle">Understanding the Property Intelligence and Financial Analytics tools</p>
+
+    <div class="role-badge all-roles">All Roles with Intelligence Access</div>
+
+    <h2>Overview</h2>
+    <p>The Intelligence module provides predictive analytics, risk scoring, and financial health insights for your
+        building
+        Residences. All amounts are displayed in AUD with exactly two decimal places. Non-monetary metrics use up to
+        four decimal places.</p>
+
+    <h2>Navigation</h2>
+    <p>Each intelligence sub-page has a <strong>← Back to Intelligence Hub</strong> button at the top-left to return to
+        the main Intelligence dashboard (<code>/dashboard/intelligence</code>).</p>
+
+    <h2>Help Tooltips</h2>
+    <p>Every metric and KPI card has a <span style="font-weight:bold">ⓘ help icon</span>. Hover over it to see:</p>
+    <ul>
+        <li>How the value is calculated</li>
+        <li>What data sources are used</li>
+        <li>What action to take based on the value</li>
+    </ul>
+
+    <h2>Intelligence Pages</h2>
+
+    <h3>1. Intelligence Hub (<code>/dashboard/intelligence</code>)</h3>
+    <p>The main dashboard showing four signal cards and KPI metrics:</p>
+    <ul>
+        <li><strong>Attention Needed</strong> — Maintenance risks requiring an immediate decision. Links to Asset
+            Intelligence page.
+        </li>
+        <li><strong>Upcoming Capital Costs</strong> — Next major replacement milestone. Click to see the full capital
+            works timeline.
+        </li>
+        <li><strong>Financial Stability</strong> — Reserve resilience against unexpected shocks. Links to Capital Risk
+            page.
+        </li>
+        <li><strong>Capital Works Risk</strong> — Next major capital shock window. Links to Capital Risk page.</li>
+    </ul>
+    <p>KPI cards at the top of the hub include tooltips explaining each metric:</p>
+    <ul>
+        <li><strong>Asset Health Score</strong> — Composite 0–100 score from age, repair frequency, and service recency.
+        </li>
+        <li><strong>12m Maintenance Forecast</strong> — AI-predicted spend for the next 12 months.</li>
+        <li><strong>High Risk Assets</strong> — Count of assets with risk score above 75.</li>
+        <li><strong>5y Capital Need</strong> — Total capital works estimated for the next 5 years.</li>
+    </ul>
+
+    <h3>2. Asset Intelligence (<code>/dashboard/intelligence/assets</code>)</h3>
+    <p>Shows maintenance risks and asset health scores from the Digital Twin asset registry. Click any row to see full
+        asset details including repair history and AI recommendations.</p>
+    <ul>
+        <li><strong>Risk Score</strong> — 0-100 likelihood of failure. Above 75 = high priority.</li>
+        <li><strong>Health Score</strong> — 0-100 condition rating. Below 50 warrants inspection.</li>
+        <li><strong>Repair Cost (12m)</strong> — When repair cost approaches replacement cost, replacement is
+            economical.
+        </li>
+    </ul>
+
+    <h3>3. Capital Shock Risk (<code>/dashboard/intelligence/capital-risk</code>)</h3>
+    <p><strong>Note (Session 59):</strong> This report is now fully operational. A data migration added building context
+        (<code>building_id</code>) to all records across ~45 collections, resolving the 500 errors that previously
+        prevented the Capital Shock and Levy Fairness reports from loading.</p>
+    <p>Identifies reserve shortfalls before major asset replacements. Key metrics:</p>
+    <ul>
+        <li><strong>Capital Shock Index (CSI)</strong> — Year's capital spend ÷ median historical capital spend. CSI
+            &gt; 1.5 = Major risk.
+        </li>
+        <li><strong>SFAR (Sinking Fund Adequacy Ratio)</strong> — (Current Reserve + Future Levies) ÷ Planned Capital
+            Works. Below 1.0 = underfunded.
+        </li>
+        <li><strong>Reserve Projection Chart</strong> — 10-year trajectory showing balance before/after capital
+            deductions.
+        </li>
+    </ul>
+
+    <h3>4. Levy Fairness (<code>/dashboard/intelligence/levy-fairness</code>)</h3>
+    <p><strong>Note (Session 59):</strong> Fully operational after the building_id data migration. All 87 units are now
+        correctly scoped and the page no longer returns errors.</p>
+    <p>AI-powered analysis of whether levies are distributed fairly across all lots based on the chosen allocation
+        driver (unit entitlement, equal split, area-weighted, etc.). EC Members can edit allocation models and run
+        scenario comparisons.</p>
+
+    <h3>5. Capital Works Planner (<code>/dashboard/intelligence/capital-planner</code>)</h3>
+    <p>Displays the 15-year sinking fund capital works schedule seeded from the strata plan. Shows replacement projects
+        by year, priority, and cost estimate. EC Members and above can add, edit, and prioritise capital works items via
+        the PUT endpoint. A <strong>← Back to Intelligence Hub</strong> button returns to the hub.</p>
+
+    <h3>6. Levy Stability Score (<code>/dashboard/intelligence/levy-stability</code>)</h3>
+    <p>Accessible to EC Members, Chairman, Strata Manager, and Super Admin. Provides a composite 0–100 stability score
+        for the levy regime, derived from four weighted components:</p>
+    <ul>
+        <li><strong>Reserve Adequacy (35%)</strong> — Is the sinking fund target-funded for the next capital shock
+            window?
+        </li>
+        <li><strong>Capital Shock Risk (30%)</strong> — Probability and magnitude of a special levy event in the next 5
+            years.
+        </li>
+        <li><strong>Levy Volatility (20%)</strong> — Year-on-year variability in levy increases (lower = more stable).
+        </li>
+        <li><strong>Funding Sufficiency (15%)</strong> — Current levy income vs. estimated budget requirement.</li>
+    </ul>
+    <p>The page includes:</p>
+    <ul>
+        <li>A visual score ring (green ≥ 75, amber 50–74, red &lt; 50) with composite score</li>
+        <li>Four KPI cards showing each component's score and weight</li>
+        <li>Radar chart comparing baseline vs what-if scenario</li>
+        <li>Per-group breakdown (Apartments vs Townhouses)</li>
+        <li><strong>What-If Modelling</strong> (managers only): Test how increasing sinking fund contributions,
+            deferring capital works, or securing a loan would change the stability score
+        </li>
+        <li>LSS Methodology explainer card with calculation details</li>
+    </ul>
+    <p>Use <strong>Recompute</strong> to recalculate from current database state. Use <strong>What-If</strong> to
+        explore scenarios without saving changes.</p>
+
+    <h3>7. Levy Fairness — AGM Report Tab</h3>
+    <p>On the Levy Fairness page (<code>/dashboard/intelligence/levy-fairness</code>), the <strong>AGM Report</strong>
+        tab generates production-ready documents for the Annual General Meeting:</p>
+    <ul>
+        <li><strong>Committee Report (PDF)</strong> — 8-section A4 report: Executive Summary, LBFI Gauge, Cross-Subsidy
+            Analysis, Facility Cost Allocation, Predictive Risk (Monte Carlo), Per-Lot Impact Table (first 50 rows),
+            Legal Pathway Options, and Action Plan. Suitable for printing and tabling at AGM.
+        </li>
+        <li><strong>AGM Presentation (PPTX)</strong> — 8-slide PowerPoint: Title, Agenda, LBFI Explanation,
+            Cross-Subsidy Analysis, Facility Allocation, Per-Lot Highlights, Predictive Risk, and Legal Pathways +
+            Action Plan.
+        </li>
+        <li><strong>Impact CSV</strong> — Spreadsheet of all units with current levy, fair levy, proposed levy, and
+            change amounts.
+        </li>
+    </ul>
+
+    <h3>8. Levy Fairness — Transition Scenario</h3>
+    <p>On the Levy Fairness page, the <strong>Scenarios</strong> tab provides transition cap sliders. When you click
+        <strong>Run Transition Scenario</strong>, the page now shows:</p>
+    <ul>
+        <li>The number of <em>years to full transition</em> at the selected cap rate</li>
+        <li>Per-group impact table showing projected levy per lot for Years 1–4 and the target amount, with delta
+            amounts colour-coded
+        </li>
+        <li>Exact dollar examples inline (e.g., "A townhouse paying $5,200/yr will increase by at most $X under the %
+            cap")
+        </li>
+    </ul>
+    <p>The <strong>Save Snapshot</strong> tab (Super Admin only) allows saving the current model state as a named
+        snapshot for comparison or rollback.</p>
+
+    <h2>Finance Intelligence Link from Arrears</h2>
+    <p>The Debt Recovery Board (<code>/dashboard/arrears</code>) includes a <strong>Finance Intelligence →</strong>
+        shortcut in the top action bar, linking directly to the Finance Intelligence page for related financial
+        analysis.</p>
+
+    <h2>Number Formatting Policy</h2>
+    <p>The application enforces consistent number formatting across all pages:</p>
+    <ul>
+        <li><strong>Currency amounts</strong> — Always displayed with exactly 2 decimal places (e.g., $1,234.56)</li>
+        <li><strong>Ratio/index values</strong> — Displayed with up to 2 decimal places (e.g., CSI: 1.75)</li>
+        <li><strong>Percentages</strong> — Displayed with 1-2 decimal places (e.g., 23.45%)</li>
+        <li><strong>Large currency totals in charts</strong> — Displayed in thousands (e.g., $250k) for readability</li>
+    </ul>
+
+    <h2>Actions Available</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Page</th>
+            <th>Action</th>
+            <th>Who Can Do It</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Intelligence Hub</td>
+            <td>Sync Engine (recompute all intelligence data)</td>
+            <td>All intelligence users</td>
+        </tr>
+        <tr>
+            <td>Asset Intelligence</td>
+            <td>View asset detail, repair history</td>
+            <td>All intelligence users</td>
+        </tr>
+        <tr>
+            <td>Capital Risk</td>
+            <td>View reserve projection, navigate to Capital Planner</td>
+            <td>All intelligence users</td>
+        </tr>
+        <tr>
+            <td>Levy Fairness</td>
+            <td>View, edit allocation model, download report</td>
+            <td>EC Members, Chairman, Admin</td>
+        </tr>
+        <tr>
+            <td>Levy Fairness — AGM Report</td>
+            <td>Generate Committee Report PDF, AGM Presentation PPTX, Impact CSV</td>
+            <td>EC Members, Chairman, Admin</td>
+        </tr>
+        <tr>
+            <td>Levy Fairness — Transition Scenario</td>
+            <td>Run cap scenarios with per-group year-by-year projections</td>
+            <td>EC Members, Chairman, Admin</td>
+        </tr>
+        <tr>
+            <td>Levy Fairness — Save Snapshot</td>
+            <td>Save/restore named model snapshots</td>
+            <td>Super Admin only</td>
+        </tr>
+        <tr>
+            <td>Levy Stability Score</td>
+            <td>View LSS gauge, run what-if scenarios</td>
+            <td>EC Members, Chairman, Admin</td>
+        </tr>
+        <tr>
+            <td>Capital Planner</td>
+            <td>Add/edit/delete capital works items, manage budgets</td>
+            <td>EC Members, Chairman, Admin</td>
+        </tr>
+        </tbody>
+    </table>
+
+</div>
+<script src="building-config.js"></script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Capital Funding &amp; Special Levy Workspace - Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">Strata Management Platform</div>
+            <div class="sub">Technical Documentation · Planned/Pilot Feature</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="levy-fairness.html" href="levy-fairness.html"><span class="icon">⚖️</span> Levy Fairness</a>
+            <a class="active" data-page="capital-funding-special-levies.html" href="capital-funding-special-levies.html"><span class="icon">🏗️</span> Capital Funding</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+            <a href="/user-guides/capital-funding-special-levies.html" target="_blank"><span class="icon">📖</span> User Guide</a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <h1>Capital Funding &amp; Special Levy Workspace</h1>
+        <div class="callout warn">
+            <strong>Planned/Pilot:</strong> The first implementation must be calculator, owner-impact report, governance
+            evidence and levy-notice preview only. Live issuance and ledger posting require separate protected toggles.
+        </div>
+
+        <h2>Purpose</h2>
+        <p>This workspace is intended for major capital events: remediation, cladding, structural defects, emergency
+            repairs, major insurance premium increases, lift replacement, solar or EV infrastructure, and other costs
+            that may require special levies or strata finance.</p>
+
+        <h2>Target Data Flow</h2>
+        <pre><code>staff project inputs
+  -> funding scenario calculator
+  -> lot entitlement and ownership snapshot
+  -> owner impact report
+  -> AGM/SGM/GM motion and owner voting/elections
+  -> legal and governance approval gate
+  -> frozen calculation manifest
+  -> levy notice PDF preview batch
+  -> dual approval
+  -> demo issuance / shadow ledger
+  -> controlled production issuance and posting</code></pre>
+
+        <h2>Feature Toggles</h2>
+        <ul>
+            <li><code>capital_funding_workspace</code> - staff calculator and scenario workspace.</li>
+            <li><code>capital_funding_owner_elections</code> - owner vote/election pages.</li>
+            <li><code>capital_funding_notice_preview</code> - one-click PDF preview batches.</li>
+            <li><code>capital_funding_notice_issuance</code> - actual email/portal/postal notice delivery.</li>
+            <li><code>capital_funding_ledger_posting</code> - canonical ledger posting after approval.</li>
+            <li><code>hybrid_funding_structures</code> - legally reviewed hybrid/self-funding structures only.</li>
+        </ul>
+
+        <h2>Integration Points</h2>
+        <ul>
+            <li><strong>Finance:</strong> reads lots, entitlements, funds, levy schedules and owner balances.</li>
+            <li><strong>Levy Fairness:</strong> supplies class and benefit-group evidence for mixed-use scenarios.</li>
+            <li><strong>Governance:</strong> links funding scenarios to AGM/SGM/GM motions, votes and decision records.</li>
+            <li><strong>Documents:</strong> stores quotes, contracts, lender term sheets, legal reviews and meeting evidence.</li>
+            <li><strong>Hardship:</strong> offers confidential owner help requests and payment-plan workflow links.</li>
+        </ul>
+
+        <h2>Backend API (shipped)</h2>
+        <p><code>POST /finance/capital-funding/preview</code> — preview-only, guarded by
+            <code>capital_funding_workspace</code> plus an explicit role check
+            (super_admin/strata_admin/strata_manager/admin_staff). Wraps the pure calculator in
+            <code>backend/domain/capital_funding.py</code> and the jurisdictional rules engine's
+            typed accessors. Returns per-lot allocation/interest/fee impacts, a
+            reconciliation total, the jurisdiction's rule summary, and explicit warnings
+            (unverified notice period, hybrid request, unsupported allocation basis). Performs
+            <strong>zero writes</strong> — no database session is opened. The staff workspace
+            page (<code>CapitalFundingPage.tsx</code>) is not yet wired to this endpoint — it
+            still uses its own local-only calculator; see
+            <code>tasks/GAP-FIN-034-capital-funding-special-levy-workspace.md</code>'s
+            "Deliverable C" for that remaining work.</p>
+
+        <h2>Controls</h2>
+        <p>The preview batch must validate allocation totals, one notice per current lot, jurisdictional notice periods,
+            owner delivery addresses, joint-owner handling, calculation-manifest hash and zero live ledger/email
+            mutation during preview.</p>
+
+        <p>See <code>tasks/GAP-FIN-034-capital-funding-special-levy-workspace.md</code> and
+            <code>docs/features/levy-loan-automated-levy-notices-analysis.md</code> for the implementation plan.</p>
+    </main>
+</div>
+</body>
+</html>

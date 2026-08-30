@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Intelligence Module — Technical Documentation</title>
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <h1>Intelligence Module — Technical Documentation</h1>
+
+    <h2>Overview</h2>
+    <p>The Intelligence module provides predictive analytics derived from maintenance records, financial data, and asset
+        registry information. It uses algorithmic scoring and ML-style heuristics to surface risks proactively.</p>
+
+    <h2>Session 59 Fixes — Building ID Migration &amp; Endpoint Stability</h2>
+    <ul>
+        <li><strong>TenantCollection._inject_bid() fix</strong> — Removed double <code>building_id</code> injection that
+            caused MongoDB error code 54 ("path 'building_id' is matched twice" on upsert). Guard added: if the filter
+            already carries an explicit <code>building_id</code>, injection is skipped.
+        </li>
+        <li><strong>Data migration (~2,125 records, ~45 collections)</strong> — All records now use Unit Plan numbers as
+            <code>building_id</code>. East Gate Residences uses <code>"13195"</code>, Sierra uses <code>"16244"</code>.
+            Previous slug values (<code>"eastgate_residences"</code>, <code>"sierra_gungahlin"</code>) migrated
+            in-place.
+        </li>
+        <li><strong>levy_fairness_service.py</strong> — Removed the fallback <code>db.units.find({})</code> query that
+            bypassed the building filter. Units must have <code>building_id</code> set; GET <code>/api/intelligence/levy-fairness</code>
+            and GET <code>/api/intelligence/capital-shock</code> no longer return 500 errors.
+        </li>
+        <li><strong>/intelligence/levy-fairness/demo</strong> — Changed hardcoded <code>building_id="13195"</code> to
+            <code>Depends(get_current_building)</code> for correct multi-tenant support.
+        </li>
+    </ul>
+
+    <h2>Frontend Architecture</h2>
+
+    <h3>Pages</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Route</th>
+            <th>Component File</th>
+            <th>Description</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>/intelligence</td>
+            <td>app/(dashboard)/intelligence/page.tsx</td>
+            <td>Main hub — summary cards, KPIs, charts</td>
+        </tr>
+        <tr>
+            <td>/intelligence/assets</td>
+            <td>pages/dashboard/IntelligenceAssetsPage.jsx</td>
+            <td>Asset risk + health scoring</td>
+        </tr>
+        <tr>
+            <td>/intelligence/capital-risk</td>
+            <td>pages/dashboard/CapitalRiskPage.jsx</td>
+            <td>Capital shock index, SFAR, reserve projection</td>
+        </tr>
+        <tr>
+            <td>/intelligence/levy-fairness</td>
+            <td>pages/dashboard/LevyFairnessPage.jsx</td>
+            <td>Levy distribution fairness engine</td>
+        </tr>
+        <tr>
+            <td>/intelligence/capital-planner</td>
+            <td>pages/dashboard/CapitalWorksPlanner.jsx</td>
+            <td>Capital works schedule management</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>Shared Utilities</h3>
+    <p>Located in <code>frontend/src/lib/utils.ts</code>:</p>
+    <ul>
+        <li><code>formatCurrency(value)</code> — AUD currency with symbol and 2dp (e.g., A$1,234.56)</li>
+        <li><code>fmtAUD(value)</code> — AUD decimal string without symbol, 2dp (prepend '$' at call site)</li>
+        <li><code>formatNumber(value, decimals, maxDecimals)</code> — General number formatting, max 4dp</li>
+    </ul>
+
+    <h3>Shared Components</h3>
+    <p>Located in <code>frontend/src/components/shared/MetricHelp.tsx</code>:</p>
+    <ul>
+        <li><code>&lt;MetricHelp text="..." /&gt;</code> — Inline help icon with Radix UI tooltip</li>
+    </ul>
+
+    <h3>Inline Help Component (intelligence/page.tsx)</h3>
+    <p>The hub page defines a local <code>HelpTip</code> component using Radix UI <code>Tooltip</code> primitives,
+        applied to each KPI card title:</p>
+    <pre>
+function HelpTip({ text }: { text: string }) {
+  return (
+    &lt;TooltipProvider&gt;
+      &lt;Tooltip&gt;
+        &lt;TooltipTrigger asChild&gt;
+          &lt;HelpCircle className="h-3.5 w-3.5 ..." /&gt;
+        &lt;/TooltipTrigger&gt;
+        &lt;TooltipContent className="max-w-xs text-xs"&gt;{text}&lt;/TooltipContent&gt;
+      &lt;/Tooltip&gt;
+    &lt;/TooltipProvider&gt;
+  );
+}
+</pre>
+    <p><strong>Note:</strong> Recharts uses its own <code>Tooltip</code> import. To avoid naming collisions the Radix UI
+        Tooltip is imported as <code>UITooltip</code> while the Recharts <code>Tooltip</code> retains its original name.
+    </p>
+
+    <h2>Backend API Endpoints</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Endpoint</th>
+            <th>Description</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>GET /intelligence/summary</td>
+            <td>Overall property health summary</td>
+        </tr>
+        <tr>
+            <td>GET /intelligence/maintenance-forecast</td>
+            <td>12-month maintenance cost prediction</td>
+        </tr>
+        <tr>
+            <td>GET /intelligence/capital-works</td>
+            <td>Capital works schedule items</td>
+        </tr>
+        <tr>
+            <td>GET /intelligence/capital-shock</td>
+            <td>Capital shock index, SFAR, reserve projection</td>
+        </tr>
+        <tr>
+            <td>GET /intelligence/levy-fairness</td>
+            <td>Levy fairness analysis and Gini index</td>
+        </tr>
+        <tr>
+            <td>GET /intelligence/maintenance-risks</td>
+            <td>Assets with high risk/repair anomalies</td>
+        </tr>
+        <tr>
+            <td>GET /intelligence/levy-stabilization</td>
+            <td>Levy stabilization projections</td>
+        </tr>
+        <tr>
+            <td>GET /intelligence/special-levy-forecast</td>
+            <td>Special levy risk assessment</td>
+        </tr>
+        <tr>
+            <td>POST /intelligence/recompute</td>
+            <td>Trigger full intelligence engine recompute</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Capital Shock Index (CSI) Calculation</h2>
+    <p>The CSI for a given year is calculated as:</p>
+    <pre>CSI = Year Capital Spend / Median(Historical Capital Spends)</pre>
+    <p>Risk thresholds:</p>
+    <ul>
+        <li>CSI &lt; 1.5 → Low (normal spending year)</li>
+        <li>1.5 ≤ CSI &lt; 2.5 → Major (significant capital year, plan ahead)</li>
+        <li>CSI ≥ 2.5 → Severe (reserve likely insufficient without special levy)</li>
+    </ul>
+
+    <h2>Sinking Fund Adequacy Ratio (SFAR)</h2>
+    <pre>SFAR = (Current Reserve + PV Future Levies) / PV Planned Capital Works</pre>
+    <p>Status labels:</p>
+    <ul>
+        <li>SFAR ≥ 1.25 → Well Funded</li>
+        <li>1.0 ≤ SFAR &lt; 1.25 → Adequate</li>
+        <li>0.75 ≤ SFAR &lt; 1.0 → At Risk</li>
+        <li>SFAR &lt; 0.75 → Critical</li>
+    </ul>
+
+    <h2>Number Formatting Standards</h2>
+    <p>All pages in the intelligence module enforce:</p>
+    <ul>
+        <li>Currency: exactly 2 decimal places using <code>fmtAUD()</code> or <code>formatCurrency()</code></li>
+        <li>Index/ratio values: up to 2 decimal places using <code>formatNumber(value, 2)</code></li>
+        <li>Chart Y-axis labels: compact thousands format (e.g., $250k) using <code>(v/1000).toFixed(0)k</code></li>
+    </ul>
+    <p><strong>Previously</strong> the hub page used <code>.toLocaleString()</code> which produced inconsistent decimal
+        places. All occurrences have been replaced with <code>fmtAUD()</code>.</p>
+    <p><strong>IntelligenceAssetsPage.jsx</strong> previously defined a local <code>fmtCurrency</code> helper. It has
+        been removed; the page now imports and uses <code>fmtAUD</code> from <code>@/lib/utils</code> for full
+        consistency.</p>
+    <p><strong>Digital Twin Architecture page</strong> (<code>settings/digital-twin/page.tsx</code>) previously used
+        <code>toLocaleString(undefined, ...)</code> for the asset replacement-cost column, which caused
+        browser-locale-dependent formatting. It now uses <code>fmtAUD()</code> from <code>@/lib/utils</code>.</p>
+
+    <h2>Navigation Consistency</h2>
+    <p>All intelligence sub-pages include a back button returning to <code>/intelligence</code>:</p>
+    <ul>
+        <li><strong>IntelligenceAssetsPage.jsx</strong> — Uses shadcn <code>Button</code> with <code>ArrowLeft</code>
+            icon
+        </li>
+        <li><strong>CapitalRiskPage.jsx</strong> — Uses shadcn <code>Button</code> with <code>ArrowLeft</code> icon</li>
+        <li><strong>LevyFairnessPage.jsx</strong> — Uses shadcn <code>Button</code> with <code>ArrowLeft</code> icon
+        </li>
+        <li><strong>CapitalWorksPlanner.jsx</strong> — Uses native <code>&lt;button&gt;</code> (consistent with file's
+            existing style) with inline SVG arrow
+        </li>
+    </ul>
+
+    <h2>Global Building Risk Index (Session 66)</h2>
+    <p>Extends the intelligence platform with a composite 0–100 risk score per building. A higher score means MORE
+        risk.</p>
+
+    <h3>Risk Formula</h3>
+    <pre><code>risk_score =
+  0.25 × asset_health_component          (inverted: 100 − avg_health_score)
++ 0.20 × financial_stability_component   (from financial_forecasts.risk_score)
++ 0.20 × reserve_adequacy_component      (from RAR = sinking_balance / 10yr_forecast)
++ 0.20 × capital_shock_risk_component    (from capital_shock_risks.risk_level)
++ 0.15 × maintenance_risk_component      (from maintenance_forecasts.risk_score)
+</code></pre>
+
+    <h3>Risk Level Thresholds</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Score</th>
+            <th>Level</th>
+            <th>Meaning</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>0–24</td>
+            <td>LOW</td>
+            <td>Stable building, no immediate concerns</td>
+        </tr>
+        <tr>
+            <td>25–49</td>
+            <td>MODERATE</td>
+            <td>Some areas to monitor</td>
+        </tr>
+        <tr>
+            <td>50–74</td>
+            <td>HIGH</td>
+            <td>Requires attention and action plan</td>
+        </tr>
+        <tr>
+            <td>75–100</td>
+            <td>CRITICAL</td>
+            <td>Urgent intervention required</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>Reserve Adequacy Ratio (RAR)</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>RAR</th>
+            <th>Score</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>≥ 0.70</td>
+            <td>5</td>
+            <td>Very low risk</td>
+        </tr>
+        <tr>
+            <td>0.40–0.69</td>
+            <td>35</td>
+            <td>Moderate</td>
+        </tr>
+        <tr>
+            <td>0.20–0.39</td>
+            <td>60</td>
+            <td>Elevated</td>
+        </tr>
+        <tr>
+            <td>&lt; 0.20</td>
+            <td>85</td>
+            <td>High risk</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>API Endpoints</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Method</th>
+            <th>Path</th>
+            <th>Auth</th>
+            <th>Description</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>GET</td>
+            <td>/api/intelligence/risk-index</td>
+            <td>Bearer (owner → super_admin)</td>
+            <td>Full risk score with components</td>
+        </tr>
+        <tr>
+            <td>POST</td>
+            <td>/api/intelligence/risk-index/refresh</td>
+            <td>admin only</td>
+            <td>Force recompute + audit log</td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td>/api/intelligence/risk-index/public/{slug}</td>
+            <td>None (public)</td>
+            <td>PII-free public building report</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>Collections Read</h3>
+    <ul>
+        <li><code>asset_health_scores</code> — per-asset health_score (0–100)</li>
+        <li><code>financial_forecasts</code> — risk_score or risk_level field</li>
+        <li><code>sinking_fund_plan</code> — reserve_balance + ten_year_forecast (RAR primary path)</li>
+        <li><code>annual_levies</code> + <code>capital_shock_risks</code> — RAR fallback path</li>
+        <li><code>capital_shock_risks</code> — risk_level (critical/high/medium/low) or capital_shock_index</li>
+        <li><code>maintenance_forecasts</code> — risk_score or risk_level field</li>
+        <li><code>capital_replacement_schedule</code> — predicted major repairs (≥$50k, within 5 years)</li>
+        <li><code>buildings</code> — building name, address, slug for display</li>
+    </ul>
+
+    <h3>Default Fallback Behaviour</h3>
+    <p>All components default to <strong>50.0</strong> when their source collection is empty. This ensures the endpoint
+        always returns a valid response on a fresh installation. Run <code>scripts/db/seed_risk_index_demo.py</code> to
+        populate demo data.</p>
+
+    <h3>Public Building Page</h3>
+    <ul>
+        <li><strong>Route</strong>: <code>/building/[slug]</code> (e.g., <code>/building/eastgate</code>)</li>
+        <li><strong>Component</strong>: <code>frontend/src/app/(public)/building/[slug]/page.tsx</code></li>
+        <li>Server-side rendered with 1-hour revalidation (ISR)</li>
+        <li>Full OpenGraph + Twitter metadata for SEO</li>
+        <li>Shows: risk score, financial health, maintenance forecast, capital replacement — NO PII</li>
+    </ul>
+
+    <h3>Frontend Widget</h3>
+    <ul>
+        <li><strong>Component</strong>: <code>frontend/src/components/widgets/BuildingRiskWidget.tsx</code></li>
+        <li>SVG gauge arc, per-component weighted bars, levy risk label</li>
+        <li>Props: <code>axiosInstance?</code>, <code>token?</code>, <code>apiBaseUrl?</code> — all optional, defaults
+            to current auth context
+        </li>
+    </ul>
+
+    <h3>Seeding Risk Index Demo Data</h3>
+    <pre><code>cd backend
+python ../scripts/db/seed_risk_index_demo.py</code></pre>
+    <p>Populates: <code>asset_health_scores</code> (8 assets), <code>financial_forecasts</code>, <code>capital_shock_risks</code>,
+        <code>maintenance_forecasts</code>, <code>sinking_fund_plan</code>, <code>capital_replacement_schedule</code>.
+    </p>
+
+    <h2>Testing</h2>
+    <p>Jest tests are in <code>tests/frontend/unit/pages/dashboard/</code>:</p>
+    <ul>
+        <li><strong>CapitalRiskPage.test.tsx</strong> — Loading skeleton, data rendering, reserve balance 2dp format
+            (<code>$250,000.00</code>), recommendation text, error state
+        </li>
+        <li><strong>IntelligenceAssetsPage.test.tsx</strong> — Loading skeleton, back navigation, attention table,
+            repair cost 2dp format (<code>$8,500.50</code> via shared <code>fmtAUD</code>), health snapshot table,
+            Alert/OK badges, empty state, API failure graceful handling, row-click dialog
+        </li>
+    </ul>
+    <p>Backend tests in <code>tests/backend/test_risk_index.py</code> — 36 tests covering weight totals, classification
+        thresholds, formula arithmetic, Pydantic validation, boundary values, seed data expected scores, and PII
+        exclusion.</p>
+    <p>Run all intelligence page tests:</p>
+    <pre><code>cd frontend
+yarn test tests/frontend/unit/pages/dashboard/ --watchAll=false
+
+# Backend risk index tests
+cd backend
+venv/bin/pytest ../tests/backend/test_risk_index.py -v</code></pre>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,214 @@
+/* App-specific styles */
+
+/* Hero section gradient overlay */
+.hero-gradient {
+    background: linear-gradient(to right, rgba(47, 79, 79, 0.85), rgba(47, 79, 79, 0.4));
+}
+
+/* Marketing grid - Tetris layout */
+.tetris-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 2rem;
+}
+
+@media (max-width: 768px) {
+    .tetris-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Dashboard grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Staggered animation */
+.stagger-1 {
+    animation-delay: 0.1s;
+}
+
+.stagger-2 {
+    animation-delay: 0.2s;
+}
+
+.stagger-3 {
+    animation-delay: 0.3s;
+}
+
+.stagger-4 {
+    animation-delay: 0.4s;
+}
+
+.stagger-5 {
+    animation-delay: 0.5s;
+}
+
+/* Chat bubble styles */
+.chat-bubble {
+    @apply rounded-2xl px-4 py-2 max-w-[80%];
+}
+
+.chat-bubble-sent {
+    @apply bg-primary text-primary-foreground rounded-br-sm;
+}
+
+.chat-bubble-received {
+    @apply bg-muted text-foreground rounded-bl-sm;
+}
+
+/* Status badges */
+.badge-active {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400;
+}
+
+.badge-pending {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400;
+}
+
+.badge-closed {
+    @apply bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400;
+}
+
+.badge-urgent {
+    @apply bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400;
+}
+
+/* Priority indicators */
+.priority-low {
+    @apply border-l-4 border-gray-300;
+}
+
+.priority-normal {
+    @apply border-l-4 border-blue-400;
+}
+
+.priority-high {
+    @apply border-l-4 border-orange-400;
+}
+
+.priority-urgent {
+    @apply border-l-4 border-red-500;
+}
+
+/* Document categories */
+.doc-category-ec {
+    @apply bg-primary/10 text-primary;
+}
+
+.doc-category-public {
+    @apply bg-secondary/10 text-secondary;
+}
+
+.doc-category-financial {
+    @apply bg-accent/50 text-accent-foreground;
+}
+
+/* Listing type badges */
+.listing-for-sale {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400;
+}
+
+.listing-for-rent {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400;
+}
+
+.listing-service {
+    @apply bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400;
+}
+
+.listing-item-sale {
+    @apply bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400;
+}
+
+/* NOTE: nav-item styles moved to index.css to avoid conflicts */
+
+/* Table styles */
+.table-hover tr:hover {
+    @apply bg-muted/50;
+}
+
+/* Form sections */
+.form-section {
+    @apply space-y-4 p-6 bg-card rounded-xl border border-border;
+}
+
+.form-section-title {
+    @apply text-lg font-semibold mb-4 pb-2 border-b border-border;
+}
+
+/* NOTE: mobile-menu styles moved to index.css to avoid conflicts */
+
+/* Loading skeleton */
+.skeleton {
+    @apply animate-pulse bg-muted rounded;
+}
+
+/* Empty state */
+.empty-state {
+    @apply flex flex-col items-center justify-center py-16 text-center;
+}
+
+.empty-state-icon {
+    @apply w-16 h-16 text-muted-foreground/50 mb-4;
+}
+
+.empty-state-title {
+    @apply text-lg font-medium text-foreground mb-2;
+}
+
+.empty-state-description {
+    @apply text-muted-foreground;
+}
+
+/* Notification badge */
+.notification-badge {
+    @apply absolute -top-1 -right-1 w-5 h-5 bg-secondary text-secondary-foreground text-xs font-medium rounded-full flex items-center justify-center;
+}
+
+/* Avatar group */
+.avatar-group {
+    @apply flex -space-x-2;
+}
+
+.avatar-group > * {
+    @apply ring-2 ring-background;
+}
+
+/* Card hover effects */
+.card-hover {
+    @apply transition-all duration-300;
+}
+
+.card-hover:hover {
+    @apply shadow-lg shadow-primary/5 -translate-y-1;
+}
+
+/* Gradient text */
+.gradient-text {
+    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+}
+
+/* Section divider */
+.section-divider {
+    @apply my-12 border-t border-border;
+}
+
+/* Pill navigation */
+.pill-nav {
+    @apply inline-flex bg-muted rounded-full p-1;
+}
+
+.pill-nav-item {
+    @apply px-4 py-2 rounded-full text-sm font-medium transition-colors;
+}
+
+.pill-nav-item.active {
+    @apply bg-card shadow-sm text-foreground;
+}
+
+.pill-nav-item:not(.active) {
+    @apply text-muted-foreground hover:text-foreground;
+}

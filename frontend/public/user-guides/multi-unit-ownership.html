@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Multi-Unit Ownership — User Guide | your building</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-gray {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .step {
+            border-left: 4px solid #2F4F4F;
+            padding: 10px 16px;
+            margin: 12px 0;
+            background: #f8fafc;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .note {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+
+        .warning {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Multi-Unit Ownership</h1>
+    <p class="subtitle">Manage multiple lots in your building complex from a single account</p>
+
+    <section>
+        <h2>Overview</h2>
+        <p>If you own more than one lot in the Owner Corporation, you can register all of them under one email address
+            and switch between unit contexts without logging out.</p>
+        <p>This keeps your levy history, maintenance requests, and documents properly separated by lot while giving you
+            a unified dashboard experience.</p>
+    </section>
+
+    <section>
+        <h2>Registering with multiple units</h2>
+        <p>If you own more than one lot, you can declare them all at registration time.</p>
+        <div class="step">
+            <strong>Step 1</strong> — On the registration form, select <strong>Owner</strong> as your role and choose
+            your <strong>primary unit</strong> from the dropdown.
+        </div>
+        <div class="step">
+            <strong>Step 2</strong> — Once your primary unit is selected, a checkbox will appear: <em>"I own additional
+            units in this building complex"</em>. Tick it.
+        </div>
+        <div class="step">
+            <strong>Step 3</strong> — Use the additional unit selectors that appear to add each extra lot you own. You
+            can register up to 10 units per account.
+        </div>
+        <div class="step">
+            <strong>Step 4</strong> — Complete the rest of the registration form and submit. Your account will list all
+            declared units pending approval.
+        </div>
+        <div class="note">
+            <strong>Note:</strong> You only need to fill in your name, email, and password once — they apply to all your
+            units on the same account.
+        </div>
+    </section>
+
+    <section>
+        <h2>Already registered? Add a new unit</h2>
+        <p>If you have an existing owner account and later purchase or are gifted an additional lot:</p>
+        <div class="step">
+            <strong>Step 1</strong> — Log in to your existing account.
+        </div>
+        <div class="step">
+            <strong>Step 2</strong> — Go to <strong>Profile → My Units</strong> (or use the Unit Switcher in the
+            sidebar).
+        </div>
+        <div class="step">
+            <strong>Step 3</strong> — Click <strong>Add Unit</strong>, select the lot number, and submit. The strata
+            manager will verify your ownership before activating the link.
+        </div>
+        <div class="note">
+            <strong>Tip:</strong> If you try to register a new account with an email that already belongs to an owner
+            account, the portal will redirect you to log in and add the unit from your profile — you won't need to
+            create a second account.
+        </div>
+    </section>
+
+    <section>
+        <h2>Switching between your units</h2>
+        <p>Once you own two or more units, a <strong>Unit Switcher</strong> dropdown appears in the left sidebar, below
+            the building selector.</p>
+        <ul>
+            <li>Your currently active unit is shown with an <span class="badge badge-green">Active</span> badge.</li>
+            <li>Click the dropdown and select a different lot to switch context.</li>
+            <li>The portal re-issues your session token with the new unit — all subsequent actions (levy payments,
+                maintenance requests, documents) are attributed to the selected lot.
+            </li>
+            <li>You do <strong>not</strong> need to log out and log back in.</li>
+        </ul>
+        <div class="warning">
+            <strong>Important:</strong> The active unit is a session-level setting. If you open the portal in a new
+            browser tab, it will default to your primary unit. Switch as needed before taking any actions.
+        </div>
+    </section>
+
+    <section>
+        <h2>Which unit is primary?</h2>
+        <p>The <strong>primary unit</strong> is the one you selected first at registration. It is the default unit when
+            you log in. You can ask the strata manager to change your primary unit if needed.</p>
+    </section>
+
+    <section>
+        <h2>Roles and visibility</h2>
+        <p>The Unit Switcher is available to <span class="badge badge-blue">Owner</span> accounts. Committee members and
+            managers with a unit number on their profile can also use it.</p>
+        <p>Tenants and guests do not have multi-unit access — a separate account is required for each tenancy.</p>
+    </section>
+
+    <section>
+        <h2>Frequently asked questions</h2>
+        <dl>
+            <dt><strong>Can I see all my units' levies at once?</strong></dt>
+            <dd>Each unit has its own levy ledger. Switch to the relevant unit context to view its balance, history, and
+                payment schedule.
+            </dd>
+
+            <dt><strong>What if my additional unit is not yet in the system?</strong></dt>
+            <dd>Only units already registered in the building management system can be linked. Contact the strata
+                manager if your lot is missing.
+            </dd>
+
+            <dt><strong>Can I register the same unit under two different accounts?</strong></dt>
+            <dd>No. Each unit can only be linked to one owner account at a time. If you believe a unit is incorrectly
+                assigned, contact the strata manager.
+            </dd>
+
+            <dt><strong>Does my approval status apply to all units?</strong></dt>
+            <dd>Your account approval applies to all linked units. Each individual unit link is verified for ownership
+                separately before it becomes active.
+            </dd>
+        </dl>
+    </section>
+
+    <footer>
+        <p>Contact your building's Executive Committee or Strata Manager for assistance. Details are available in the
+            portal under Building Information.</p>
+    </footer>
+</div>
+</body>
+</html>

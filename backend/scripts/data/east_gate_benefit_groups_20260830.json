@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Group A",
+    "description": "Units 71-87. Distinguished for apportionment because the ten-year capital plan schedules no work against this group's structures, and because it holds 39 of the 139 garage bays.",
+    "display_order": 1,
+    "units": [{"prefix": "TH", "start": 71, "end": 87, "width": 3}]
+  },
+  {
+    "name": "Group B",
+    "description": "Units 1-70. Served by the lift, the tower facade and the common-area finishes that make up most of the ten-year capital plan.",
+    "display_order": 2,
+    "units": [{"prefix": "UA", "start": 1, "end": 70, "width": 3}]
+  }
+]

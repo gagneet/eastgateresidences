@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Portfolio API — Tech Docs | East Gate Residences</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        th {
+            background: #2F4F4F;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+
+        tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-get {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-post {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-delete {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .section-title {
+            border-bottom: 2px solid #2F4F4F;
+            padding-bottom: 6px;
+            margin-top: 32px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← Back to Tech Docs</a>
+        <h1>Portfolio API</h1>
+        <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role lists on this page naming "chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+        <p>Endpoints for cross-building portfolio metrics and building health.</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2 class="section-title">Overview</h2>
+        <p>All portfolio endpoints are under <code>/api/portfolio/</code> and require a <strong>manager-level</strong>
+            JWT (super_admin, strata_manager, or chairman). Owners and tenants receive <code>403 Forbidden</code>.</p>
+        <p>Data is sourced from:</p>
+        <ul>
+            <li><code>buildings</code> collection — building metadata (name, lots, ID)</li>
+            <li><code>building_summaries</code> collection — computed health scores and metrics</li>
+            <li><code>maintenance_requests</code> — open work order counts</li>
+            <li><code>unit_levy_ledger</code> — arrears rate calculation</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2 class="section-title"><span class="badge badge-get">GET</span> /api/portfolio/summary</h2>
+        <p>Portfolio-wide aggregated totals across all buildings.</p>
+        <h3>Required role</h3>
+        <p>super_admin, strata_manager, chairman</p>
+        <h3>Response</h3>
+        <pre>{
+  "active_buildings": 3,
+  "total_lots": 294,
+  "total_arrears_cents": 1523000,
+  "avg_building_health": 74.0,
+  "open_work_orders": 12
+}</pre>
+        <h3>Fields</h3>
+        <table>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td>active_buildings</td>
+                <td>int</td>
+                <td>Number of active buildings in the portfolio</td>
+            </tr>
+            <tr>
+                <td>total_lots</td>
+                <td>int</td>
+                <td>Sum of lot_count across all buildings</td>
+            </tr>
+            <tr>
+                <td>total_arrears_cents</td>
+                <td>int</td>
+                <td>Total outstanding levy amounts in cents (from unit_levy_ledger)</td>
+            </tr>
+            <tr>
+                <td>avg_building_health</td>
+                <td>float</td>
+                <td>Mean health_score from building_summaries (0–100)</td>
+            </tr>
+            <tr>
+                <td>open_work_orders</td>
+                <td>int</td>
+                <td>Total open maintenance_requests across all buildings</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2 class="section-title"><span class="badge badge-get">GET</span> /api/portfolio/dashboard</h2>
+        <p>Per-building rows with health scores, arrears rate, open work orders, and next compliance item.</p>
+        <h3>Required role</h3>
+        <p>super_admin, strata_manager, chairman</p>
+        <h3>Response</h3>
+        <pre>{
+  "buildings": [
+    {
+      "building_id": "99001",
+      "name": "Harbour View Apartments",
+      "lot_count": 87,
+      "health_score": 74,
+      "grade": "B",
+      "arrears_rate": 3.2,
+      "open_work_orders": 5,
+      "next_compliance_item": "Fire safety inspection — Jul 2026",
+      "last_computed_at": "2026-04-01T02:00:00Z",
+      "has_data": true
+    }
+  ],
+  "summary": {
+    "total_buildings": 3,
+    "total_lots": 294,
+    "avg_health_score": 74.0,
+    "alert_count": 0
+  },
+  "alerts": []
+}</pre>
+        <h3>Building row fields</h3>
+        <table>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Notes</th>
+            </tr>
+            <tr>
+                <td>building_id</td>
+                <td>string</td>
+                <td>Unit plan number e.g. "13195"</td>
+            </tr>
+            <tr>
+                <td>lot_count</td>
+                <td>int</td>
+                <td>Falls back to <code>bld.get("lots", 0)</code> for legacy records</td>
+            </tr>
+            <tr>
+                <td>health_score</td>
+                <td>int | null</td>
+                <td>null if building_summaries not yet computed</td>
+            </tr>
+            <tr>
+                <td>grade</td>
+                <td>string | null</td>
+                <td>A/B/C/D or null</td>
+            </tr>
+            <tr>
+                <td>arrears_rate</td>
+                <td>float</td>
+                <td>% of lots with outstanding levies</td>
+            </tr>
+            <tr>
+                <td>open_work_orders</td>
+                <td>int</td>
+                <td>Count of maintenance_requests with status != "completed"/"closed"</td>
+            </tr>
+            <tr>
+                <td>next_compliance_item</td>
+                <td>string | null</td>
+                <td>From building_summaries.next_compliance_item</td>
+            </tr>
+            <tr>
+                <td>has_data</td>
+                <td>bool</td>
+                <td>true if building_summaries record exists</td>
+            </tr>
+            <tr>
+                <td>last_computed_at</td>
+                <td>ISO8601 | null</td>
+                <td>When _compute_summary() last ran</td>
+            </tr>
+        </table>
+        <h3>Alerts</h3>
+        <p>An alert is added when <code>health_score &lt; 50</code>:</p>
+        <pre>{ "type": "low_health", "building_id": "13195", "value": 40 }</pre>
+    </section>
+
+    <section>
+        <h2 class="section-title"><span class="badge badge-get">GET</span> /api/portfolio/buildings</h2>
+        <p>Simple building list with lot counts and health scores. Used by the portfolio buildings detail view.</p>
+        <h3>Required role</h3>
+        <p>super_admin, strata_manager, chairman</p>
+        <h3>Response</h3>
+        <pre>{
+  "buildings": [
+    {
+      "id": "99001",
+      "building_id": "99001",
+      "name": "Harbour View Apartments",
+      "lot_count": 87,
+      "health_score": 74,
+      "is_active": true
+    }
+  ],
+  "total": 3
+}</pre>
+    </section>
+
+    <section>
+        <h2 class="section-title"><span class="badge badge-get">GET</span> /api/portfolio/users/search</h2>
+        <p>Search existing users for building assignment (strata manager or EC committee member selection).</p>
+        <h3>Required role</h3>
+        <p>super_admin, strata_manager</p>
+        <h3>Query parameters</h3>
+        <table>
+            <tr>
+                <th>Param</th>
+                <th>Type</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td>role</td>
+                <td>string (optional)</td>
+                <td>Filter by role — must be one of the platform's valid role values or 422 is returned</td>
+            </tr>
+            <tr>
+                <td>query</td>
+                <td>string (optional)</td>
+                <td>Full-text search on <code>full_name</code> and <code>email</code> (regex, case-insensitive)</td>
+            </tr>
+        </table>
+        <h3>Response</h3>
+        <pre>[
+  {
+    "id": "u-abc123",
+    "full_name": "Jane Smith",
+    "email": "jane@firm.com.au",
+    "role": "strata_manager",
+    "is_active": true
+  }
+]</pre>
+        <p>Maximum 50 results. Credential and PII fields (<code>password</code>, <code>totp_secret</code>, <code>home_address</code>,
+            phone numbers, etc.) are explicitly excluded from the projection.</p>
+        <h3>Error responses</h3>
+        <table>
+            <tr>
+                <th>HTTP</th>
+                <th>Cause</th>
+            </tr>
+            <tr>
+                <td>403</td>
+                <td>Role is not super_admin or strata_manager</td>
+            </tr>
+            <tr>
+                <td>422</td>
+                <td><code>role</code> param is not in the valid role allowlist</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2 class="section-title"><span class="badge badge-post">POST</span> /api/admin/onboarding/scheme</h2>
+        <p>Start a new scheme onboarding session for an SM organisation tenant. This is the supported admin entrypoint
+            for the legacy building setup flow.</p>
+        <h3>Required role</h3>
+        <p>super_admin, strata_admin, strata_manager</p>
+        <h3>Request body</h3>
+        <pre>{
+  "tenant_id": "ten_123",
+  "scheme_number": "UP99001",
+  "scheme_name": "Harbour View Apartments",
+  "jurisdiction": "ACT",
+  "legal_name": "The Owners - Units Plan 99001",
+  "abn": "12345678901" // optional
+}</pre>
+        <h3>Response (201 Created)</h3>
+        <pre>{
+  "session_id": "ons_123",
+  "tenant_id": "ten_456",
+  "scheme_id": "sch_456",
+  "status": "started",
+  "current_step": 1,
+  "step_data": {},
+  "created_at": "2026-05-04T09:30:00Z",
+  "updated_at": "2026-05-04T09:30:00Z",
+  "message": "Onboarding session started for scheme UP99001."
+}</pre>
+        <h3>Validation rules</h3>
+        <ul>
+            <li><code>tenant_id</code>, <code>scheme_number</code>, <code>scheme_name</code>, and
+                <code>jurisdiction</code> are required</li>
+            <li>Super admins must supply <code>tenant_id</code>; strata_admin and strata_manager callers use their own tenant context</li>
+            <li>The scheme number must be unique within the jurisdiction</li>
+            <li>Self-managed tenants cannot create a second scheme</li>
+        </ul>
+        <h3>Side effects</h3>
+        <ul>
+            <li>Creates or resumes an onboarding session for the target SM organisation</li>
+            <li>Creates the scheme record when the session is first started</li>
+            <li>Routes follow-up detail work through <code>/api/admin/sm-organisations/{tenant_id}</code> endpoints</li>
+        </ul>
+        <h3>Error responses</h3>
+        <table>
+            <tr>
+                <th>HTTP</th>
+                <th>Cause</th>
+            </tr>
+            <tr>
+                <td>400</td>
+                <td>building_id cannot be derived from unit_plan_number (e.g. all special chars)</td>
+            </tr>
+            <tr>
+                <td>403</td>
+                <td>Role is not super_admin or strata_manager</td>
+            </tr>
+            <tr>
+                <td>409</td>
+                <td>Building with derived building_id already exists</td>
+            </tr>
+            <tr>
+                <td>422</td>
+                <td>No CHAIRMAN in ec_members, or missing required fields</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2 class="section-title"><span class="badge badge-delete">DELETE</span> /api/portfolio/buildings/{building_id}
+        </h2>
+        <p>Soft-archives a building. All data is retained for audit and compliance (7-year minimum). The building is
+            hidden from all normal views. Super Admin only.</p>
+        <h3>Required role</h3>
+        <p><code>super_admin</code></p>
+        <h3>Request body (optional JSON)</h3>
+        <table>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td>reason</td>
+                <td>string?</td>
+                <td>Optional reason for archiving (recommended for audit trail)</td>
+            </tr>
+        </table>
+        <h3>Side effects</h3>
+        <ul>
+            <li>Sets <code>is_archived=true</code>, <code>is_active=false</code>, <code>archived_at</code>, <code>archived_by</code>,
+                <code>archived_reason</code> on the building document
+            </li>
+            <li>Soft-archives all associated <code>memberships</code>, <code>building_invitations</code>, <code>building_onboarding_checklists</code>,
+                <code>ec_members</code> records for this building
+            </li>
+            <li>Creates an audit log entry with <code>action="building_archived"</code></li>
+        </ul>
+        <h3>Response</h3>
+        <p>204 No Content on success.</p>
+        <h3>Error responses</h3>
+        <table>
+            <tr>
+                <th>HTTP</th>
+                <th>Cause</th>
+            </tr>
+            <tr>
+                <td>403</td>
+                <td>Role is not super_admin</td>
+            </tr>
+            <tr>
+                <td>404</td>
+                <td>Building not found</td>
+            </tr>
+            <tr>
+                <td>409</td>
+                <td>Building is already archived</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2 class="section-title"><span class="badge badge-post">POST</span>
+            /api/portfolio/buildings/{building_id}/revive</h2>
+        <p>Revives an archived building, restoring it to active status. Also restores associated memberships and EC
+            member records. Super Admin only.</p>
+        <h3>Required role</h3>
+        <p><code>super_admin</code></p>
+        <h3>Side effects</h3>
+        <ul>
+            <li>Clears <code>is_archived</code>, sets <code>is_active=true</code>, records <code>revived_at</code> and
+                <code>revived_by</code></li>
+            <li>Restores only previously-archived <code>memberships</code>, <code>building_invitations</code>, and
+                <code>ec_members</code> records (scoped to <code>is_archived=true</code>)
+            </li>
+            <li>Creates an audit log entry with <code>action="building_revived"</code></li>
+        </ul>
+        <h3>Response (200 OK)</h3>
+        <p>Returns the updated building document with revive fields set.</p>
+        <h3>Error responses</h3>
+        <table>
+            <tr>
+                <th>HTTP</th>
+                <th>Cause</th>
+            </tr>
+            <tr>
+                <td>403</td>
+                <td>Role is not super_admin</td>
+            </tr>
+            <tr>
+                <td>404</td>
+                <td>Building not found</td>
+            </tr>
+            <tr>
+                <td>409</td>
+                <td>Building is not currently archived</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2 class="section-title"><span class="badge badge-get">GET</span> /api/portfolio/buildings/archived</h2>
+        <p>Lists all archived buildings with archive metadata. Intended for the Super Admin buildings management page.
+            Super Admin only.</p>
+        <h3>Required role</h3>
+        <p><code>super_admin</code></p>
+        <h3>Response</h3>
+        <pre>{
+  "buildings": [
+    {
+      "id": "99001",
+      "building_id": "99001",
+      "name": "Harbour View Apartments",
+      "address": "1 Performance Test Street",
+      "is_archived": true,
+      "is_active": false,
+      "archived_at": "2026-04-19T00:00:00+00:00",
+      "archived_by": "u-sa-001",
+      "archived_reason": "Strata management transferred"
+    }
+  ],
+  "total": 1
+}</pre>
+        <h3>Notes</h3>
+        <ul>
+            <li>Results are sorted by <code>archived_at</code> descending (most recently archived first)</li>
+            <li>Maximum 500 records returned</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2 class="section-title">Data Dependencies</h2>
+        <h3>building_summaries collection</h3>
+        <p>Health scores are not computed on-the-fly. They must be pre-computed by calling <code>POST
+            /community-dashboard/recompute</code> or running the seed script:</p>
+        <pre>cd backend
+venv/bin/python3 -c "
+import asyncio, sys
+sys.path.insert(0, '.')
+from seeds.seed_building_summaries import seed_building_summaries
+asyncio.run(seed_building_summaries())
+"</pre>
+        <h3>lot_count field</h3>
+        <p>The buildings collection may store lots as either <code>lot_count</code> (new) or <code>lots</code> (legacy).
+            All portfolio endpoints use <code>bld.get("lot_count", bld.get("lots", 0))</code> to handle both.</p>
+    </section>
+
+    <section>
+        <h2 class="section-title">Error Responses</h2>
+        <table>
+            <tr>
+                <th>HTTP</th>
+                <th>Cause</th>
+            </tr>
+            <tr>
+                <td>401</td>
+                <td>Missing or invalid JWT</td>
+            </tr>
+            <tr>
+                <td>403</td>
+                <td>Role is owner or tenant — manager role required</td>
+            </tr>
+            <tr>
+                <td>500</td>
+                <td>MongoDB query error — check backend logs</td>
+            </tr>
+        </table>
+    </section>
+
+</main>
+
+<footer>
+    <p>East Gate Residences Platform — Tech Docs</p>
+</footer>
+</body>
+</html>

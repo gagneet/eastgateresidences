@@ -1,0 +1,106 @@
+{
+  "_meta": {
+    "jurisdiction": "TAS",
+    "primary_legislation": "Strata Titles Act 1998 (TAS)",
+    "trust_law": "Strata Titles Act 1998 (TAS); manager contract dependent",
+    "last_reviewed": "2026-08-03"
+  },
+  "max_interest_rate_pa": {
+    "value": 10,
+    "unit": "percent",
+    "legislation": "Strata Titles Act 1998 (TAS); body corporate resolution dependent",
+    "effective": "1998-01-01",
+    "notes": "Operational default pending scheme-law review; production levy interest must use the approved rule."
+  },
+  "interest_grace_period_days": {
+    "value": 0,
+    "unit": "days",
+    "legislation": "Strata Titles Act 1998 (TAS) s.83",
+    "effective": "1998-01-01",
+    "notes": "No generic grace period encoded."
+  },
+  "trial_balance_deadline_days": {
+    "value": 30,
+    "unit": "calendar_days",
+    "legislation": "Strata Titles Act 1998 (TAS); manager contract dependent",
+    "effective": "1998-01-01",
+    "notes": "Operational default for managed schemes; confirm against manager contract."
+  },
+  "min_withholding_pct_no_abn": {
+    "value": 47,
+    "unit": "percent",
+    "legislation": "ITAA 1997 (Commonwealth) s.12-190",
+    "effective": "2000-07-01",
+    "notes": "ATO PAYG withholding: 47% on payments to suppliers without ABN."
+  },
+  "agm_notice_days": {
+    "value": 14,
+    "unit": "days",
+    "legislation": "Strata Titles Act 1998 (TAS)",
+    "effective": "1998-01-01",
+    "notes": "Meeting notice control used as conservative workflow default; scheme rules and legal review remain authoritative."
+  },
+  "capital_funding_standard_notice_days": {
+    "value": null,
+    "unit": "days",
+    "legislation": "Strata Titles Act 1998 (TAS) s.83",
+    "effective": "1998-01-01",
+    "notes": "No verified generic capital-funding levy payment period is encoded. Section 83 requires written notice of contribution and due date after resolution."
+  },
+  "capital_funding_emergency_notice_days": {
+    "value": null,
+    "unit": "days",
+    "legislation": "Strata Titles Act 1998 (TAS) s.83",
+    "effective": "1998-01-01",
+    "notes": "No shorter generic emergency period is encoded."
+  },
+  "capital_funding_notice_period_verified": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "Strata Titles Act 1998 (TAS) s.83",
+    "effective": "1998-01-01",
+    "notes": "Payment-period validation must rely on legal-review evidence and approved motion text, not a generic platform default."
+  },
+  "capital_funding_resolution_required": {
+    "value": "ordinary",
+    "unit": "enum",
+    "legislation": "Strata Titles Act 1998 (TAS) s.83",
+    "effective": "1998-01-01",
+    "notes": "Contributions are determined by ordinary resolution."
+  },
+  "capital_funding_allocation_basis": {
+    "value": "unit_entitlement",
+    "unit": "enum",
+    "legislation": "Strata Titles Act 1998 (TAS) s.83",
+    "effective": "1998-01-01",
+    "notes": "Contributions are proportionate to unit entitlements unless the Act permits another basis."
+  },
+  "capital_funding_benefit_principle_available": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "Strata Titles Act 1998 (TAS) s.83",
+    "effective": "1998-01-01",
+    "notes": "No generic benefit-principle allocator is enabled; class-based allocation needs legal review."
+  },
+  "capital_funding_tenant_consultation_required": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "Strata Titles Act 1998 (TAS)",
+    "effective": "1998-01-01",
+    "notes": "Tenant consultation is not a default contribution-approval condition."
+  },
+  "capital_funding_hardship_notice_required": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "Strata Titles Act 1998 (TAS)",
+    "effective": "1998-01-01",
+    "notes": "No TAS-specific hardship notice requirement is encoded; hardship workflows should remain available by policy."
+  },
+  "capital_funding_hybrid_legal_review_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "Strata Titles Act 1998 (TAS); lender/legal-advice dependent",
+    "effective": "1998-01-01",
+    "notes": "Hybrid owner-funded and loan-funded structures require recorded legal approval before notices or credits are issued."
+  }
+}

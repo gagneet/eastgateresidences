@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Scheduler Architecture — Technical Reference</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="guide-container">
+    <h1>Scheduler Architecture — Technical Reference</h1>
+    <p class="intro">
+        Phase 6 introduces two complementary async task systems: <strong>ARQ</strong> for routine
+        periodic financial jobs, and <strong>Temporal.io</strong> for durable, multi-step workflows
+        that require human-in-the-loop signals or long-running coordination. Both are gated by the
+        <code>financial_integration_layer_v2</code> feature toggle per building.
+    </p>
+
+    <h2>Feature Toggle Guard</h2>
+    <p>
+        Every ARQ task and the legacy scheduler's <code>nightly_merkle_seal</code> check the
+        <code>financial_integration_layer_v2</code> toggle before executing:
+    </p>
+    <ul>
+        <li><strong>Toggle OFF</strong> → legacy APScheduler / cron path runs unchanged.</li>
+        <li><strong>Toggle ON</strong> → ARQ task owns the job; scheduler skips it.</li>
+    </ul>
+    <p>Toggle resolution order: per-building record → global default (building_id=None).</p>
+
+    <h2>ARQ Task Queue</h2>
+
+    <h3>Infrastructure</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Config</th>
+            <th>Value</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Queue backend</td>
+            <td>Redis (via <code>REDIS_URL</code> env var)</td>
+        </tr>
+        <tr>
+            <td>Worker entry point</td>
+            <td><code>backend/workers/arq_settings.py:WorkerSettings</code></td>
+        </tr>
+        <tr>
+            <td>Max concurrent jobs</td>
+            <td>50</td>
+        </tr>
+        <tr>
+            <td>Job timeout</td>
+            <td>600 s</td>
+        </tr>
+        <tr>
+            <td>Max retries</td>
+            <td>3</td>
+        </tr>
+        <tr>
+            <td>Deduplication key</td>
+            <td><code>{task_name}:{building_id}</code> via ARQ <code>_job_id</code></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>Task Definitions</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Task</th>
+            <th>Schedule</th>
+            <th>Purpose</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>bank_feed_poll_task</code></td>
+            <td>Every 15 min (00, 15, 30, 45)</td>
+            <td>Poll bank feed provider; upsert new envelopes into <code>integration_inbox</code>
+                using <code>$setOnInsert</code> (idempotent).
+            </td>
+        </tr>
+        <tr>
+            <td><code>interest_accrual_task</code></td>
+            <td>Daily 14:32 AEST</td>
+            <td>Post monthly trust interest journals via <code>cron_trust_interest.run_interest_accrual()</code>.</td>
+        </tr>
+        <tr>
+            <td><code>levy_reminder_dispatch_task</code></td>
+            <td>Daily 22:00 AEST</td>
+            <td>Send overdue levy reminders (Tier 1: 7–30 days) via
+                <code>cron_levy_reminders.run_levy_reminders()</code>.
+            </td>
+        </tr>
+        <tr>
+            <td><code>daily_merkle_seal_task</code></td>
+            <td>Daily 15:00 AEST</td>
+            <td>Compute and persist the daily Merkle seal for trust ledger integrity.</td>
+        </tr>
+        <tr>
+            <td><code>instantiate_recurring_bills_task</code></td>
+            <td>Daily 14:30 AEST</td>
+            <td>Instantiate due recurring bill templates across all active buildings.</td>
+        </tr>
+        <tr>
+            <td><code>projection_rebuild_task</code></td>
+            <td>On-demand only</td>
+            <td>Replay events to rebuild a named financial projection (unit_levy_ledger, lot_balances_projection).</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>Running the ARQ Worker</h3>
+    <pre><code>cd backend
+REDIS_URL=redis://localhost:6379/0 venv/bin/arq workers.arq_settings.WorkerSettings</code></pre>
+
+    <h2>Temporal Workflows</h2>
+
+    <h3>Infrastructure</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Config</th>
+            <th>Value / Env Var</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Temporal host</td>
+            <td><code>TEMPORAL_HOST</code> (default: <code>localhost:7233</code>)</td>
+        </tr>
+        <tr>
+            <td>Namespace</td>
+            <td><code>TEMPORAL_NAMESPACE</code> (default: <code>default</code>)</td>
+        </tr>
+        <tr>
+            <td>Task queue</td>
+            <td><code>TEMPORAL_TASK_QUEUE</code> (default: <code>strata-financial</code>)</td>
+        </tr>
+        <tr>
+            <td>TLS</td>
+            <td>Set <code>TEMPORAL_TLS_CERT</code> + <code>TEMPORAL_TLS_KEY</code> for mTLS (Temporal Cloud)</td>
+        </tr>
+        <tr>
+            <td>Worker entry point</td>
+            <td><code>backend/workers/temporal_worker.py</code></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>GenerateLeviesWorkflow</h3>
+    <p>Workflow ID convention: <code>levygen:{building_id}:{quarter}</code></p>
+    <table>
+        <thead>
+        <tr>
+            <th>Step</th>
+            <th>Activity</th>
+            <th>Timeout</th>
+            <th>Purpose</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>1</td>
+            <td><code>compute_lot_levies</code></td>
+            <td>5 min</td>
+            <td>Calculate per-lot levy amounts from budget</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td><code>allocate_crns</code></td>
+            <td>5 min</td>
+            <td>Assign Customer Reference Numbers (synthetic fallback if CRN service unavailable)</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td><code>create_levy_documents</code></td>
+            <td>10 min</td>
+            <td>Persist levy records (idempotent upsert)</td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td><code>send_levy_notices</code></td>
+            <td>15 min</td>
+            <td>Email owners (respects TEST_EMAIL_INTERCEPT_ADDRESS in dev)</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>ReconciliationCloseWorkflow</h3>
+    <p>Workflow ID convention: <code>recon-close:{building_id}:{period_id}</code></p>
+    <table>
+        <thead>
+        <tr>
+            <th>Step</th>
+            <th>Activity / Signal</th>
+            <th>Purpose</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>1</td>
+            <td><code>run_reconciliation_check</code></td>
+            <td>Compare journal entries sum vs bank statement total</td>
+        </tr>
+        <tr>
+            <td>2a (balanced)</td>
+            <td>→ step 3</td>
+            <td>Proceed directly to close</td>
+        </tr>
+        <tr>
+            <td>2b (discrepancy)</td>
+            <td><code>notify_reviewer_activity</code> + wait for <code>reviewer_approved</code> signal</td>
+            <td>Email strata manager; human must approve before close proceeds</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td><code>close_period_activity</code></td>
+            <td>Transition period to CLOSED state (validates state machine)</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>Running the Temporal Worker</h3>
+    <pre><code>cd backend
+TEMPORAL_HOST=localhost:7233 venv/bin/python3 -m workers.temporal_worker</code></pre>
+
+    <h2>Production Deployment Paths</h2>
+
+    <h3>Option A — Temporal Cloud (Recommended)</h3>
+    <p>No infrastructure to maintain. Change only these env vars:</p>
+    <pre><code>TEMPORAL_HOST=your-namespace.tmprl.cloud:7233
+TEMPORAL_NAMESPACE=your-namespace.accountId
+TEMPORAL_TLS_CERT=/path/to/client.pem
+TEMPORAL_TLS_KEY=/path/to/client.key</code></pre>
+
+    <h3>Option B — Self-Hosted (Docker Compose)</h3>
+    <pre><code># docker-compose.temporal.yml provides postgres + temporal server
+docker compose -f docker-compose.temporal.yml up -d
+TEMPORAL_HOST=localhost:7233 venv/bin/python3 -m workers.temporal_worker</code></pre>
+
+    <h2>Rebuild Projection CLI</h2>
+    <p>Safe idempotent script to rebuild a financial projection from source data:</p>
+    <pre><code>cd backend
+
+# Full rebuild of unit_levy_ledger for building 13195
+venv/bin/python3 scripts/rebuild_projection.py unit_levy_ledger --building 13195
+
+# Incremental rebuild since a given event ObjectId
+venv/bin/python3 scripts/rebuild_projection.py lot_balances_projection \
+    --building 16244 \
+    --since 6634e1a0000000000000000a</code></pre>
+    <p>Supported projection names: <code>unit_levy_ledger</code>, <code>lot_balances_projection</code>,
+        <code>levy_payments_projection</code> (last two are aliases for unit_levy_ledger).</p>
+
+    <h2>Multi-Tenant Isolation</h2>
+    <ul>
+        <li>All ARQ tasks accept <code>building_id</code> as first arg; <code>_job_id</code>
+            includes it to prevent cross-building deduplication collisions.
+        </li>
+        <li>Temporal workflow IDs embed <code>building_id</code> as prefix — Temporal deduplicates
+            by workflow ID, so concurrent runs for different buildings are independent.
+        </li>
+        <li>The rebuild CLI and <code>projection_rebuild_task</code> inject <code>building_id</code>
+            in every aggregation <code>$match</code> stage.
+        </li>
+    </ul>
+
+    <h2>Related Files</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>File</th>
+            <th>Purpose</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>backend/workers/arq_tasks.py</code></td>
+            <td>ARQ task function definitions</td>
+        </tr>
+        <tr>
+            <td><code>backend/workers/arq_settings.py</code></td>
+            <td>ARQ WorkerSettings + cron schedule</td>
+        </tr>
+        <tr>
+            <td><code>backend/workers/temporal_worker.py</code></td>
+            <td>Temporal worker process entry point</td>
+        </tr>
+        <tr>
+            <td><code>backend/workflows/generate_levies_workflow.py</code></td>
+            <td>GenerateLeviesWorkflow + activities</td>
+        </tr>
+        <tr>
+            <td><code>backend/workflows/reconciliation_close_workflow.py</code></td>
+            <td>ReconciliationCloseWorkflow + activities</td>
+        </tr>
+        <tr>
+            <td><code>backend/repositories/financial_repository.py</code></td>
+            <td>rebuild_projection() + _rebuild_unit_levy_ledger()</td>
+        </tr>
+        <tr>
+            <td><code>backend/scripts/rebuild_projection.py</code></td>
+            <td>CLI wrapper for rebuild_projection</td>
+        </tr>
+        <tr>
+            <td><code>backend/workers/scheduler.py</code></td>
+            <td>Legacy APScheduler (toggle guard added)</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

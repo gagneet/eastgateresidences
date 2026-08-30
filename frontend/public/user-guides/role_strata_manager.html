@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Strata Manager Resident Handbook</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform
+                </div>
+            </div>
+        </div>
+        <div class="badge">Professional Guide</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Navigation</h3>
+        <div class="card callout warn" style="margin-top:14px">
+            <strong>Screenshots</strong><br/>
+            This HTML pack includes screenshot placeholders. Replace each <em>Screenshot placeholder</em> block with
+            real images from your environment.
+        </div>
+    </nav>
+
+    <article class="content">
+
+        <h1>Strata Manager Resident Handbook</h1>
+        <p>As a professional Strata Manager, you use this platform to streamline building operations, maintain financial
+            accuracy, and support the Executive Committee in their governance duties.</p>
+
+        <div class="card callout success">
+            <strong>Management Priorities</strong>
+            <ul>
+                <li>Maintain accurate <strong>Financial Records</strong> and <strong>Budget Projections</strong>.</li>
+                <li>Oversee the <strong>Approval Workflow</strong> for building expenditure.</li>
+                <li>Facilitate <strong>AGMs</strong> and <strong>Committee Meetings</strong>.</li>
+                <li>Ensure building-wide <strong>Compliance</strong> and <strong>Insurance</strong> are up to date.</li>
+            </ul>
+        </div>
+
+        <h2 id="financial-management">Financial Management & Reporting</h2>
+        <ul>
+            <li><strong>My Property View:</strong> Professional building-wide monitoring and management hub.</li>
+            <li><strong>Financial Dashboard:</strong> Access real-time data on the Administrative and Capital Works
+                funds.
+            </li>
+            <li><strong>Financial Intelligence:</strong> High-level financial analytics and historical building data.
+            </li>
+            <li><strong>Levy Fairness Analysis:</strong> 5-tab interactive LBFI analysis at <strong>Intelligence → Levy
+                Fairness</strong>. Edit facility tiers and cost overrides, add manual cost items, view per-unit benefit
+                vs. current levy comparison, and download a professional AGM-ready PDF report.
+            </li>
+            <li><strong>Capital Funding &amp; Special Levy Workspace:</strong> Planned/Pilot workflow at
+                <strong>Finance → Capital Funding</strong> for major repairs, strata-loan scenarios, staged special
+                levies, owner elections and levy-notice PDF preview batches across all current lot owners.
+            </li>
+            <li><strong>Budget Projections:</strong> Develop and review interactive financial forecasts to prepare for
+                future levies and capital works projects.
+            </li>
+            <li><strong>Spending Categories:</strong> Fine-tune the allocation of costs to ensure transparent reporting
+                to the Owners Corporation.
+            </li>
+            <li><strong>Unit Plan:</strong> Comprehensive access to registered units plan and lot entitlements.</li>
+            <li><strong>Financial Onboarding / Historical Reconstruction:</strong> At <strong>Financial → Financial
+                Onboarding</strong> (or <strong>Historical Reconstruction</strong>), prepare batches that generate
+                a building's prior-years levy payment history from its proposed budget — useful when a building
+                migrates onto the platform with incomplete financial records. You can create, extract, preview, and
+                submit batches for review. Reviewing, approving, generating, syncing, and reversing a batch require
+                a Strata Admin or Super Admin — see the <a href="historical-reconstruction.html">Historical
+                Reconstruction guide</a> for the full workflow.
+            </li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Professional Financial Reporting & Invoice Creation
+        </div>
+
+        <h2 id="governance">Governance & Meetings</h2>
+        <ul>
+            <li><strong>Meeting Facilitation:</strong> Upload agendas, minutes, and supporting documents for Committee
+                Meetings and AGMs.
+            </li>
+            <li><strong>Voting Management:</strong> Configure motions for online voting and monitor quorum and results
+                in real-time.
+            </li>
+            <li><strong>Compliance & Insurance:</strong> Manage the building's insurance portfolio, including renewals
+                and claims. Monitor the compliance checklist for statutory obligations.
+            </li>
+        </ul>
+
+        <h2 id="operations">Building Operations</h2>
+        <ul>
+            <li><strong>Maintenance Oversight:</strong> Monitor the performance of service providers and the status of
+                building-wide maintenance requests.
+            </li>
+            <li><strong>Service Schedule:</strong> Maintain the master schedule for recurring services and inspections.
+            </li>
+            <li><strong>Units & Owners:</strong> Ensure the strata roll (Units & Owners) is accurate and up to date,
+                processing transfers as they occur.
+            </li>
+        </ul>
+
+        <h2 id="communication">Professional Communication</h2>
+        <ul>
+            <li><strong>Official Correspondence:</strong> Use the <strong>Announcements</strong> and <strong>Notice
+                Board</strong> modules to issue formal strata notices.
+            </li>
+            <li><strong>Audit Trails:</strong> Leverage the <strong>Audit Logs</strong> to maintain a professional
+                record of all platform activities and decisions.
+            </li>
+        </ul>
+
+        <div class="card callout info">
+            <strong>Support:</strong> For technical assistance with professional reporting tools, please contact the
+            Super Admin or the platform support team.
+        </div>
+
+        <h2 id="advanced-financial">Advanced Financial Enhancements</h2>
+        <p>As Strata Manager, you have full access to all advanced financial tools on the platform.</p>
+
+        <h3>Arrears Recovery Board</h3>
+        <p>Access and manage the Debt Recovery Board at <strong>Dashboard → Debt Recovery Board</strong>. Units in
+            arrears are classified across four severity tiers:</p>
+        <ul>
+            <li><strong>Monitor</strong> — Balance owing, no action yet taken.</li>
+            <li><strong>Contacted</strong> — Section 83 notice has been sent (within 14 days).</li>
+            <li><strong>DCA Eligible</strong> — More than $1,500 owing and 14+ days have elapsed since the notice.</li>
+            <li><strong>DCA Referred</strong> — Formally referred to a Debt Collection Agency.</li>
+        </ul>
+        <p><strong>Data source:</strong> The Arrears Recovery Board sources data from the full strata roll (<code>unit_levy_ledger</code>
+            — all 87 units), not just owners registered in the portal. Units where the owner has not created a portal
+            account are still displayed; they show "No portal account" and their owner name from the official strata
+            roll. For FY2026, 18 units carry prior-year opening arrears totalling $2,794.97. Current-year levy
+            instalments paid via the portal (Stripe) do not reduce prior-year opening arrears — only officially recorded
+            DEFT/bank imports affect the arrears balance.</p>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Arrears Recovery Board – 4-tier severity view</div>
+
+        <h3>Generate Section 83 Notice</h3>
+        <p>Issue a formal demand letter under <strong>Section 83 of the Unit Titles Management Act 2011 (ACT)</strong>
+            directly from the Debt Recovery Board. The PDF is auto-generated and can be sent to the owner or retained
+            for records.</p>
+
+        <h3>DCA Referral</h3>
+        <p>Refer a unit to a Debt Collection Agency when arrears exceed $1,500 and at least 14 days have passed since
+            the Section 83 notice was issued. All referrals are logged in the recovery audit trail.</p>
+
+        <h3>Special Levies</h3>
+        <p>Create one-off special levy charges allocated across all units by their Unit of Entitlement (UOE) at <strong>Finance
+            → Special Levies</strong>.</p>
+
+        <h3>Capital Funding &amp; Special Levy Workspace (Planned/Pilot)</h3>
+        <p>Use <strong>Finance → Capital Funding</strong> to prepare a major-works funding case: capture costs and
+            contingencies, compare special levy and strata-loan options, attach legal and meeting evidence, collect
+            owner votes/elections through AGM or general-meeting motions, and generate a preview batch of levy-notice
+            PDFs for all current lot owners. Preview generation does not issue notices or post ledger entries.</p>
+
+        <h3>Bank Reconciliation</h3>
+        <p>Record and verify monthly bank statement entries at <strong>Finance → Bank Reconciliation</strong>. Match
+            payments against the platform's financial records and mark statements as reconciled to maintain an accurate
+            audit trail.</p>
+
+        <h3>Payment Plans</h3>
+        <p>Create structured instalment arrangements for owners in arrears at <strong>Finance → Payment Plans</strong>.
+            Set the schedule, instalment amounts, and monitor compliance over time.</p>
+
+        <h3>Record Expenses &amp; Income</h3>
+        <ul>
+            <li><strong>Record Expenses:</strong> Log building expenses against approved budget categories to maintain
+                accurate fund tracking.
+            </li>
+            <li><strong>Record Income:</strong> Log non-levy income such as bank interest, rebates, and grants.</li>
+        </ul>
+
+        <h3>Financial Health Score</h3>
+        <p>The Financial Health Score (0–100) provides a composite view of the building's financial position based on
+            seven components: Surplus Ratio, Arrears Percentage, Cashflow Buffer, Forecast Stability, Budget Discipline,
+            Expense Volatility, and Reserve Adequacy.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Score</th>
+                <th>Rating</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>80–100</td>
+                <td>Excellent</td>
+            </tr>
+            <tr>
+                <td>65–79</td>
+                <td>Good</td>
+            </tr>
+            <tr>
+                <td>50–64</td>
+                <td>Fair</td>
+            </tr>
+            <tr>
+                <td>35–49</td>
+                <td>Poor</td>
+            </tr>
+            <tr>
+                <td>0–34</td>
+                <td>Critical</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>True Cost of Ownership</h3>
+        <p>View a per-unit cost breakdown at <strong>Finance → True Cost of Ownership</strong>, showing admin levies,
+            sinking fund contributions, special levies, council rates, and water charges for each lot. Use this to
+            provide owners with a complete picture of their annual property costs.</p>
+
+
+        <h2 id="community-os">Community OS — New Features (April 2026)</h2>
+        <p>The following features were added as part of the Community OS update. As Strata Manager you have the broadest
+            access, including portfolio-level and workflow governance tools not available to other roles.</p>
+
+        <h3 id="management-triage">Management Triage — Building Cockpit</h3>
+        <p>On your <strong>Dashboard Home</strong>, the Management Cockpit appears automatically. As Strata Manager this
+            is your primary operational command view.</p>
+        <ul>
+            <li><strong>Executive Oversight tiles:</strong> Arrears, Collection Rate, Compliance, Fund Balance, Pending
+                Approvals — all live.
+            </li>
+            <li><strong>Needs Attention Now:</strong> SLA-breached requests, high-arrears units, and compliance
+                deadlines ranked by urgency. Designed for rapid prioritisation at the start of each working day.
+            </li>
+            <li><strong>Deflection Rate &amp; Auto-resolved Today:</strong> Shows how many requests the system handled
+                automatically, freeing your capacity for complex cases.
+            </li>
+            <li><strong>Multi-year KPI trend charts</strong> and <strong>Activity Feed</strong> for arrears and
+                maintenance monitoring.
+            </li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Management Cockpit — Strata Manager view</div>
+
+        <h3 id="smart-request">Smart Request — Full Triage &amp; SLA Management</h3>
+        <p>Navigate to <strong>Dashboard → Requests</strong>.</p>
+        <p>View, triage, assign, and close all incoming requests. Use the SLA filter to prioritise overdue items. Add
+            internal notes and flag escalations for EC review.</p>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Requests — full triage list with SLA risk indicators
+        </div>
+
+        <h3 id="workflow-governance">Workflow Governance — Automation Observability</h3>
+        <p>Navigate to <strong>Dashboard → Platform Admin → Workflow Governance</strong>.</p>
+        <p>A real-time console showing the status and run history of all background automation tasks across the
+            platform.</p>
+        <ul>
+            <li><strong>Summary bar:</strong> X/Y workflows active, coverage %, health counts (Healthy / Stale / Failing
+                / Never Run).
+            </li>
+            <li><strong>Automation Catalogue:</strong> Expandable list grouped by category — Financial, Operations,
+                Governance, Compliance, Analytics, Security, Residency, Maintenance, Communications, Community.
+            </li>
+            <li>Each row shows: health status icon, last run timestamp, duration, success/fail counts.</li>
+            <li><strong>Expand any row</strong> to view its full run history with timestamps and result detail.</li>
+        </ul>
+        <div class="card callout info">
+            <strong>Use this page</strong> to confirm that overnight financial runs, SLA checkers, and notification jobs
+            have executed successfully. Any <em>Failing</em> or <em>Never Run</em> workflows appear in red and require
+            investigation.
+        </div>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Workflow Governance — automation catalogue with
+            health indicators and run history
+        </div>
+
+        <h3 id="portfolio">Portfolio Command Centre — Multi-Building Oversight</h3>
+        <p>Navigate to <strong>Dashboard → Platform Admin → Portfolio Command Centre</strong> (or <strong>Dashboard →
+            Portfolio</strong>).</p>
+        <p>Oversee all buildings you manage from a single screen.</p>
+        <ul>
+            <li><strong>Summary cards:</strong> Total Buildings, Total Lots, Average Health Score, Active Alerts.</li>
+            <li><strong>Portfolio Alerts:</strong> Flags buildings with low health score or elevated arrears rate.</li>
+            <li><strong>Buildings table:</strong> Name, health grade (A–D colour-coded), arrears rate, last activity.
+                Click <em>View</em> or <em>Manage</em> for a building-specific drill-down.
+            </li>
+            <li><strong>Onboard Building:</strong> Launches the Building Onboarding Wizard — step-by-step setup for a
+                new strata scheme (building details, unit plan, EC members, levy schedule, feature toggles).
+            </li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Portfolio Command Centre — buildings table with
+            health grades and onboard button
+        </div>
+
+        <h3 id="morning-card">Morning Card — Operational Priority</h3>
+        <p>On your <strong>Dashboard Home</strong>, the Morning Card surfaces the single most urgent operational item:
+        </p>
+        <ul>
+            <li>A failing automation workflow requiring manual intervention</li>
+            <li>A high-arrears unit approaching the S.83 notice threshold</li>
+            <li>A portfolio alert (e.g. a building health score has dropped)</li>
+            <li>A new building requiring onboarding action</li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Morning Card — Strata Manager operational priority
+            card
+        </div>
+
+        <h3 id="building-switcher">Multi-Building Management — Switching Buildings</h3>
+        <p>If you manage more than one building, your sidebar shows a <strong>Building Switcher</strong> at the top of
+            the navigation panel. Click the building name to open the switcher dropdown and select a different scheme.
+        </p>
+        <ul>
+            <li><strong>What switches:</strong> All dashboard data, financial figures, resident lists, levy records, and
+                compliance status immediately reflect the selected building.
+            </li>
+            <li><strong>Your primary building:</strong> The building you first registered under remains your login home.
+                Switching is session-based — your next login opens your primary building.
+            </li>
+            <li><strong>Access requirement:</strong> You must hold an active membership in a building before you can
+                switch to it. Contact your system administrator if a building is missing from your list.
+            </li>
+            <li><strong>Demo building</strong> (Acme Strata Demo): Financial figures are seeded demo data; no real
+                levies or resident records are affected.
+            </li>
+        </ul>
+        <div class="card callout info">
+            <strong>Technical note:</strong> Switching issues a fresh authentication token scoped to the new building.
+            All API calls automatically target the correct data partition. Reload the page if data appears stale after
+            switching.
+        </div>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Sidebar building switcher — dropdown showing
+            available
+            buildings with active building highlighted
+        </div>
+
+        <h3 id="suburb-radar">Suburb Radar &amp; Weekly Digest — Email Summaries</h3>
+        <p>Every Sunday evening:</p>
+        <ul>
+            <li><strong>Suburb Radar (5:00 PM AEST):</strong> Suburb property market intelligence useful for advising
+                owners on capital works decisions and levy forecasting.
+            </li>
+            <li><strong>Weekly Notification Digest (6:00 PM AEST):</strong> Summary of your past week's unread
+                notifications with action links.
+            </li>
+        </ul>
+        <p>Opt out via <strong>Dashboard → Email Preferences</strong>.</p>
+
+    </article>
+</main>
+
+<footer>
+    Generated 1 April 2026 • Support: noreply@ • A vision by: Silverfox Technologies, Australia
+    • Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

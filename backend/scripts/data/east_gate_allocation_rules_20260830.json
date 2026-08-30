@@ -1,0 +1,40 @@
+[
+  {
+    "cost_line": "fac-security",
+    "cost_line_label": "Garage / security systems",
+    "basis": "shared_measured",
+    "driver": "bays_held",
+    "driver_unit": "bays",
+    "driver_period": "standing",
+    "driver_values": {"Group A": 39, "Group B": 89},
+    "unassigned_units": 11,
+    "unassigned_treatment": "entitlement",
+    "evidence_source": "Operator confirmation 2026-08-30: 139 bays total across five sections (36 + 26 + 36 + 20 + 21). Townhouse 39 (36 + 3), Apartment 89 (26 + 53 + 10), Visitor 11 (10 + 1).",
+    "notes": "The 11 visitor bays are held by no group. They are disposed of on unit entitlement -- the statutory default under UTMA s.78 for capacity that is not otherwise attributable -- rather than pro-rata, which would assert that visitors arrive in proportion to bays held. Change the treatment to pro_rata if the corporation decides otherwise; it is a setting, not a rule."
+  },
+  {
+    "cost_line": "fac-lift",
+    "cost_line_label": "Lift system",
+    "basis": "shared_measured",
+    "driver": "access_events",
+    "driver_unit": "trips/month",
+    "driver_period": "monthly",
+    "driver_values": {"Group A": 600, "Group B": 23400},
+    "unassigned_units": 0,
+    "unassigned_treatment": "entitlement",
+    "evidence_source": "Access-system report, produced monthly; values are the two-year average across the complex (approx. 24,000 trips/month, approx. 600 from the townhouse group).",
+    "notes": "This rule INCREASES the townhouse contribution. The facility was tagged apartments-only, so the townhouses were modelled as paying nothing for the lift; they in fact make about 2.5% of trips, reaching the garage. A fairness model that only ever moved cost one way would not be measuring anything. Because the report repeats monthly it can support a standing contribution -- a one-off count could not, however precise."
+  },
+  {
+    "cost_line": "fac-lighting",
+    "cost_line_label": "Water and common electricity",
+    "basis": "undetermined",
+    "driver": "sub_metered_consumption",
+    "driver_unit": "kL/yr",
+    "driver_period": "unknown",
+    "driver_values": {},
+    "unassigned_treatment": "entitlement",
+    "evidence_source": "Operator confirmation 2026-08-30: the common meter covers ALL water entering the complex -- residential areas, common amenities and irrigation. Some lots additionally carry their own water meter.",
+    "notes": "Deliberately left undetermined: the structure is known and the numbers are not. Because the common meter includes separately sub-metered residential supply, the defensible split is to deduct each sub-metered group's own reading and apportion only the remainder -- which is exactly this table's measured-parts-plus-remainder shape. It needs one year of readings to populate driver_values. Recording it as undetermined states the question; guessing a split would state an answer nobody has."
+  }
+]

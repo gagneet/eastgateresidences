@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Strata Admin Quick Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform
+                </div>
+            </div>
+        </div>
+        <div class="badge">Quick Guide</div>
+    </div>
+</header>
+
+<main style="display:block">
+
+    <article class="content">
+
+        <h1>Strata Admin Quick Guide</h1>
+        <p>For organisation administrators who oversee portfolio navigation, users, settings, reporting, and
+            building-level operational controls. Chairperson duties remain an EC appointment, not a separate login
+            role.</p>
+
+        <div class="card callout success">
+            <strong>You can do</strong>
+            <ul>
+                <li>Open portfolio, user, report, and organisation-settings areas where enabled</li>
+                <li>Use the building selector for assigned buildings</li>
+                <li>Review finance, compliance, maintenance, workflow, document, and insurance oversight menus</li>
+                <li>Use generated API docs and Postman artifacts when testing integration flows</li>
+            </ul>
+        </div>
+
+        <div class="card callout danger">
+            <strong>You cannot</strong>
+            <ul>
+                <li>Bypass tenant isolation or access buildings outside your assigned scope</li>
+                <li>Perform Super Admin-only platform configuration unless explicitly granted</li>
+            </ul>
+        </div>
+
+        <h2>Top tasks (checklist)</h2>
+        <ul>
+            <li>Confirm the selected building before taking action</li>
+            <li>Review portfolio and reporting pages for managed buildings</li>
+            <li>Manage users and role permissions where your account has the required flags</li>
+            <li>Use finance/compliance/maintenance oversight menus to triage operational exceptions</li>
+        </ul>
+
+        <h2>My Property View — Personal Finance Dashboard</h2>
+        <p>If your strata-admin account is also linked to an owned unit, you can access your personal <strong>Owner Dashboard</strong> via <strong>Overview → My Property
+            View</strong> in the sidebar. This is the <code>/dashboard/regular</code> page — separate from the
+            building-wide Management Dashboard.</p>
+        <ul>
+            <li><strong>"Next Estimated Payment"</strong> — shows the amount due for your <em>next instalment only</em>,
+                not the total remaining for the year. This correctly accounts for any advance payments you have made.
+            </li>
+            <li><strong>Advance payments are reflected automatically</strong> — the dashboard uses the instalment
+                algorithm:
+                <br><code>net_credit = total_paid − opening_arrears</code>
+                <br><code>periods_funded = floor(net_credit / period_levy)</code>
+                <br><code>next_payment = (periods_funded + 1) × period_levy − net_credit</code>
+            </li>
+            <li><strong>Admin Fund / Sinking Fund health</strong> — displayed as 0% when no real data is available (no
+                misleading placeholder values).
+            </li>
+            <li><strong>"Back to Management View"</strong> — returns you to the building-wide Management Dashboard.</li>
+        </ul>
+
+        <div class="card callout">
+            <strong>Owner-linked example:</strong> When the account has an owned unit, "Next Estimated Payment" shows
+            the next instalment amount after advance payments, not the full remaining annual balance.
+        </div>
+
+        <h2>Key screens (where to click)</h2>
+        <ul>
+            <li><strong>Dashboard</strong> → Loads the <em>Management Dashboard</em> (Building Intelligence Hub) showing
+                building KPIs, arrears, collection rate, and finance health
+            </li>
+            <li><strong>Overview → My Property View</strong> → Switches to your personal Owner Dashboard at <code>/dashboard/regular</code>
+                for your unit; "Back to Management View" returns you to the Management Dashboard
+            </li>
+            <li>Documents → Access levels</li>
+            <li>Finance → Reports / Financial Intelligence</li>
+            <li>Meetings → AGM preparation</li>
+            <li><strong>Management → Tenant &amp; Guest Approvals</strong> → Approve/reject incoming registrations</li>
+            <li><strong>Management → User Management</strong> → Approve owner registrations; amber ⚠ icon flags owner
+                name mismatches against the strata roll
+            </li>
+        </ul>
+
+        <h2 id="owner-name-verification">Owner Name Verification</h2>
+        <p>When an owner registers or is approved, the system automatically checks their name against the strata roll.
+            If the name does not closely match (60 % token-overlap algorithm), an amber ⚠ triangle appears in User
+            Management and a notification is sent.</p>
+        <ul>
+            <li><strong>Tooltip:</strong> hover the ⚠ to see <em>"Owner name mismatch. Strata roll: &lt;Primary&gt; /
+                &lt;Secondary&gt;"</em></li>
+            <li><strong>Action:</strong> click <em>Request Info</em> to ask the owner for identity documents; verify
+                against Certificate of Title; archive if unverified
+            </li>
+            <li><strong>Toggle:</strong> controlled by <code>owner_name_verification</code> feature toggle (Governance
+                category)
+            </li>
+        </ul>
+
+        <h2>Advanced Financial Enhancements</h2>
+        <ul>
+            <li><strong>Debt Recovery Board</strong> — 4-tier arrears dashboard (Monitor / Contacted / DCA Eligible /
+                DCA Referred). Path: Dashboard → Debt Recovery Board.
+            </li>
+            <li><strong>Section 83 Notices</strong> — Generate and download a formal ACT demand letter PDF for any
+                arrears unit.
+            </li>
+            <li><strong>DCA Referral</strong> — Refer units with &gt;$1,500 arrears (14+ days post-notice) to a Debt
+                Collection Agency. System generates a DCA reference number automatically.
+            </li>
+            <li><strong>Payment Plans</strong> — Create structured instalment arrangements for owners unable to pay in
+                full.
+            </li>
+            <li><strong>Special Levies</strong> — Create one-off charges for all owners, automatically split by Unit of
+                Entitlement.
+            </li>
+            <li><strong>Bank Reconciliation</strong> — Record and verify monthly admin/sinking fund bank statements.
+                <em>Current balances (15 Mar 2026): Admin Fund $9,187.44 | Sinking Fund $193,337.03 | Total
+                    $202,524.47.</em> Admin YTD spending: ~$37,250 of $309,882 budgeted (12.1%). Over-budget categories:
+                CCTV System and Electrical Repairs.
+            </li>
+            <li><strong>Record Expenses &amp; Income</strong> — Log building expenses against budget categories and
+                record non-levy income.
+            </li>
+            <li><strong>Financial Health Score</strong> — View 0–100 composite score across 7 components (Arrears %,
+                Cashflow Buffer, Surplus Ratio, etc.).
+            </li>
+            <li><strong>Levy Benefit Fairness Index (LBFI)</strong> — Gini-style metric (0–100) showing how equitably
+                levies are distributed. Your building: 80.8. Includes subsidy map, flow matrix, and scenario comparison.
+                Path: Dashboard → Intelligence → Levy Fairness.
+            </li>
+            <li><strong>Capital Works Planner</strong> — Dedicated planning page at Dashboard → Intelligence → Capital
+                Planner. 3 tabs: Sinking Fund Plan (2021–2035), Capital Event Milestones, 10-Year Replacement Schedule.
+                Strata Admin can <em>Edit Plan</em> on all 3 tabs where the required feature and permission flags are enabled. Current risk: HIGH (2029 repaints, $413k). Recommended
+                levy increase: 16.1% from 2027.
+            </li>
+            <li><strong>True Cost of Ownership</strong> — Per-unit breakdown of all costs charged to each lot for the
+                financial year.
+            </li>
+            <li><strong>Tax Summary PDF</strong> — Generate a tax summary for any unit and any financial year.</li>
+        </ul>
+
+        <h2>Permission Slugs (RBAC System)</h2>
+        <p>As of Session 63, the platform uses a granular <strong>RBAC + ABAC</strong> permission system. Your Strata
+            Admin role may grant the following permission slugs depending on building assignment and permission flags:</p>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+            <tr style="background:rgba(255,255,255,.06)">
+                <th style="padding:6px 10px;text-align:left">Permission slug</th>
+                <th style="padding:6px 10px;text-align:left">What it allows</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td style="padding:5px 10px"><code>financial.view</code></td>
+                <td style="padding:5px 10px">View all building financials</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>financial.approve_invoice</code></td>
+                <td style="padding:5px 10px">Approve pending invoices and expenditure</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>financial.export</code></td>
+                <td style="padding:5px 10px">Export financial reports and statements</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>committee.vote</code></td>
+                <td style="padding:5px 10px">Vote on committee motions (inherited from EC Member)</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>committee.finalize_minutes</code></td>
+                <td style="padding:5px 10px">Finalise and publish meeting minutes</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>workorder.approve</code></td>
+                <td style="padding:5px 10px">Approve contractor work orders</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>documents.upload</code> / <code>documents.delete</code></td>
+                <td style="padding:5px 10px">Manage document library</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>building.view</code></td>
+                <td style="padding:5px 10px">View building configuration (not edit)</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>user.view</code></td>
+                <td style="padding:5px 10px">View all user records in your building</td>
+            </tr>
+            </tbody>
+        </table>
+        <p style="font-size:12px;margin-top:6px;color:var(--muted)">Chairperson duties are represented through EC
+            membership/position data. Strata Admin permissions are scoped to assigned building(s) and explicit flags.</p>
+
+        <div class="shot"><strong>Screenshot placeholder:</strong> Strata Admin Quick Guide – key screens</div>
+
+    </article>
+</main>
+
+<footer>
+    <span data-bldg="name">your building</span> | Executive Committee | Strata Manager &nbsp;·&nbsp; E: <a
+        data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC email</a>
+    &nbsp;·&nbsp; P: <span data-bldg="contact_phone">(contact number)</span>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Trust Dual-Approval — Technical Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        pre {
+            background: #f3f4f6;
+            border-radius: 6px;
+            padding: 16px;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        .endpoint {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-family: monospace;
+            margin: 8px 0;
+        }
+
+        .method-post {
+            color: #34d399;
+            font-weight: 700;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .s-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .s-approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .s-second {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 12px 0;
+        }
+
+        td, th {
+            padding: 8px 14px;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="guide-container">
+    <header class="guide-header">
+        <h1>Trust Dual-Approval (GAP-FIN-011)</h1>
+        <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role lists on this page naming "chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+        <div class="callout"><strong>Cutover note:</strong> this guide documents the legacy V1 <code>/api/trust/batches*</code> API in <code>routers/trust_accounting.py</code>. Routed V1 responses emit deprecation headers. There is not yet a V2 batch/ABA dual-approval replacement, so Stage 2 V1 write retirement must first decide whether this workflow is replaced or retired after production access-log review.</div>
+        <p class="guide-subtitle">Technical reference for the ABA batch second-approval workflow</p>
+    </header>
+
+    <section class="guide-section">
+        <h2>Overview</h2>
+        <p>ABA payment batches with a total value <strong>≥ $5,000</strong> require two separate EC-level
+            approvers. The first approver initiates the approval; the second approver (a different person)
+            finalises it. This implements a four-eyes control on high-value outgoing payments.</p>
+        <p><strong>Scope:</strong> ABA batches only. Non-ABA batches (e.g. manual payments) go directly to
+            <code>approved</code> regardless of value. A separate workflow for ad-hoc special payments
+            &gt; $10,000 is planned (GAP-FIN-011 outstanding scope).</p>
+    </section>
+
+    <section class="guide-section">
+        <h2>State machine</h2>
+        <pre>
+pending  ──[approve, total &lt; $5k]──────────────────▶  approved
+pending  ──[approve, ABA + total ≥ $5k]────────────▶  pending_second_approval
+pending_second_approval  ──[second-approve, diff user]▶  approved
+        </pre>
+        <table>
+            <thead>
+            <tr>
+                <th>Status</th>
+                <th>Meaning</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><span class="status-badge s-pending">pending</span></td>
+                <td>Batch created, awaiting first approval</td>
+            </tr>
+            <tr>
+                <td><span class="status-badge s-second">pending_second_approval</span></td>
+                <td>First approval recorded; ABA ≥ $5k — awaiting second approver</td>
+            </tr>
+            <tr>
+                <td><span class="status-badge s-approved">approved</span></td>
+                <td>Fully approved; ABA file generated (if applicable)</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="guide-section">
+        <h2>API endpoints</h2>
+
+        <div class="endpoint"><span class="method-post">POST</span> /api/trust/batches/{batch_id}/approve</div>
+        <p>First approval. Requires <code>ec_member</code>, <code>chairman</code>, <code>strata_manager</code>,
+            <code>treasurer</code>, or <code>super_admin</code> role (effective_role aware).</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Condition</th>
+                <th>Result</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Batch is not <code>pending</code></td>
+                <td>HTTP 400</td>
+            </tr>
+            <tr>
+                <td>Batch not found / wrong building</td>
+                <td>HTTP 404</td>
+            </tr>
+            <tr>
+                <td>Insufficient role</td>
+                <td>HTTP 403</td>
+            </tr>
+            <tr>
+                <td>ABA batch, total &lt; $5,000</td>
+                <td>200 — status → <code>approved</code>, ABA file generated</td>
+            </tr>
+            <tr>
+                <td>ABA batch, total ≥ $5,000</td>
+                <td>200 — status → <code>pending_second_approval</code></td>
+            </tr>
+            <tr>
+                <td>Non-ABA batch (any value)</td>
+                <td>200 — status → <code>approved</code></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="endpoint"><span class="method-post">POST</span> /api/trust/batches/{batch_id}/second-approve</div>
+        <p>Second approval. Same role requirements. <strong>The second approver's user ID must differ
+            from the first approver's.</strong></p>
+        <table>
+            <thead>
+            <tr>
+                <th>Condition</th>
+                <th>Result</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Batch is not <code>pending_second_approval</code></td>
+                <td>HTTP 400</td>
+            </tr>
+            <tr>
+                <td>Same user as first approver</td>
+                <td>HTTP 403 — "different person" message</td>
+            </tr>
+            <tr>
+                <td>Success</td>
+                <td>200 — status → <code>approved</code>, ABA file generated, audit log written</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="guide-section">
+        <h2>Response shape</h2>
+        <pre><code>// POST /trust/batches/{id}/approve — dual-approval triggered
+{
+  "message": "First approval recorded. A second approver is required (total $6,500.00 ≥ $5,000).",
+  "batch_id": "...",
+  "status": "pending_second_approval",
+  "dual_approval_required": true,
+  "aba_generated": false
+}
+
+// POST /trust/batches/{id}/second-approve — success
+{
+  "message": "Second approval complete. Batch approved.",
+  "batch_id": "...",
+  "status": "approved",
+  "aba_generated": true
+}</code></pre>
+    </section>
+
+    <section class="guide-section">
+        <h2>Threshold constant</h2>
+        <p>Defined in <code>backend/routers/trust_accounting.py</code>:</p>
+        <pre><code>_DUAL_APPROVAL_THRESHOLD = 5_000.00  # GAP-FIN-011</code></pre>
+        <p>To change the threshold, update this constant and redeploy. No DB config.</p>
+    </section>
+
+    <section class="guide-section">
+        <h2>Audit trail</h2>
+        <p>Both approve and second-approve write to the <code>audit_logs</code> collection via
+            <code>asyncio.create_task(create_audit_log(...))</code> (fire-and-forget). Fields recorded:</p>
+        <ul>
+            <li><code>action</code>: <code>payment_batch_approved</code> / <code>payment_batch_second_approved</code>
+            </li>
+            <li><code>user_id</code>, <code>user_name</code></li>
+            <li><code>details.total_amount</code>, <code>details.dual_approval_required</code></li>
+            <li><code>details.first_approver</code> (second-approve only)</li>
+            <li><code>building_id</code></li>
+        </ul>
+    </section>
+
+    <section class="guide-section">
+        <h2>Role guard implementation</h2>
+        <p>Uses the <code>effective_role</code> pattern to support temp-elevated owners:</p>
+        <pre><code>def _require_finance_role(current_user: dict) -> dict:
+    allowed = {"super_admin", "strata_manager", "strata_admin",
+               "ec_member", "treasurer", "admin"}
+    effective_role = current_user.get("effective_role") or current_user.get("role", "guest")
+    if effective_role not in allowed:
+        raise HTTPException(403, "Trust accounting access requires strata manager or EC role.")
+    return current_user</code></pre>
+    </section>
+
+    <section class="guide-section">
+        <h2>Outstanding scope (GAP-FIN-011 partial)</h2>
+        <p>Only ABA batch dual-approval is implemented. The following is <strong>not yet built</strong>:</p>
+        <ul>
+            <li>Special payment (ad-hoc, non-ABA) dual-approval for values &gt; $10,000</li>
+            <li><code>backend/models/payment_approvals.py</code> — approval workflow model</li>
+            <li><code>backend/routers/payments.py</code> extension for special payment approvals</li>
+        </ul>
+    </section>
+
+    <section class="guide-section">
+        <h2>Related files</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>File</th>
+                <th>Purpose</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>backend/routers/trust_accounting.py</code></td>
+                <td>Both approve endpoints</td>
+            </tr>
+            <tr>
+                <td><code>backend/utils/aba_generator.py</code></td>
+                <td>ABA file generation (APCA 120-char format)</td>
+            </tr>
+            <tr>
+                <td><code>tests/backend/test_trust_dual_approval.py</code></td>
+                <td>18 unit tests covering all branches</td>
+            </tr>
+            <tr>
+                <td><code>tests/performance/trust_dual_approval_benchmark.ts</code></td>
+                <td>k6 performance benchmark</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <footer class="guide-footer">
+        <p>GAP-FIN-011 — shipped April 2026 &nbsp;|&nbsp; Tech Docs</p>
+    </footer>
+</div>
+</body>
+</html>

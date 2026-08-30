@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Conflict of Interest Register — User Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-financial {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-personal {
+            background: #fce7f3;
+            color: #9d174d;
+        }
+
+        .badge-professional {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-other {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .badge-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-abstained {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-recused {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .badge-voted {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-chair {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .role-table td, .role-table th {
+            padding: 8px 14px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .role-table th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        .step {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #2F4F4F;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .tip-box {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+
+        .warn-box {
+            background: #fefce8;
+            border-left: 4px solid #f59e0b;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+
+        .example-box {
+            background: #fdf4ff;
+            border: 1px solid #e9d5ff;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 20px 0;
+        }
+
+        .example-box h4 {
+            margin-top: 0;
+            color: #7e22ce;
+        }
+
+        dl dt {
+            font-weight: 700;
+            margin-top: 16px;
+        }
+
+        dl dd {
+            margin-left: 0;
+            margin-top: 4px;
+            color: #555;
+        }
+
+        .audience-pill {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .audience-ec {
+            background: #fce7f3;
+            color: #9d174d;
+        }
+
+        .audience-manager {
+            background: #fae8ff;
+            color: #7e22ce;
+        }
+    </style>
+</head>
+<body>
+<div class="guide-container">
+    <header class="guide-header">
+        <h1>Conflict of Interest Register</h1>
+        <p class="guide-subtitle">Declare and record conflicts of interest before Executive Committee agenda items are
+            discussed</p>
+        <p style="margin-top:8px;">
+            <span class="audience-pill audience-ec">EC Members</span>
+            <span class="audience-pill audience-ec">Chairman</span>
+            <span class="audience-pill audience-manager">Strata Managers</span>
+        </p>
+    </header>
+
+    <section class="guide-section">
+        <h2>What is the conflict of interest register?</h2>
+        <p>
+            The conflict of interest register is a transparent record of situations where an EC member
+            (including the Chairman) has a personal, financial, or professional interest that could
+            — or could be seen to — influence how they participate in a committee decision.
+        </p>
+        <p>
+            Good governance requires that conflicts are declared <strong>before the relevant agenda item
+            is discussed</strong>, not after a vote has been taken. Declaring a conflict protects both
+            the individual member and the integrity of the decision.
+        </p>
+        <div class="info-box">
+            <strong>Transparency rule.</strong> This register is visible to all EC members and strata
+            managers for your building. Declarations are permanent records — they cannot be deleted,
+            only retracted by a manager if entered in error.
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <h2>Who can use this feature?</h2>
+        <table class="role-table" style="width:100%; border-collapse:collapse; margin-top:12px;">
+            <thead>
+            <tr>
+                <th>Role</th>
+                <th>Declare a conflict</th>
+                <th>View register</th>
+                <th>Update resolution</th>
+                <th>Retract a declaration</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Owner / Tenant</td>
+                <td>&#10007; No</td>
+                <td>&#10007; No</td>
+                <td>&#10007; No</td>
+                <td>&#10007; No</td>
+            </tr>
+            <tr>
+                <td>EC Member</td>
+                <td>&#10003; Yes (own)</td>
+                <td>&#10003; Yes</td>
+                <td>&#10007; No</td>
+                <td>&#10007; No</td>
+            </tr>
+            <tr>
+                <td>Chairman</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+            </tr>
+            <tr>
+                <td>Strata Manager</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="guide-section">
+        <h2>How to declare a conflict of interest</h2>
+
+        <div class="warn-box">
+            <strong>Timing is critical.</strong> Declare your conflict <em>before</em> the agenda item
+            is discussed, not during or after. This ensures the record accurately reflects when the
+            declaration was made.
+        </div>
+
+        <div class="step">
+            <div class="step-num">1</div>
+            <div>Go to <strong>Dashboard &rarr; Governance &rarr; Conflict of Interest Register</strong>.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <div>Click <strong>Declare a Conflict</strong>. A declaration form opens.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <div>
+                Complete the form:
+                <ul style="margin-top:8px;">
+                    <li><strong>Conflict type</strong> — choose from Financial, Personal, Professional, or Other
+                        (see definitions below)
+                    </li>
+                    <li><strong>Description</strong> — explain the nature of the conflict in plain language
+                        (minimum 10 characters)
+                    </li>
+                    <li><strong>Related matter</strong> (optional) — enter the agenda item title or motion number
+                        this relates to
+                    </li>
+                    <li><strong>Meeting date</strong> (optional) — the date of the meeting</li>
+                    <li><strong>Resolution</strong> — how the conflict is being handled (see options below).
+                        If you are declaring before the meeting, choose <em>Pending</em></li>
+                    <li><strong>Notes</strong> (optional) — any additional context</li>
+                </ul>
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">4</div>
+            <div>Click <strong>Submit Declaration</strong>. The declaration is immediately recorded with a
+                timestamp and is visible to other EC members and managers.
+            </div>
+        </div>
+
+        <div class="tip-box">
+            <strong>After the meeting:</strong> Once the matter has been dealt with, a manager or chairman
+            can update the resolution field to record the outcome (e.g. "Abstained from voting").
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <h2>Conflict types explained</h2>
+        <table class="role-table" style="width:100%; border-collapse:collapse; margin-top:12px;">
+            <thead>
+            <tr>
+                <th>Type</th>
+                <th>Plain English meaning</th>
+                <th>Examples</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><span class="badge badge-financial">Financial</span></td>
+                <td>A direct or indirect financial benefit or detriment to you (or a close associate) from the
+                    decision
+                </td>
+                <td>You own shares in a contractor being considered for work; you would receive a personal benefit from
+                    a levy change
+                </td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-personal">Personal</span></td>
+                <td>A personal relationship that could influence or appear to influence your judgment</td>
+                <td>The matter involves a family member, close friend, or personal adversary</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-professional">Professional</span></td>
+                <td>A conflict arising from your employment, business, or professional role</td>
+                <td>You are employed by a company seeking a contract with the building; your employer has a competing
+                    interest
+                </td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-other">Other</span></td>
+                <td>Any other situation that a reasonable person might see as a conflict</td>
+                <td>Prior dispute with another party; media conflict; any situation not covered above</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="guide-section">
+        <h2>Resolution options explained</h2>
+        <table class="role-table" style="width:100%; border-collapse:collapse; margin-top:12px;">
+            <thead>
+            <tr>
+                <th>Resolution</th>
+                <th>Plain English meaning</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><span class="badge badge-pending">Pending</span></td>
+                <td>The conflict has been declared but the matter has not yet been discussed. Select this when declaring
+                    before a meeting.
+                </td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-abstained">Abstained</span></td>
+                <td>The member participated in discussion but did not vote on the matter.</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-recused">Recused</span></td>
+                <td>The member left the room (or withdrew from the online meeting) for the duration of the discussion
+                    and vote.
+                </td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-voted">Disclosed and voted</span></td>
+                <td>The member declared the conflict, the committee acknowledged it, and the member participated and
+                    voted after full disclosure.
+                </td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-chair">Chair ruled no conflict</span></td>
+                <td>The Chairman ruled that the declared interest does not constitute a conflict requiring abstention or
+                    recusal.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="guide-section">
+        <h2>Practical example</h2>
+        <div class="example-box">
+            <h4>Scenario: EC member related to a contractor</h4>
+            <p>
+                The agenda for the next EC meeting includes a motion to engage <em>Smith &amp; Sons Plumbing</em>
+                to replace the building's hot water system. EC member Jane Smith's brother is the director
+                of Smith &amp; Sons Plumbing.
+            </p>
+            <p><strong>What Jane should do:</strong></p>
+            <ol>
+                <li>Before the meeting starts, Jane opens the Conflict of Interest Register and clicks
+                    <strong>Declare a Conflict</strong>.
+                </li>
+                <li>She selects type <span class="badge badge-personal">Personal</span> and describes:
+                    "My brother is a director of Smith &amp; Sons Plumbing, who are being considered for
+                    the hot water system contract."
+                </li>
+                <li>She enters <em>Hot Water System Contractor Selection</em> as the related matter and
+                    sets resolution to <span class="badge badge-pending">Pending</span>.
+                </li>
+                <li>At the meeting, Jane discloses verbally and then leaves the room while the motion is
+                    discussed and voted on.
+                </li>
+                <li>After the meeting, the chairman updates Jane's declaration to
+                    <span class="badge badge-recused">Recused</span>.
+                </li>
+            </ol>
+            <p>The declaration is now a permanent, timestamped record in the register.</p>
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <h2>For managers: updating and retracting declarations</h2>
+
+        <h3>Updating the resolution</h3>
+        <p>
+            After a meeting, the chairman or strata manager can update the resolution field to record
+            how the conflict was handled. Open the declaration from the register list and click
+            <strong>Edit Resolution</strong>.
+        </p>
+
+        <h3>Retracting a declaration</h3>
+        <p>
+            If a declaration was entered in error (e.g. wrong meeting, wrong member), a manager can
+            retract it. Retraction is a <strong>soft action</strong> — the record is marked as retracted
+            but is never deleted. Retracted declarations do not appear in the default register view but
+            can be retrieved by enabling <strong>Show Retracted</strong>.
+        </p>
+        <div class="warn-box">
+            <strong>Note:</strong> Retracting a declaration does not erase it from the audit trail.
+            This is a compliance platform — all records are retained in accordance with the 7-year
+            strata record-keeping requirement.
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <h2>Multi-building support</h2>
+        <p>
+            Conflict of interest declarations are scoped to your building. Each building has its own
+            register. If you are an EC member of multiple buildings, use the building selector at the
+            top of the dashboard to switch context before viewing or declaring.
+        </p>
+    </section>
+
+    <section class="guide-section">
+        <h2>Frequently asked questions</h2>
+        <dl>
+            <dt>Do I have to declare a conflict if I'm not sure it's really a conflict?</dt>
+            <dd>When in doubt, declare it. An unnecessary declaration is far less problematic than an
+                undisclosed one. The Chairman can rule that no conflict exists after the declaration is made.
+            </dd>
+
+            <dt>Can I edit my declaration after submitting it?</dt>
+            <dd>EC members cannot edit their own declarations after submission — this preserves the
+                integrity of the record. If a correction is needed, ask your strata manager to update
+                the notes or resolution field.
+            </dd>
+
+            <dt>What if the Chairman has a conflict?</dt>
+            <dd>The Chairman must declare the conflict the same as any other EC member. The Vice-Chairman
+                or another EC member nominated by the committee takes the chair for that agenda item.
+            </dd>
+
+            <dt>Is this register required by law?</dt>
+            <dd>Yes. Disclosure of conflicts is a legal obligation for strata committee members under
+                strata legislation. Maintaining a written register demonstrates compliance and protects all
+                parties in any dispute.
+            </dd>
+
+            <dt>Who can see the register?</dt>
+            <dd>All EC members and strata managers for your building can see the register. Owners and
+                tenants cannot access it directly, but the minutes of meetings (which record conflicts)
+                may be available to owners.
+            </dd>
+        </dl>
+    </section>
+
+    <footer class="guide-footer">
+        <p>Your strata portal &nbsp;|&nbsp; Conflict of Interest Register &nbsp;|&nbsp; For help contact your strata
+            manager</p>
+    </footer>
+</div>
+</body>
+</html>

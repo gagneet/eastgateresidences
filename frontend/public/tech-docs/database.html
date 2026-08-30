@@ -1,0 +1,1004 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Database – Eastgate Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad: true, theme: 'dark', securityLevel: 'strict'});</script>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">East Gate Residences</div>
+            <div class="sub">Technical Documentation · Database</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a class="active" data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#overview">Collections Overview</a>
+            <a href="#er-diagram">ER Diagram</a>
+            <a href="#user-schema">users</a>
+            <a href="#units-schema">units</a>
+            <a href="#finance-schema">Finance Collections</a>
+            <a href="#phase-p1-schema">Advanced Financial Collections</a>
+            <a href="#phase-p2-schema">Financial Intelligence Collections</a>
+            <a href="#maintenance-schema">Maintenance Collections</a>
+            <a href="#comm-schema">Communication</a>
+            <a href="#system-schema">System Collections</a>
+            <a href="#seeding">Seeding</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <div style="background:#102a43;border:1px solid #2563eb;color:#dbeafe;padding:12px 16px;border-radius:8px;margin-bottom:20px;">
+            <strong>Live database status — verified 2026-08-19:</strong>
+            PostgreSQL is the system of record. Which store <em>serves</em> a read is per-domain AND per-building,
+            decided by <code>core.domain_cutover_status</code> — not by a single global switch.
+            <strong>East Gate (13195) is promoted across all eight domains</strong> (finance_ledger, identity_core,
+            governance, occupancy, settings, trust_ledger, trust_reconciliation, powerhouse_conversations):
+            <code>read=postgres, write=postgres</code>, with MongoDB as its DR mirror. <strong>Every other building
+            is still served by MongoDB.</strong>
+            PostgreSQL is at Alembic <code>0104_manager_fn_scoping</code> with 230 tables across 15
+            non-system schemas, of which <strong>only 53 hold rows &mdash; 177 are empty</strong>. MongoDB holds 226
+            collections, 153 non-empty; of those, 13 have a populated PostgreSQL home, 12 map to an empty table, and
+            <strong>128 have no PostgreSQL target at all</strong> (including <code>unit_levy_ledger</code>).
+            <strong>Promotion is not the constraint &mdash; the routers are: 10 of 133 consult the control plane,
+            103 call <code>db.&lt;collection&gt;</code> directly.</strong> Verified live 2026-08-29. See
+            <a href="postgresql-live-data-inventory-2026-07-24.md" style="color:#dbeafe;text-decoration:underline;">the
+                live PostgreSQL data inventory</a>.
+        </div>
+        <h1>Database Schema</h1>
+        <p>Two stores, by design. <strong>PostgreSQL</strong> (SQLAlchemy 2.x + asyncpg, Alembic migrations, row-level
+            security) is the system of record and holds the financial core, identity and audit data.
+            <strong>MongoDB</strong> (Motor async driver, no ORM, no migrations — Pydantic validates at runtime,
+            collections initialised via seed scripts) still serves every building not yet promoted, and is the DR
+            mirror for those that are. The MongoDB collection reference below therefore remains live and accurate;
+            it is not a legacy appendix.</p>
+
+        <div class="callout">
+            <strong>MongoDB architecture:</strong> Documents in the same collection may have slightly different fields —
+            this is normal for MongoDB. All new fields have defaults in Pydantic models. Schema changes = edit the model
+            + restart backend.
+        </div>
+
+        <section id="overview">
+            <h2>Collections Overview (49+)</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Collection</th>
+                        <th>Purpose</th>
+                        <th>~Docs</th>
+                        <th>Seeded By</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>users</code></td>
+                        <td>User accounts, roles, permissions, credentials</td>
+                        <td>100+</td>
+                        <td>seeds/users.py</td>
+                    </tr>
+                    <tr>
+                        <td><code>units</code></td>
+                        <td>87 physical units (apartments + townhouses)</td>
+                        <td>87</td>
+                        <td>seeds/units.py</td>
+                    </tr>
+                    <tr>
+                        <td><code>user_units</code></td>
+                        <td>User–unit occupancy relationships</td>
+                        <td>100+</td>
+                        <td>seeds/multi_user.py</td>
+                    </tr>
+                    <tr>
+                        <td><code>annual_levies</code></td>
+                        <td>Annual budget &amp; fund summaries (one doc per year)</td>
+                        <td>3+</td>
+                        <td>seeds/finance.py</td>
+                    </tr>
+                    <tr>
+                        <td><code>levy_categories</code></td>
+                        <td>Budget line items per year (admin/sinking fund)</td>
+                        <td>120+</td>
+                        <td>seeds/finance.py</td>
+                    </tr>
+                    <tr>
+                        <td><code>unit_levy_ledger</code></td>
+                        <td>Per-unit financial ledger (opening, levied, paid, closing)</td>
+                        <td>261+</td>
+                        <td>Import scripts</td>
+                    </tr>
+                    <tr>
+                        <td><code>levy_payments</code></td>
+                        <td>Individual levy payment records</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>projections</code></td>
+                        <td>Multi-year financial projections</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>maintenance_requests</code></td>
+                        <td>Maintenance tickets with approval history</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>contractors</code></td>
+                        <td>Service provider directory</td>
+                        <td>varies</td>
+                        <td>Runtime / seed</td>
+                    </tr>
+                    <tr>
+                        <td><code>purchase_orders</code></td>
+                        <td>Purchase orders linked to maintenance requests</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>invoices</code></td>
+                        <td>Invoices with approval workflow</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>messages</code></td>
+                        <td>Community/group chat messages</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>announcements</code></td>
+                        <td>Admin announcements with read tracking</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>notices</code></td>
+                        <td>Notice board posts with acknowledgments</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>conversations</code></td>
+                        <td>Private message thread metadata</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>private_messages</code></td>
+                        <td>DM message content</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>user_notifications</code></td>
+                        <td>Per-user bell notification inbox (distinct from admin broadcast notifications)</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>meetings</code></td>
+                        <td>Committee meetings &amp; AGMs</td>
+                        <td>varies</td>
+                        <td>Runtime / seed</td>
+                    </tr>
+                    <tr>
+                        <td><code>agm_motions</code></td>
+                        <td>AGM voting motions</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>todos</code></td>
+                        <td>Action item tasks</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>blog_posts</code></td>
+                        <td>Community blog content</td>
+                        <td>varies</td>
+                        <td>Runtime / seed</td>
+                    </tr>
+                    <tr>
+                        <td><code>events</code></td>
+                        <td>Calendar events (AGM, levy dates)</td>
+                        <td>varies</td>
+                        <td>Runtime / seed</td>
+                    </tr>
+                    <tr>
+                        <td><code>ec_members</code></td>
+                        <td>Executive committee profiles</td>
+                        <td>6</td>
+                        <td>seeds/ec_members.py</td>
+                    </tr>
+                    <tr>
+                        <td><code>listings</code></td>
+                        <td>Marketplace listings (buy/sell/service/parking)</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>documents</code></td>
+                        <td>Document metadata + base64 file content</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>document_folders</code></td>
+                        <td>Folder structure with access control</td>
+                        <td>6</td>
+                        <td>seeds/document_folders.py</td>
+                    </tr>
+                    <tr>
+                        <td><code>chat_groups</code></td>
+                        <td>Community chat group definitions</td>
+                        <td>5</td>
+                        <td>seeds/chat_groups.py</td>
+                    </tr>
+                    <tr>
+                        <td><code>feature_toggles</code></td>
+                        <td>Feature flag state (63 toggles, building_id scoped)</td>
+                        <td>63+</td>
+                        <td>seeds/feature_toggles.py</td>
+                    </tr>
+                    <tr>
+                        <td><code>site_settings</code></td>
+                        <td>Single site configuration document</td>
+                        <td>1</td>
+                        <td>seeds/settings.py</td>
+                    </tr>
+                    <tr>
+                        <td><code>email_settings</code></td>
+                        <td>Email provider configuration</td>
+                        <td>1</td>
+                        <td>seeds/settings.py</td>
+                    </tr>
+                    <tr>
+                        <td><code>by_laws_acknowledgments</code></td>
+                        <td>Tenant/guest compliance audit trail</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>water_bills</code></td>
+                        <td>Water utility bill records</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>council_rate_payments</code></td>
+                        <td>Council rate payment records</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>amenity_bookings</code></td>
+                        <td>Facility reservations</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>parcels</code></td>
+                        <td>Parcel delivery log</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>defects</code></td>
+                        <td>Building defect reports</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td colspan="4"
+                            style="background:var(--surface-2);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">
+                            Advanced Financial Enhancements — Operations
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>expense_transactions</code></td>
+                        <td>Building expenses by category, fund, and year</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>income_transactions</code></td>
+                        <td>Non-levy income (bank interest, rebates, grants)</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>special_levies</code></td>
+                        <td>One-off charges to all owners pro-rata by UOE</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>special_levy_payments</code></td>
+                        <td>Per-unit payment tracking for special levies</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>bank_reconciliations</code></td>
+                        <td>Monthly bank statement reconciliation records</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>insurance_policies</code></td>
+                        <td>Building insurance policy records and renewals</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>payment_plans</code></td>
+                        <td>Structured instalment arrangements for arrears owners</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td colspan="4"
+                            style="background:var(--surface-2);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">
+                            Advanced Financial Enhancements — Intelligence
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>financial_forecasts</code></td>
+                        <td>Multi-year income/expense/balance projections</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>financial_anomalies</code></td>
+                        <td>AI-detected unusual spending patterns</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    <tr>
+                        <td><code>lot_financial_summary</code></td>
+                        <td>Per-unit true cost breakdown (True Cost of Ownership)</td>
+                        <td>87</td>
+                        <td>Runtime (nightly recompute)</td>
+                    </tr>
+                    <tr>
+                        <td><code>financial_documents</code></td>
+                        <td>Financial statements (Section 83 notices, tax summaries)</td>
+                        <td>varies</td>
+                        <td>Runtime</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="er-diagram">
+            <h2>Entity Relationship Diagram</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    erDiagram
+                    USERS {
+                    string id PK
+                    string email
+                    string full_name
+                    string role
+                    string unit_number FK
+                    string status
+                    object permissions
+                    }
+                    UNITS {
+                    string id PK
+                    string unit_number
+                    string unit_type
+                    string owner_name
+                    int uoe
+                    float annual_levy_2026
+                    }
+                    USER_UNITS {
+                    string id PK
+                    string user_id FK
+                    string unit_id FK
+                    string relationship
+                    string start_date
+                    string end_date
+                    }
+                    ANNUAL_LEVIES {
+                    string id PK
+                    string year
+                    string plan_id
+                    object admin_fund
+                    object sinking_fund
+                    }
+                    LEVY_CATEGORIES {
+                    string id PK
+                    string year
+                    string fund_type
+                    string name
+                    float budgeted_amount
+                    float actual_amount
+                    }
+                    UNIT_LEVY_LEDGER {
+                    string id PK
+                    string year
+                    string unit_number FK
+                    object admin_fund
+                    object sinking_fund
+                    }
+                    LEVY_PAYMENTS {
+                    string id PK
+                    string unit_number FK
+                    string user_id FK
+                    float amount
+                    string payment_date
+                    }
+                    MAINTENANCE_REQUESTS {
+                    string id PK
+                    string unit_number FK
+                    string status
+                    string category
+                    string assigned_contractor FK
+                    array approval_history
+                    }
+                    CONTRACTORS {
+                    string id PK
+                    string business_name
+                    string abn
+                    string contact_name
+                    }
+                    PURCHASE_ORDERS {
+                    string id PK
+                    string maintenance_request_id FK
+                    string contractor_id FK
+                    float amount
+                    }
+                    INVOICES {
+                    string id PK
+                    string purchase_order_id FK
+                    string status
+                    float amount_inc_gst
+                    }
+                    ANNOUNCEMENTS {
+                    string id PK
+                    string created_by FK
+                    string title
+                    string content
+                    array read_by
+                    }
+                    USER_NOTIFICATIONS {
+                    string id PK
+                    string user_id FK
+                    string type
+                    string message
+                    bool is_read
+                    string link
+                    }
+                    FEATURE_TOGGLES {
+                    string id PK
+                    string feature_key
+                    bool is_enabled
+                    string category
+                    string building_id
+                    }
+                    BUILDINGS {
+                    string id PK
+                    string name
+                    string unit_plan
+                    string address
+                    }
+
+                    USERS ||--o{ USER_UNITS : "occupies"
+                    UNITS ||--o{ USER_UNITS : "occupied by"
+                    UNITS ||--o{ UNIT_LEVY_LEDGER : "has ledger"
+                    UNITS ||--o{ LEVY_PAYMENTS : "pays"
+                    ANNUAL_LEVIES ||--o{ LEVY_CATEGORIES : "contains"
+                    USERS ||--o{ LEVY_PAYMENTS : "makes"
+                    USERS ||--o{ MAINTENANCE_REQUESTS : "submits"
+                    CONTRACTORS ||--o{ MAINTENANCE_REQUESTS : "assigned to"
+                    MAINTENANCE_REQUESTS ||--o| PURCHASE_ORDERS : "has PO"
+                    PURCHASE_ORDERS ||--o| INVOICES : "has invoice"
+                    USERS ||--o{ USER_NOTIFICATIONS : "receives"
+                    BUILDINGS ||--o{ UNITS : "contains"
+                </div>
+                <div class="diagram-caption">Core entity relationships (simplified)</div>
+            </div>
+        </section>
+
+        <section id="user-schema">
+            <h2>users Collection</h2>
+            <pre><code>{
+  "_id": ObjectId,                    // MongoDB internal ID
+  "id": "uuid-string",               // App-level UUID
+  "email": "user@example.com",       // Unique login email
+  "full_name": "First Last",
+  "password_hash": "$2b$12$...",     // bcrypt hash — NEVER return this in API
+  "role": "owner",                   // See UserRole enum below
+  "unit_number": "UA001",            // e.g. "UA001" (apt) or "TH017" (TH)
+  "is_approved": true,               // Admin must approve before dashboard access
+  "is_active": true,
+  "status": "active",                // active | pending_owner_approval | info_requested | archived
+
+  // Email access (for @eastgateresidences.com.au mailbox)
+  "mail_username": "user@eastgateresidences.com.au",
+  "mail_password": "FirstName123!",
+  "can_access_email": true,
+
+  // Granular permissions (14 flags — can be overridden per user)
+  "permissions": {
+    "can_view_documents": true,
+    "can_upload_documents": false,
+    "can_manage_document_permissions": false,
+    "can_view_finances": true,
+    "can_manage_finances": false,
+    "can_create_listings": true,
+    "can_chat": true,
+    "can_view_meetings": true,
+    "can_manage_meetings": false,
+    "can_manage_users": false,
+    "can_view_schedule": true,
+    "can_post_announcements": false,
+    "can_send_notifications": false,
+    "can_access_email": true
+  },
+
+  "created_at": "2026-02-25T10:00:00Z",
+  "updated_at": "2026-02-25T10:00:00Z",
+  "last_login": "2026-02-25T09:45:00Z",
+  "archived_at": null
+}
+
+// UserRole enum values:
+// super_admin | chairman | ec_member | strata_manager | owner | tenant | service_provider | guest</code></pre>
+        </section>
+
+        <section id="units-schema">
+            <h2>units Collection</h2>
+            <pre><code>{
+  "_id": ObjectId,
+  "id": "uuid-string",
+  "unit_number": "UA001",            // Format: UA### (apt) or TH### (townhouse)
+  "unit_type": "apartment",          // apartment | townhouse | penthouse
+  "plan_id": "13195",                // Strata plan number
+
+  // Ownership
+  "owner_name": "John Smith",
+  "owner_name_b": "Jane Smith",      // Second owner (if applicable)
+  "owner_email": "john@example.com",
+  "owner_phone": "0412345678",
+
+  // Property details
+  "property_type": "Apartment (3BR/2BA/2G)",
+  "uoe": 100,                        // Unit of Entitlement (10,000 total across 87 units)
+
+  // Tenancy
+  "tenant_name": "Emma Wilson",
+  "tenant_email": "emma@example.com",
+  "tenant_end_date": "2026-12-31",
+
+  // 2026 levy data (imported from financial data)
+  "annual_levy_2026": 440.37,
+  "levy_balance": 0.00,
+  "admin_annual_levy_2026": 340.87,
+  "sinking_annual_levy_2026": 99.50,
+
+  // 2025 closing balances
+  "admin_closing_balance": 150.00,
+  "sinking_closing_balance": 50.00,
+  "balance_owing": 0.00,
+  "balance_credit": 0.00,
+
+  "created_at": "2026-02-25T10:00:00Z",
+  "updated_at": "2026-02-25T10:00:00Z"
+}</code></pre>
+            <div class="callout warn">
+                <strong>Unit number format:</strong> Apartments use <code>UA001</code>–<code>UA067</code>, townhouses
+                use <code>TH001</code>–<code>TH020</code>. The <code>unit_number</code> field is a string, not an
+                integer.
+            </div>
+        </section>
+
+        <section id="finance-schema">
+            <h2>Finance Collections</h2>
+
+            <h3>annual_levies</h3>
+            <pre><code>{
+  "id": "uuid", "year": "2026", "plan_id": "13195",
+  "total_uoe": 10000,
+  "status": "actual",
+  "admin_fund": {
+    "levy_income": 340870.20, "other_income": 0,
+    "total_income": 340870.20, "total_expenses": 318500.00,
+    "opening_balance": 50000.00, "closing_balance": 72370.20,
+    "surplus_deficit": 22370.20
+  },
+  "sinking_fund": { /* same structure */ },
+  "admin_levy_per_uoe_annual": 34.087,
+  "admin_levy_per_uoe_quarterly": 8.522,
+  "sinking_levy_per_uoe_annual": 9.950,
+  "sinking_levy_per_uoe_quarterly": 2.488,
+  "payment_schedule": [
+    { "quarter": "Q1", "due_date": "2026-03-31", "label": "1st Instalment" },
+    { "quarter": "Q2", "due_date": "2026-06-30" },
+    { "quarter": "Q3", "due_date": "2026-09-30" },
+    { "quarter": "Q4", "due_date": "2026-12-31" }
+  ],
+  "created_at": "...", "updated_at": "..."
+}</code></pre>
+
+            <h3>unit_levy_ledger</h3>
+            <p>Authoritative financial ledger for each unit per year. One document per unit per year. Updated by import
+                scripts (not auto-generated).</p>
+            <pre><code>{
+  // Identity
+  "id": "uuid",
+  "unit_number": "TH017",
+  "levy_year": 2026,            // int — primary year key
+  "year": "2026",               // str — alias for backward compat
+  "building_id": "13195",       // ALWAYS "13195" for East Gate Residences (Unit Plan No.)
+  "plan_id": "13195",           // alias — same as building_id
+  "uoe": 161,                   // Unit of Entitlement
+
+  // Opening balances (from prior year carry-forward)
+  // SIGN CONVENTION: positive = prior-year arrears (they owe); negative = credit (pre-paid)
+  "admin_opening": 0.0,         // split of prior-year balance into admin fund
+  "sinking_opening": 0.0,       // split of prior-year balance into sinking fund
+  "opening_arrears": 0.0,       // admin_opening + sinking_opening (> 0 = owes from last year)
+
+  // Annual levy (UOE × rate per UOE from annual_levies)
+  "admin_levied": 5488.01,      // 161 × 34.087
+  "sinking_levied": 1602.03,    // 161 × 9.9505
+  "total_levied": 7090.04,      // admin_levied + sinking_levied
+  "period_levy": 1772.51,       // total_levied / 4 (quarterly)
+
+  // Payments — AUTHORITATIVE source (includes DEFT/bank payments imported from CSV)
+  // levy_payments collection only has portal-recorded (Stripe) payments.
+  // For units with CSV credit balance: total_paid = abs(csv_balance)
+  // For units with CSV arrears balance: total_paid = 0 (unless portal payment added)
+  "admin_paid": 1394.64,        // confirmed_paid × admin_ratio
+  "sinking_paid": 405.36,       // confirmed_paid × sinking_ratio
+  "total_paid": 1800.00,        // abs(csv_credit) for credit units; 0 for arrears units
+
+  // Closing balances
+  "admin_closing": 4097.03,     // admin_opening + admin_levied - admin_paid
+  "sinking_closing": 1193.01,   // sinking_opening + sinking_levied - sinking_paid
+  "net_balance": 5290.04,       // admin_closing + sinking_closing (positive = still owes)
+
+  // Idempotency guard (Session 49)
+  "applied_payment_ids": [],    // portal payment UUIDs already applied via _upsert_ledger_for_payment
+
+  "created_at": "...", "updated_at": "..."
+}
+
+// FORMULA: net_balance = (admin_opening + admin_levied - admin_paid)
+//                      + (sinking_opening + sinking_levied - sinking_paid)
+//
+// API FIELD MAPPING:
+//   balance_owing  (in /owners-units/{unit} response)  = max(0, net_balance)
+//   balance_credit (in /owners-units/{unit} response)  = abs(min(0, net_balance))
+//   balance_due    (in /levy-status/{unit} response)   = total_annual + prev_year_balance - levy_payments.total
+//
+// "Total Remaining" on the Owner Dashboard = levy_status.balance_due (authoritative)
+//   fallback order: levy_status.balance_due ?? owner_unit.balance_owing ?? owner_unit.net_balance
+//
+// CRITICAL: levy_payments.building_id must match '13195' (plan number, NOT old slug 'eastgate_residences').
+// If levy_payments uses the old slug, the levy-status endpoint finds zero payments and shows
+// balance_due = total_annual instead of total_annual - total_paid.
+// Session 67 fix: migrated all collections to use building_id='13195'.
+//
+// FULL-YEAR LEVY COVERAGE (a.k.a. the Fund Health denominator — NOT "Collection Rate"):
+//   sum(total_paid) / sum(FULL annual total_levied) × 100
+// FY2026 actuals (as of 2026-03-16):
+//   total_levied  = $440,374.90  (87 units, UOE 82–161, rates $34.087 admin + $9.9505 sinking /UOE)
+//   total_paid    = $27,206.89   (credit units' pre-payments from strata roll CSV)
+//   opening_arrears total = $2,794.98  (18 units with prior-year debt)
+//   full_year_coverage = 6.2%   (only Q1 was due on this date — this is coverage, not collection rate)
+//
+// DUE-DATE COLLECTION RATE is a DIFFERENT, canonical metric (GAP-FIN-040):
+//   get_collection_rate_metrics() → domain/finance/formulas/collection.py::due_date_collection_rate()
+//   = receipts allocated to charges DUE AS-OF-TODAY / charges DUE AS-OF-TODAY
+//   (no future/not-yet-due amounts on either side; per-unit, never cross-unit netted).
+// "Collected in Advance" (unapplied credit + receipts for not-yet-due periods) is a THIRD,
+// separately-surfaced figure. These three metrics must never be conflated or share a label.
+//
+// BACKEND RULE: Arrears calculations use ONLY unit_levy_ledger.total_paid (DEFT/bank strata-roll
+// imports). Do NOT use levy_payments (portal Stripe records) to reduce opening_arrears:
+// levy_payments records are current-year levy instalments, not prior-year arrears clearance.
+// Using portal payments to offset opening_arrears incorrectly hides genuine prior-year debts.
+//
+// ARREARS DATA SOURCE (post GAP-FIN-040 — calculation singularity):
+//   ALL arrears surfaces call the ONE canonical helper:
+//     get_arrears_metrics() → domain/finance/formulas/arrears.py::unit_arrears_and_credit()
+//   get_arrears_board (routers/finance.py) and get_top_arrears (server.py) both now delegate
+//   to unit_arrears_and_credit() — they no longer compute arrears inline from raw
+//   opening_arrears/total_paid/net_balance (the earlier three-way divergence is gone).
+//   Arrears is a PER-UNIT obligation, grace-aware: a credit on one unit never nets against
+//   another unit's arrears; a unit in credit shows its real credit, never a silent $0.
+//   Deriving arrears from a raw net_balance>0 aggregate, or reading
+//   balance_owing/total_closing/strata_web_balance for arrears outside the canonical helpers,
+//   now FAILS the build (tests/backend/test_finance_calculation_singularity_guardrail.py).
+//   (has_portal_account still flags whether an owner is registered in the portal.)
+//
+// EXPECTED FY2026 ARREARS (18 units, $2,794.97 total):
+//   UA042 $963.31 | TH004 $580.01 | TH014 $366.00 | TH011 $294.00 | UA070 $226.15
+//   UA001 $154.00 | TH007  $97.33 | TH008  $20.25 | TH015  $20.23 | UA060  $15.41
+//   UA030  $12.82 | UA034  $12.82 | UA067  $10.95 | TH010   $7.61 | UA028   $5.44
+//   UA019   $5.00 | UA017   $3.64 | UA058   $0.01
+// Note: 14 of 18 have no portal account — they appear from the strata roll (units collection).</code></pre>
+
+            <h3>levy_categories (Budget Line Items)</h3>
+            <pre><code>{
+  "id": "uuid", "year": "2026", "plan_id": "13195",
+  "building_id": "13195",
+  "fund_type": "administrative",    // or "sinking"
+  "category_id": 123,               // numeric ID 101-136 (admin) or 201+ (sinking)
+  "name": "Insurance Premiums",
+  "budgeted_amount": 37500.00,
+  "actual_amount": 6691.73,         // YTD actual as of latest update
+  "previous_actual": 6746.27,       // prior FY full-year actual
+  "variance": 30808.27,             // budgeted_amount - actual_amount
+  "status": "under_budget",         // over_budget | under_budget | on_track | proposed | actual
+  "description": "Annual strata building insurance",
+  "created_at": "...", "updated_at": "..."
+}
+// Current balances (as of 2026-03-15):
+//   Admin Fund: $9,187.44  |  Sinking Fund: $193,337.03  |  Total: $202,524.47
+// Admin YTD actual: $37,250.33 of $309,882.00 budgeted (12.1%)
+// Over-budget categories: CCTV System (cat 108), Electrical Repairs (cat 114)</code></pre>
+        </section>
+
+        <section id="maintenance-schema">
+            <h2>Maintenance Collections</h2>
+
+            <h3>maintenance_requests</h3>
+            <pre><code>{
+  "id": "uuid",
+  "unit_number": "UA001",
+  "category": "plumbing",            // plumbing | electrical | general | common_area
+  "description": "Leaking tap in kitchen",
+  "status": "approved",              // submitted→reviewed→approved→assigned→in_progress→completed→rejected
+  "priority": "medium",              // low | medium | high | urgent
+  "submitted_by": "user_id",
+  "submitted_by_name": "John Smith",
+  "assigned_contractor": "contractor_id",
+  "contractor_name": "ABC Plumbing",
+  "estimated_cost": 450.00,
+  "actual_cost": 475.00,
+  "purchase_order_id": "po_id",
+  "invoice_id": "invoice_id",
+  "approval_history": [
+    { "status": "submitted", "by": "John Smith", "at": "2026-02-25T10:00:00Z", "note": "" },
+    { "status": "approved",  "by": "Admin",      "at": "2026-02-25T11:00:00Z", "note": "Approved" }
+  ],
+  "notes": [{"by": "Admin", "at": "...", "text": "..."}],
+  "created_at": "...", "updated_at": "..."
+}</code></pre>
+
+            <h3>invoices</h3>
+            <pre><code>{
+  "id": "uuid",
+  "purchase_order_id": "po_id",
+  "contractor_id": "contractor_id",
+  "maintenance_request_id": "req_id",
+  "invoice_number": "INV-001",
+  "status": "pending",               // pending | approved | rejected | paid
+  "amount_ex_gst": 431.82,
+  "gst_amount": 43.18,
+  "amount_inc_gst": 475.00,
+  "approved_by": null,
+  "paid_at": null,
+  "created_at": "...", "updated_at": "..."
+}</code></pre>
+        </section>
+
+        <section id="comm-schema">
+            <h2>Communication Collections</h2>
+
+            <h3>announcements</h3>
+            <pre><code>{
+  "id": "uuid",
+  "title": "Water Shutdown Notice",
+  "content": "...",                  // HTML content
+  "category": "maintenance",        // general | maintenance | financial | emergency | social
+  "created_by": "user_id",
+  "created_by_name": "Admin Name",
+  "target_roles": ["owner", "tenant"],
+  "is_pinned": false,
+  "expires_at": "2026-03-01T00:00:00Z",
+  "read_by": ["user_id_1", "user_id_2"],
+  "email_sent": true,
+  "email_sent_count": 87,
+  "created_at": "...", "updated_at": "..."
+}</code></pre>
+
+            <h3>notifications</h3>
+            <pre><code>{
+  "id": "uuid",
+  "user_id": "user_id",
+  "type": "levy_reminder",           // type of notification
+  "title": "Levy Payment Due",
+  "message": "Your Q1 2026 levy of $1,207.00 is due 31 March 2026.",
+  "is_read": false,
+  "link": "/financials/levy-payments",
+  "created_at": "...", "updated_at": "..."
+}</code></pre>
+        </section>
+
+        <section id="system-schema">
+            <h2>System Collections</h2>
+
+            <h3>feature_toggles</h3>
+            <pre><code>{
+  "id": "uuid",
+  "key": "finance",                  // Unique feature key used in frontend checks
+  "name": "Financial Management",
+  "description": "Access to levy payments, budgets, and financial overview",
+  "is_enabled": true,
+  "category": "Finance",             // 8 categories
+  "created_at": "...", "updated_at": "..."
+}</code></pre>
+
+            <h3>site_settings (single document)</h3>
+            <pre><code>{
+  "site_name": "East Gate Residences",
+  "contact_email": "admin@eastgateresidences.com.au",
+  "phone": "02 XXXX XXXX",
+  "address": "...",
+  "registration_open": true,
+  "allow_tenant_registration": true,
+  "maintenance_mode": false,
+
+  // Levy schedule settings (configurable by Super Admin in Site Settings)
+  "levy_due_months": [3, 6, 9, 12],       // months when levies are due (1=Jan ... 12=Dec)
+  "levy_due_day_type": "custom",           // "last" | "first" | "middle" | "custom"
+  "levy_due_day": null,                    // fallback day for custom type without per-month entry
+  "levy_due_custom_dates": {"3": 31, "6": 1, "9": 1, "12": 1},  // per-month custom days
+  "grace_period_days": 14,                 // grace days after due date before penalty applies
+
+  "updated_at": "..."
+}</code></pre>
+
+            <h3>Levy Schedule Computation — FY-Split Rule</h3>
+            <p>
+                The canonical function for computing levy due dates is
+                <code>compute_period_due_dates()</code> in
+                <code>backend/utils/finance_helpers.py</code>.
+            </p>
+            <p>
+                <strong>Financial Year split rule</strong> (ACT strata FY = July to June):
+            </p>
+            <ul>
+                <li>Due months <strong>&ge; 7</strong> (July–December) belong to calendar year <code>levy_year &minus;
+                    1</code> (the FY start year).
+                </li>
+                <li>Due months <strong>&lt; 7</strong> (January–June) belong to calendar year <code>levy_year</code>
+                    (the FY end year).
+                </li>
+            </ul>
+            <pre><code># CALENDAR-YEAR MODEL (East Gate Residences):
+# levy_year = plain calendar year (Jan–Dec). All due months fall within levy_year.
+# There is NO financial-year split.
+#
+# Example: levy_year=2025, due_months=[3,6,9,12], day_type="first"
+#   2025-03-01  grace: 2025-03-15  (Q1)
+#   2025-06-01  grace: 2025-06-15  (Q2)
+#   2025-09-01  grace: 2025-09-15  (Q3)
+#   2025-12-01  grace: 2025-12-15  (Q4) ← East Gate confirmed Q4 2025 = Dec 1, 2025
+#
+# Example: levy_year=2026, due_months=[3,6,9,12], day_type="first"
+#   2026-03-01  grace: 2026-03-15  (Q1)
+#   2026-06-01  grace: 2026-06-15  (Q2)
+#   2026-09-01  grace: 2026-09-15  (Q3)
+#   2026-12-01  grace: 2026-12-15  (Q4)
+#
+# As of 2026-03-16 for FY2026:
+#   periods_past_grace = 1  (only Mar 15 2026 grace has passed)
+#
+# Default: levy_due_day_type = "first", levy_due_day = 1</code></pre>
+
+            <h4>Grace Period and Arrears Calculation</h4>
+            <pre><code># TWO SEPARATE METRICS (must NOT be combined):
+#
+# ⚠️ SUPERSEDED for the arrears FIGURE (GAP-FIN-040): the true_arrears derivation shown in (1)
+#    below — max(0, opening_arrears - ledger.total_paid) — is NO LONGER how arrears is computed.
+#    All arrears surfaces (Arrears Recovery Board, Top Arrears, dashboards) now call the canonical
+#    get_arrears_metrics() → unit_arrears_and_credit(), which trusts net_balance directly and is
+#    grace-aware and per-unit (credits never net across units). Reconstructing arrears from
+#    opening_arrears + periods_overdue is guardrail-forbidden. The formulas below are retained to
+#    explain the field semantics, not as the current arrears calculation.
+#
+# COLLECTION/COVERAGE axis — THREE distinct metrics that must never be conflated or share a label:
+#   a. Due-date Collection Rate — get_collection_rate_metrics() (charges due as-of-today only)
+#   b. Full-Year Levy Coverage / Fund Health — denominator is the FULL annual levy
+#   c. Collected in Advance — unapplied credit + receipts for not-yet-due periods
+#
+# 1. opening_arrears  = prior-year carry-forward debt
+#    → Shown on Arrears Recovery Board and Top Arrears widget
+#    → true_arrears = max(0, opening_arrears - ledger.total_paid)  [SUPERSEDED — see note above]
+#    → days_overdue = (today - last_past_grace_from_prior_year).days
+#       Prior year = levy_year - 1. Last past grace = last deadline of prior year's schedule.
+#       Example: FY2026 opening_arrears; prior year = 2025; last grace = Dec 15 2025
+#                (Mar 16 2026 - Dec 15 2025).days = 91 days overdue
+#       Both Arrears Recovery Board and Top Arrears widget use this SAME formula.
+#
+# 2. net_balance      = opening_arrears + total_levied - total_paid (current-year outstanding)
+#    → Shown on Owner Dashboard as "Total Remaining"
+#    → Do NOT display on Arrears Recovery Board
+#
+# periods_past_grace = count of CURRENT YEAR due dates where: today &gt; due_date + 14 days
+# (used for outstanding levy calculation; NOT added to true_arrears on the board)
+#
+# Severity thresholds (based on days_overdue):
+#   days_overdue &gt; 90  → critical
+#   days_overdue &gt; 60  → serious
+#   days_overdue &gt; 14  → overdue
+#   else               → current</code></pre>
+        </section>
+
+        <section id="seeding">
+            <h2>Database Seeding</h2>
+            <pre><code># Safe seeding (skips existing documents)
+cd backend
+python3 seed_database.py
+
+# Full reset (DESTRUCTIVE — deletes all data)
+python3 seed_database.py --clear
+
+# Individual seed scripts
+python3 seeds/users.py
+python3 seeds/units.py
+python3 seeds/finance.py
+python3 seeds/feature_toggles.py
+python3 seeds/document_folders.py
+python3 seeds/chat_groups.py
+python3 seeds/initialize_defaults.py</code></pre>
+
+            <div class="callout warn">
+                <strong>Never run <code>--clear</code> in production.</strong> It deletes all data including real user
+                accounts, financial records, and maintenance history.
+            </div>
+
+            <h3>Financial Data Import</h3>
+            <pre><code># Import annual budget from Excel
+python3 scripts/finances/fix_2026_budget_exact.py
+
+# Import unit levy data from Excel
+python3 backend/update_balances_from_excel.py</code></pre>
+        </section>
+    </main>
+</div>
+<footer>East Gate Residences · Technical Documentation · Database · Super Admin Only · 2026 · A vision by: Silverfox
+    Technologies, Australia · Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+</body>
+</html>

@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Testing – Eastgate Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad: true, theme: 'dark', securityLevel: 'strict'});</script>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">East Gate Residences</div>
+            <div class="sub">Technical Documentation · Testing</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a class="active" data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#overview">Overview</a>
+            <a href="#commands">Quick Commands</a>
+            <a href="#layout">Suite Layout</a>
+            <a href="#backend">Backend (pytest)</a>
+            <a href="#frontend">Frontend (Jest + RTL)</a>
+            <a href="#e2e">E2E (Playwright)</a>
+            <a href="#performance">Performance (k6)</a>
+            <a href="#multitenant">Multi-Tenant Rules</a>
+            <a href="#patterns">Common Patterns</a>
+            <a href="#ci">CI &amp; Pre-Deploy</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <h1>Testing Reference</h1>
+        <p>How tests are organised across the platform, the commands to run each suite, and the patterns every new
+            test must follow — multi-tenant isolation, idempotent setup, AsyncMock for the Mongo wrapper, and a
+            <code>teardown()</code> for every k6 script.</p>
+
+        <section id="overview">
+            <h2>Overview</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart LR
+                    subgraph Backend["Backend (Python)"]
+                    BPY["pytest<br/>tests/backend/*.py"]
+                    end
+                    subgraph FrontendUnit["Frontend Unit"]
+                    FJ["Jest + RTL<br/>tests/frontend/unit/**"]
+                    end
+                    subgraph E2E["End-to-End"]
+                    PW["Playwright<br/>tests/frontend/**"]
+                    end
+                    subgraph Perf["Performance"]
+                    K6["k6 scripts<br/>tests/performance/*.ts"]
+                    end
+                    APP[("FastAPI + MongoDB<br/>building_id scoped")]
+                    UI[("Next.js dashboard<br/>port 3020")]
+                    BPY --> APP
+                    FJ --> UI
+                    PW --> UI
+                    PW --> APP
+                    K6 --> APP
+                </div>
+                <div class="diagram-caption">Four test layers — pytest covers backend logic, Jest covers React
+                    components, Playwright covers user-visible flows, k6 covers throughput and latency
+                </div>
+            </div>
+        </section>
+
+        <section id="commands">
+            <h2>Quick Commands</h2>
+            <div class="callout">
+                <strong>Always use the backend venv Python.</strong> System Python lacks the project's pinned
+                dependencies and will fail at import time. Never run <code>pytest</code> from the global interpreter.
+            </div>
+            <pre><code># Backend — full suite
+backend/venv/bin/python3 -m pytest tests/backend -q
+
+# Single file
+backend/venv/bin/python3 -m pytest tests/backend/test_schema_sync.py -q
+
+# Single test
+backend/venv/bin/python3 -m pytest tests/backend/test_navigation.py::TestNavigationConfig::test_navigation_config_mode_is_valid -q
+
+# Frontend — full Jest suite
+cd frontend && yarn test --watchAll=false
+
+# Single Jest file
+cd frontend && yarn test --testPathPatterns=BIAnalyticsPage --watchAll=false
+
+# Playwright (E2E)
+npx playwright test tests/frontend/
+npx playwright test tests/frontend/e2e/rental-certificates.spec.js --reporter=list
+
+# Performance (k6)
+k6 run tests/performance/maintenance_benchmark.ts -e BASE_URL=http://localhost:8003/api -e AUTH_TOKEN=&lt;token&gt;
+k6 run --env BASE_URL=... --env AUTH_TOKEN=... -e K6_SCENARIO=smoke tests/performance/&lt;feature&gt;_benchmark.ts
+
+# Makefile shortcuts (from project root)
+make test-backend
+make test-frontend
+make test            # both</code></pre>
+        </section>
+
+        <section id="layout">
+            <h2>Suite Layout</h2>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Path</th>
+                        <th>Runner</th>
+                        <th>Scope</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>tests/backend/</code></td>
+                        <td>pytest</td>
+                        <td>Routers, services, repositories, cron jobs, finance maths, RBAC, tenant isolation</td>
+                    </tr>
+                    <tr>
+                        <td><code>tests/frontend/unit/</code></td>
+                        <td>Jest + React Testing Library</td>
+                        <td>Components, pages, hooks, utility functions, role guards</td>
+                    </tr>
+                    <tr>
+                        <td><code>tests/frontend/</code></td>
+                        <td>Playwright</td>
+                        <td>End-to-end browser flows, console-error checks, build validation</td>
+                    </tr>
+                    <tr>
+                        <td><code>tests/performance/</code></td>
+                        <td>k6</td>
+                        <td>Throughput, p95/p99 latency, smoke + load profiles</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p>
+                Some backend suites are integration-style and require a running backend plus
+                <code>RUN_INTEGRATION_TESTS=1</code> and the test credential env vars documented in
+                <code>tests/README.md</code>.
+            </p>
+        </section>
+
+        <section id="backend">
+            <h2>Backend Tests (pytest)</h2>
+
+            <h3>Mocking the Mongo wrapper</h3>
+            <p>
+                Motor methods are coroutines. Use <code>AsyncMock</code> for every DB call — <code>MagicMock</code>
+                fails silently inside <code>asyncio.gather()</code>.
+            </p>
+            <pre><code>from unittest.mock import AsyncMock, MagicMock, patch
+
+mock_db = MagicMock()
+mock_db.maintenance_requests.find_one = AsyncMock(
+    return_value={"id": "x", "building_id": "13195", "title": "..."},
+)
+mock_db.maintenance_requests.insert_one = AsyncMock(
+    return_value=MagicMock(inserted_id="x"),
+)
+
+# Cursor for find() — return an object with .to_list()
+cursor = MagicMock()
+cursor.to_list = AsyncMock(return_value=[{"building_id": "13195", "...": "..."}])
+cursor.sort = MagicMock(return_value=cursor)
+mock_db.collection.find.return_value = cursor</code></pre>
+
+            <h3>Setting building context</h3>
+            <p>
+                Tenant-scoped collections require a building context before any DB call. Without it the wrapper
+                raises <code>RuntimeError</code> at query time.
+            </p>
+            <pre><code>from utils.request_context import set_ctx_building_id
+
+@pytest.mark.asyncio
+async def test_levy_summary_for_east_gate():
+    set_ctx_building_id("13195")
+    result = await get_levy_summary(year="2026")
+    assert result["building_id"] == "13195"</code></pre>
+
+            <h3>Mocking permissions</h3>
+            <pre><code>from utils.permissions import Permission
+
+with patch("utils.permissions.get_user_permissions") as mock_perms:
+    mock_perms.return_value = Permission(can_manage_requests=True, ...)
+    result = await my_endpoint(...)</code></pre>
+
+            <h3>Patching the right module</h3>
+            <div class="callout warn">
+                <strong>Auth helpers moved to <code>routers/auth.py</code> in Session 56.</strong> Patch with
+                <code>patch("routers.auth.send_email_async")</code>, NOT <code>patch("server.send_email_async")</code>.
+                Functions still living in <code>server.py</code> (shared utilities) include
+                <code>create_token</code>, <code>get_current_user</code>, <code>hash_password</code>, and
+                <code>verify_password</code>.
+            </div>
+
+            <h3>Rate-limited endpoints</h3>
+            <p>
+                Functions decorated with <code>@limiter.limit(...)</code> require a real <code>Request</code> object
+                when called directly. Construct a minimal Starlette scope and pass it as <code>request=</code>:
+            </p>
+            <pre><code>from starlette.requests import Request as StarletteRequest
+
+scope = {
+    "type": "http", "method": "POST", "path": "/api/auth/login",
+    "query_string": b"", "headers": [], "client": ("127.0.0.1", 12345),
+}
+req = StarletteRequest(scope)
+result = await login(request=req, email="x@y.com", password="...")</code></pre>
+        </section>
+
+        <section id="frontend">
+            <h2>Frontend Tests (Jest + RTL)</h2>
+
+            <h3>Radix UI gotchas</h3>
+            <ul>
+                <li><code>TabsTrigger</code> needs <code>fireEvent.mouseDown</code>, not
+                    <code>fireEvent.click</code>.
+                </li>
+                <li><code>Dialog</code> content needs <code>waitFor</code> after the trigger.</li>
+                <li>Components rendering a <code>Tooltip</code> must be wrapped in a
+                    <code>&lt;TooltipProvider&gt;</code> in tests.
+                </li>
+            </ul>
+
+            <h3>Role guards in client components</h3>
+            <p>
+                Pages that gate on <code>isAdmin()</code> / <code>isManager()</code> must check
+                <code>loading</code> first — otherwise the guard fires before the session resolves and redirects every
+                user to <code>/dashboard</code>. Tests should mock <code>useAuth</code> and verify the
+                <code>loading=true</code> branch before assertions.
+            </p>
+            <pre><code>jest.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    user: { role: "ec_member", unit_number: "TH017" },
+    loading: false,
+    isManager: () => true,
+    isAdmin: () => false,
+  }),
+}));</code></pre>
+
+            <h3>API mocks</h3>
+            <p>
+                The <code>api</code> axios instance returned by <code>useAuth()</code> has
+                <code>baseURL = ${NEXT_PUBLIC_BACKEND_URL}/api</code>. Never prefix calls with
+                <code>/api/</code> in production code or in tests — that produces a double-prefix and a 404.
+            </p>
+        </section>
+
+        <section id="e2e">
+            <h2>End-to-End Tests (Playwright)</h2>
+            <p>
+                Playwright covers user-visible flows. Specs live under <code>tests/frontend/</code> and run against a
+                local dev server (or a deployed environment via <code>BASE_URL</code>).
+            </p>
+            <pre><code># Run everything
+npx playwright test tests/frontend/
+
+# Single spec
+npx playwright test tests/frontend/e2e/rental-certificates.spec.js --reporter=list
+
+# UI mode (interactive)
+npx playwright test --ui
+
+# Codegen against production
+npx playwright codegen https://eastgateresidences.com.au</code></pre>
+            <p>
+                Reports land in <code>tests/reports/html/</code>. Open the latest with
+                <code>npx playwright show-report tests/reports/html</code>.
+            </p>
+
+            <h3>Security E2E Suite</h3>
+            <p>
+                Security specs in <code>tests/frontend/e2e/security/</code> exercise BOLA, mass assignment, and
+                cron endpoint protection. Two layers: <code>bola-strataos.spec.ts</code> (Layer 1) and
+                <code>bola-strataos-layer2.spec.ts</code> (Layer 2 — ID format validation, horizontal BOLA,
+                cron discovery).
+            </p>
+            <div class="callout warn">
+                <strong>Rate limit bypass required for security tests:</strong> Both spec files run
+                <code>beforeAll</code> token acquisitions in parallel. Without disabling rate limiting, the
+                login endpoint returns 429 for the second worker and the suite fails with an unhelpful error.
+                Set <code>DISABLE_RATE_LIMIT=1</code> in the backend environment when running these specs:
+            </div>
+            <pre><code># backend/.env (dev/CI only — never production)
+DISABLE_RATE_LIMIT=1
+
+# Then run security specs
+npx playwright test tests/frontend/e2e/security/ --project=security</code></pre>
+            <div class="callout info">
+                <strong>Login retry pattern:</strong> Layer 2 <code>beforeAll</code> hooks use a 3-attempt
+                exponential back-off loop (2s, 4s) in case transient rate-limiting still occurs:
+                <pre><code>let t: string | null = null;
+for (let attempt = 0; attempt &lt; 3; attempt++) {
+  t = await getToken(email, password);
+  if (t) break;
+  if (attempt &lt; 2) await new Promise(r =&gt; setTimeout(r, 2000 * (attempt + 1)));
+}
+if (!t) throw new Error('Login failed after 3 attempts');</code></pre>
+            </div>
+        </section>
+
+        <section id="performance">
+            <h2>Performance Tests (k6)</h2>
+            <div class="callout warn">
+                <strong>Every k6 script MUST include a <code>teardown()</code> function</strong> that deletes any
+                test data it created. Use a deterministic title prefix (e.g. <code>"Perf test request perf-"</code>)
+                so teardown can filter precisely. Reference: <code>tests/performance/maintenance_benchmark.ts</code>.
+            </div>
+            <pre><code>// Skeleton: tests/performance/&lt;feature&gt;_benchmark.ts
+import http from "k6/http";
+import { check, sleep } from "k6";
+
+export const options = {
+  scenarios: {
+    smoke: { executor: "constant-vus", vus: 1, duration: "30s" },
+    load:  { executor: "ramping-vus", startVUs: 0,
+             stages: [{ duration: "30s", target: 20 },
+                      { duration: "1m",  target: 20 },
+                      { duration: "30s", target: 0  }] },
+  },
+  thresholds: {
+    http_req_failed: ["rate&lt;0.01"],
+    http_req_duration: ["p(95)&lt;500"],
+  },
+};
+
+export function setup() {
+  // Create any pre-conditions here, return them to the default function.
+}
+
+export default function () {
+  const res = http.post(`${__ENV.BASE_URL}/maintenance`, JSON.stringify({
+    title: `Perf test request perf-${__VU}-${__ITER}`,
+    building_id: "13195",
+    is_test_data: true,
+  }), { headers: { Authorization: `Bearer ${__ENV.AUTH_TOKEN}`, "Content-Type": "application/json" } });
+  check(res, { "status is 201": (r) =&gt; r.status === 201 });
+  sleep(1);
+}
+
+export function teardown() {
+  // MUST clean up — title prefix filter
+  http.del(`${__ENV.BASE_URL}/maintenance?title_prefix=Perf+test+request+perf-`,
+           null, { headers: { Authorization: `Bearer ${__ENV.AUTH_TOKEN}` } });
+}</code></pre>
+
+            <h3>Running the whole suite (one command)</h3>
+            <p>
+                <code>scripts/testing/run_k6_suite.py</code> runs every
+                <code>tests/performance/*_benchmark.{ts,js}</code> against a running backend, captures per-script
+                logs + k6 summary exports, classifies each as
+                <span class="pill pass">pass</span> /
+                <span class="pill fail">threshold-fail</span> /
+                <span class="pill fail">runtime-fail</span> /
+                <span class="pill timeout">timeout</span>, and writes a dated report bundle under
+                <code>docs/performance/k6_run_&lt;date&gt;/</code> (<code>status.tsv</code>, <code>logs/</code>,
+                <code>summaries/</code>, and a JSON + HTML coverage report). It exits non-zero if any script did not
+                pass, so CI can gate on it.
+            </p>
+            <div class="callout">
+                <strong>Prerequisites:</strong> a running backend (<code>uvicorn server:app … --port 8003</code>),
+                <code>k6</code> on <code>PATH</code>, a JWT in <code>AUTH_TOKEN</code>, and a <code>BUILDING_ID</code>
+                (scheme number, e.g. <code>13195</code> or <code>UP-DEMO-001</code>). Get a token from the login
+                endpoint (use a super-admin account so one token drives every building via the
+                <code>X-Building-ID</code> override the benchmarks send):
+                <pre><code>AUTH_TOKEN=$(curl -s -X POST http://localhost:8003/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"&lt;user&gt;","password":"&lt;password&gt;"}' \
+  | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d.get("access_token") or d.get("token",""))')</code></pre>
+                <code>scripts/get_token.py</code> is a dev shortcut but is hardcoded to one user/building — edit it
+                first. The runner prints <code>WARNING: AUTH_TOKEN is not set …</code> if you skip this: it still
+                runs, but authenticated scripts fail their checks. Full run guide:
+                <code>docs/performance/running_performance_tests.md</code>.
+            </div>
+            <pre><code># Preview the script list + static coverage WITHOUT running k6 (no backend needed):
+python scripts/testing/run_k6_suite.py --list
+
+# Full run against a local backend (env is forwarded to every script via -e):
+BASE_URL=http://localhost:8003/api AUTH_TOKEN=&lt;jwt&gt; BUILDING_ID=&lt;scheme_number&gt; \
+  python scripts/testing/run_k6_suite.py
+
+# Subset + smoke scenario + explicit output dir:
+python scripts/testing/run_k6_suite.py --only bi_benchmark,intelligence_benchmark \
+  --scenario smoke --out docs/performance/k6_run_2026-08-11</code></pre>
+            <p class="small muted">
+                Forwarded env when set: <code>BASE_URL</code>, <code>AUTH_TOKEN</code>, <code>BUILDING_ID</code>,
+                <code>UNIT_NUMBER</code>, <code>LOT_NUMBER</code>, <code>FINANCIAL_YEAR</code>, <code>API_KEY</code>,
+                <code>UI_BASE_URL</code>, <code>SESSION_COOKIE</code>, <code>INCLUDE_PLATFORM</code>,
+                <code>INCLUDE_PDF</code>, <code>INCLUDE_WRITES</code>, <code>CLEANUP_TOKEN</code>,
+                <code>ORG_ID</code>, <code>AGENCY_ID</code>, <code>MANAGER_ID</code>, <code>OWNER_ID</code>,
+                <code>LEGAL_PAGE</code>. Flags: <code>--only</code>, <code>--skip</code>, <code>--scenario</code>,
+                <code>--per-script-timeout</code>, <code>--out</code>, <code>--list</code>.
+                "Backend route patterns touched" in the report is best-effort static coverage (a route path is
+                referenced by a k6 script), not branch/role/state coverage.
+            </p>
+
+            <h3>Benchmark catalogue</h3>
+            <p>
+                Benchmarks live in <code>tests/performance/</code>. Read benchmarks follow one contract:
+                <code>smoke</code> + <code>load</code> scenarios, per-endpoint <code>p(95)</code> thresholds, a
+                <code>&lt;domain&gt;_required_errors</code> counter (<code>count==0</code>) for must-succeed reads,
+                <code>required</code> vs <code>optional</code> probes (optional ones only assert
+                <code>status &lt; 500</code>), path-ids resolved live in <code>setup()</code> or gated behind env
+                vars, and an explicit read-only <code>teardown()</code>. Coverage is tracked in
+                <code>docs/performance/k6_test_gap_analysis_2026-08-10.md</code>.
+            </p>
+            <div class="table-wrap"><table>
+                <thead><tr><th>Area</th><th>Scripts</th></tr></thead>
+                <tbody>
+                    <tr><td>Finance &amp; onboarding</td><td><code>finance_benchmark</code>, <code>finance_pipeline_benchmark</code>, <code>finance_singularity_benchmark</code>, <code>finance_intelligence_benchmark</code>, <code>finance_calculation_registry_benchmark</code>, <code>financial_onboarding_import_benchmark</code>, <code>historical_reconstruction_benchmark</code>, <code>historical_levy_charge_preview_benchmark</code>, <code>unit_true_balance_benchmark</code>, <code>fund_collections_by_unit_type_benchmark</code></td></tr>
+                    <tr><td>Trust accounting</td><td><code>trust_accounting_benchmark</code>, <code>trust_dual_approval_benchmark</code></td></tr>
+                    <tr><td>BI &amp; intelligence</td><td><code>bi_benchmark</code>, <code>intelligence_benchmark</code>, <code>analytics_benchmark</code></td></tr>
+                    <tr><td>Governance &amp; ops</td><td><code>meetings_benchmark</code>, <code>decision_register_benchmark</code>, <code>maintenance_benchmark</code>, <code>invoice_benchmark</code>, <code>letters_benchmark</code>, <code>notifications_benchmark</code>, <code>access_lifecycle_benchmark</code>, <code>digital_twin_benchmark</code></td></tr>
+                    <tr><td>Compliance &amp; insurance</td><td><code>nsw_compliance_benchmark</code>, <code>insurance_benchmark</code></td></tr>
+                    <tr><td>Communications</td><td><code>communication_benchmark</code>, <code>communications_campaigns_benchmark</code></td></tr>
+                    <tr><td>Settings, portfolio, owner, auth, public</td><td><code>settings_benchmark</code>, <code>portfolio_benchmark</code>, <code>owner_dashboard_benchmark</code>, <code>management_hierarchy_benchmark</code>, <code>auth_benchmark</code>, <code>feature_toggle_benchmark</code>, <code>security_benchmark</code>, <code>public_api_benchmark</code>, <code>ui_public_pages_benchmark</code>, <code>dashboard_benchmark</code></td></tr>
+                    <tr><td>External API v1 (partner)</td><td><code>external_api_benchmark</code> (k6) + <code>postman/strataos_external_api_v1.postman_collection.json</code> (newman)</td></tr>
+                    <tr><td>Demo integrations &amp; cutover</td><td><code>demo_integrations_benchmark</code>, <code>shadow_read_pool_capacity_benchmark</code></td></tr>
+                </tbody>
+            </table></div>
+
+            <h3>External API v1 (k6 + Postman)</h3>
+            <p>
+                The partner-facing <code>/api/v1</code> surface authenticates with an <code>X-API-Key</code> header
+                (not a JWT). Run it in either tool:
+            </p>
+            <pre><code># k6 — all /v1 GET reads (+ opt-in writes via INCLUDE_WRITES=1)
+k6 run tests/performance/external_api_benchmark.ts \
+  -e BASE_URL=http://localhost:8003/api -e API_KEY=&lt;partner_key&gt;
+
+# newman — each request asserts status + a per-endpoint response-time budget
+newman run tests/performance/postman/strataos_external_api_v1.postman_collection.json \
+  -e tests/performance/postman/strataos_external_api_v1.postman_environment.json \
+  --iteration-count 20</code></pre>
+            <div class="callout warn">
+                The External API is append-only (no partner DELETE for defects/quotes/invoices), so writes are
+                opt-in, must target a demo/staging building, and use the <code>perf-ext-</code> prefix so
+                <code>backend/scripts/cleanup_perf_test_maintenance.py</code> (or a supplied <code>CLEANUP_TOKEN</code>)
+                can remove them.
+            </div>
+
+            <h3>Cron / worker timing harness (not k6)</h3>
+            <p>
+                Background jobs are not HTTP routes, so k6 cannot reach them.
+                <code>tests/performance/harness/cron_worker_timing.py</code> times the scheduler <code>JOBS</code>
+                registry and cron <code>run_*</code> entrypoints — one run each, wall-clock + throughput vs a per-job
+                budget. It is safe-by-default: read-only jobs always run, dry-run-capable jobs only under
+                <code>--dry-run</code>, and mutating jobs are skipped unless <code>--allow-mutation</code> +
+                <code>PERF_HARNESS_ALLOW_MUTATION=1</code> (all-building mutating jobs also need
+                <code>--allow-all-buildings</code>). Point it at staging, never production.
+            </p>
+            <pre><code># List the catalogue (no backend deps needed):
+python tests/performance/harness/cron_worker_timing.py --list
+
+# Safe default (read-only jobs) + dry-run recompute, JSON summary:
+python tests/performance/harness/cron_worker_timing.py \
+  --building-id 13195 --dry-run --json-out /tmp/cron_timing.json</code></pre>
+
+            <h3>UI page performance (Lighthouse, not k6)</h3>
+            <p>
+                k6 measures API latency, not what the browser does (render, hydration, layout shift, bundle cost).
+                <code>tests/performance/ui/lighthouse_runner.mjs</code> runs Lighthouse against a list of pages
+                (<code>routes.json</code>) and checks the real user-facing metrics — performance score, LCP, TBT,
+                CLS, FCP, TTI, Speed Index, byte weight — against per-page budgets (<code>budgets.json</code>),
+                writing a report to <code>docs/performance/ui_lighthouse_&lt;date&gt;/</code>. Deps are isolated from
+                the frontend lockfile.
+            </p>
+            <pre><code># Preview routes + budgets (no deps/Chrome needed):
+node tests/performance/ui/lighthouse_runner.mjs --list
+
+# Install once, then run public pages (frontend on :3000):
+cd tests/performance/ui &amp;&amp; npm install &amp;&amp; cd -
+UI_BASE_URL=http://localhost:3000 node tests/performance/ui/lighthouse_runner.mjs
+
+# Include authenticated pages — supply a NextAuth session cookie from the browser:
+UI_BASE_URL=http://localhost:3000 COOKIE='next-auth.session-token=…' \
+  node tests/performance/ui/lighthouse_runner.mjs</code></pre>
+            <p class="small muted">
+                Auth pages are skipped (not failed) when <code>COOKIE</code> is unset. Run against a production
+                build (<code>yarn build &amp;&amp; yarn start</code>, port <code>3020</code>) for representative
+                numbers. Tune <code>budgets.json</code> to your first clean baseline before gating in CI. Details:
+                <code>tests/performance/ui/README.md</code>.
+            </p>
+
+            <h3>Swagger / OpenAPI drift guard</h3>
+            <p>
+                The published External API contract
+                (<code>frontend/public/tech-docs/strataos-openapi.json</code>, generated by
+                <code>scripts/docs/generate_api_artifacts.py</code>) must match the live router.
+                <code>scripts/validation/validate_external_api_openapi.py</code> (and its pytest
+                <code>tests/backend/test_external_api_openapi_sync.py</code>) AST-parses
+                <code>backend/routers/external_api.py</code> and fails if any <code>/api/v1</code> operation is
+                missing from — or stale in — the spec. Pure stdlib, so it runs in CI without a backend. A non-zero
+                exit means "regenerate the API artifacts and commit them."
+            </p>
+        </section>
+
+        <section id="multitenant">
+            <h2>Multi-Tenant Rules</h2>
+            <div class="callout">
+                <strong>The most important rule on this page.</strong> Every test must prove that data scoped to one
+                <code>building_id</code> never leaks into a query for another <code>building_id</code>.
+            </div>
+            <ol>
+                <li>Every mock document MUST include <code>building_id</code>.</li>
+                <li>Assert cross-building isolation: data seeded for <code>"13195"</code> must not appear in results
+                    for <code>"16244"</code>.
+                </li>
+                <li>Call <code>set_ctx_building_id(bid)</code> before any function that touches the DB wrapper.</li>
+                <li>Use <code>admin_staff</code> as the role name in fixtures (<code>reception</code> is a UI alias
+                    only).
+                </li>
+                <li>Feature-toggle-gated features MUST have tests for both toggle-on and toggle-off paths.</li>
+                <li>Use <code>"is_test_data": True</code> on every record created by a test or k6 script. Production
+                    queries filter via <code>{"is_test_data": {"$ne": True}}</code>.
+                </li>
+            </ol>
+            <h3>Isolation pattern</h3>
+            <pre><code>@pytest.mark.asyncio
+async def test_levy_summary_isolation(mock_db):
+    # Seed both buildings
+    mock_db.unit_levy_ledger.find.return_value.to_list = AsyncMock(
+        return_value=[
+            {"building_id": "13195", "unit": "TH017", "total_levied": 4806.27},
+            {"building_id": "16244", "unit": "U101",  "total_levied": 3200.00},
+        ],
+    )
+    set_ctx_building_id("13195")
+    result = await get_levy_summary(year="2026")
+    units = [r["unit"] for r in result["units"]]
+    assert "TH017" in units
+    assert "U101" not in units, "16244 data leaked into 13195 result"</code></pre>
+        </section>
+
+        <section id="patterns">
+            <h2>Common Patterns</h2>
+            <h3>Idempotent fixtures</h3>
+            <p>
+                Tests must clean up after themselves and tolerate being re-run on a non-empty DB. Use unique title
+                prefixes per run (<code>perf-${run_id}-${i}</code>), and prefer
+                <code>delete_many({"is_test_data": True, "title": {"$regex": "^perf-..."}})</code> in teardown over
+                a blunt <code>delete_many({})</code>.
+            </p>
+
+            <h3>Toggle coverage</h3>
+            <pre><code>@pytest.mark.parametrize("toggle_enabled", [True, False])
+async def test_invoice_ocr_respects_toggle(toggle_enabled, mock_db):
+    mock_db.feature_toggles.find_one = AsyncMock(
+        return_value={"key": "invoice_ocr", "is_enabled": toggle_enabled,
+                      "building_id": "13195"},
+    )
+    set_ctx_building_id("13195")
+    if toggle_enabled:
+        result = await upload_invoice(...)
+        assert result["ocr_status"] == "queued"
+    else:
+        with pytest.raises(HTTPException) as exc:
+            await upload_invoice(...)
+        assert exc.value.status_code == 403</code></pre>
+
+            <h3>Effective role</h3>
+            <p>
+                Backend role guards must read <code>_effective_role(user)</code>, not
+                <code>user["role"]</code>. Tests for elevated users (temp_elevation active) must set
+                <code>effective_role</code> on the mock user.
+            </p>
+            <pre><code>mock_user = {
+    "id": "u_owner_with_ec_elevation",
+    "role": "owner",
+    "effective_role": "ec_member",
+    "building_id": "13195",
+    "unit_number": "TH017",
+}</code></pre>
+        </section>
+
+        <section id="ci">
+            <h2>CI &amp; Pre-Deploy Checklist</h2>
+            <p>
+                The mandatory post-implementation checklist (see <code>CLAUDE.md</code> Step 2) requires every change
+                to add or update tests in three places:
+            </p>
+            <ul>
+                <li>Backend pytest under <code>tests/backend/</code></li>
+                <li>Frontend Jest/RTL under <code>tests/frontend/unit/</code> OR a Playwright spec under
+                    <code>tests/frontend/</code>
+                </li>
+                <li>k6 performance script under <code>tests/performance/</code> with a <code>teardown()</code>
+                    function
+                </li>
+            </ul>
+            <p>
+                Before opening a deploy:
+            </p>
+            <pre><code># From repo root
+make test                                                      # backend + frontend
+backend/venv/bin/python3 -m pytest tests/backend -q            # if only backend changed
+cd frontend && yarn test --watchAll=false &amp;&amp; yarn build   # if only frontend changed
+npx playwright test tests/frontend/                            # E2E sanity check</code></pre>
+            <p>
+                The deploy script (<code>bash ./scripts/deployment/deploy.sh</code>) runs the test suite by default.
+                Pass <code>--skip-tests</code> only if you have a documented reason — never as a shortcut.
+            </p>
+        </section>
+
+    </main>
+</div>
+<footer>East Gate Residences · Technical Documentation · Testing · Super Admin Only · 2026 · A vision by: Silverfox
+    Technologies, Australia · Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+</body>
+</html>

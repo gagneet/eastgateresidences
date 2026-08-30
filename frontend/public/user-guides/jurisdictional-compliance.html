@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Jurisdictional Compliance Rules — User Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="guide-container">
+    <h1>Jurisdictional Compliance Rules</h1>
+    <p class="intro">
+        Each strata building operates under the legislation of the state or territory where it is located.
+        This guide explains what rules apply to your building and how the platform enforces them automatically.
+    </p>
+
+    <h2>Access</h2>
+    <p>
+        The Jurisdictional Rules page is available to <strong>strata managers, chairpersons, and
+        super admins</strong>. Navigate to
+        <strong>Admin → Jurisdictional Rules</strong> in the dashboard.
+    </p>
+
+    <h2>Your Building's Jurisdiction</h2>
+    <p>
+        When your building was onboarded, it was assigned to the legislation of its state or territory:
+    </p>
+    <ul>
+        <li><strong>ACT</strong> — Unit Titles (Management) Act 2011</li>
+        <li><strong>NSW</strong> — Strata Schemes Management Act 2015</li>
+        <li><strong>VIC</strong> — Owners Corporations Act 2006</li>
+        <li><strong>QLD</strong> — Body Corporate and Community Management Act 1997</li>
+    </ul>
+    <p>
+        The platform applies the rules for your jurisdiction automatically to every financial write,
+        levy notice, interest calculation, and fund transfer.
+    </p>
+
+    <h2>Levy Interest</h2>
+    <p>
+        When levies are overdue the platform calculates interest according to your jurisdiction's
+        statutory maximum rate. For example:
+    </p>
+    <ul>
+        <li>ACT — default 10% p.a., maximum 20% p.a. by special resolution (UTMA 2011 s.76)</li>
+        <li>NSW — up to 10% p.a. (SSMA 2015 s.85); a 30-day grace period applies before interest accrues</li>
+        <li>QLD — up to 30% p.a. effective ceiling (BCCM Act; 2.5% per month)</li>
+    </ul>
+    <p>
+        No interest is charged until the grace period for your jurisdiction has elapsed.
+    </p>
+
+    <h2>Fund Transfers</h2>
+    <p>
+        Some jurisdictions restrict transfers between the administrative fund and the sinking (capital works) fund:
+    </p>
+    <ul>
+        <li><strong>ACT / NSW / VIC</strong> — transfers are permitted with an ordinary or special resolution</li>
+        <li><strong>QLD</strong> — transfers between funds are <strong>prohibited</strong> (BCCM Standard Module reg
+            100(7))
+        </li>
+    </ul>
+    <p>
+        Attempting a fund transfer for a QLD building will be blocked with a clear error message.
+    </p>
+
+    <h2>Budget Cap and Committee Spending</h2>
+    <p>
+        NSW buildings must obtain a general meeting resolution before approving invoices that would
+        push any budget line more than 10% above its approved amount (SSMA s.102).
+        The platform checks this automatically when you approve an AP invoice.
+    </p>
+    <p>
+        QLD buildings apply a committee spending cap of $200 per lot for each item of expenditure
+        (BCCM Standard Module reg 100). Large expenditure items must be approved by an ordinary resolution.
+    </p>
+
+    <h2>Trust and Pooled Accounts</h2>
+    <p>
+        Whether a strata manager may hold scheme funds in a pooled trust account depends on jurisdiction:
+    </p>
+    <ul>
+        <li><strong>ACT</strong> — pooled trust is permitted (Agents Act 2003 Part 7)</li>
+        <li><strong>NSW</strong> — permitted; interest accrues to a statutory account, not the scheme</li>
+        <li><strong>VIC</strong> — pooled trust is <strong>not permitted</strong> (OCA s.122)</li>
+        <li><strong>QLD</strong> — not permitted; each body corporate requires a separate trust account</li>
+    </ul>
+
+    <h2>Levy Notice Hardship Statement</h2>
+    <p>
+        NSW legislation requires that every levy notice include a statement about hardship assistance
+        (SSMA 2015 s.89). The platform adds this statement automatically to all levy notice PDFs
+        for NSW buildings.
+    </p>
+
+    <h2>Audits and Trial Balance</h2>
+    <p>
+        The deadline for lodging the annual trial balance and completing the financial audit
+        differs by jurisdiction:
+    </p>
+    <ul>
+        <li>ACT — trial balance due within 15 days of AGM; audit by 30 September</li>
+        <li>NSW — trial balance due within 21 days of AGM (PSA Regulations 2022 reg 30)</li>
+        <li>VIC — audit must be completed before the AGM</li>
+    </ul>
+
+    <h2>Settlement Adjustment (Conveyancing)</h2>
+    <p>
+        When a lot is sold, the current levy period is split between the outgoing and incoming owner
+        based on the settlement date. Strata managers and EC members can generate a settlement
+        adjustment calculation at <strong>Admin → Settlement Adjustment</strong>.
+    </p>
+    <p>
+        Enter the lot number and settlement date. The platform calculates:
+    </p>
+    <ul>
+        <li>How many days of the levy period fall before settlement (outgoing owner's share)</li>
+        <li>How many days fall on or after settlement (incoming owner's share)</li>
+        <li>The levy amount in dollars for each party</li>
+    </ul>
+    <p>
+        This calculation uses the active levy period for your building and is automatically
+        pro-rated to the cent.
+    </p>
+
+    <h2>Viewing All Jurisdiction Rules</h2>
+    <p>
+        The <strong>All Jurisdictions</strong> tab on the Jurisdictional Rules page lets you compare
+        rules across all supported states and territories. This is useful when onboarding a new building
+        or advising owners who own property in multiple states.
+    </p>
+
+    <h2>Per-Building Overrides</h2>
+    <p>
+        In rare cases, a building may have an override applied by a super admin — for example,
+        a custom interest rate agreed by special resolution. The <strong>Full Rules</strong> table
+        shows the effective value (including any overrides) alongside the statutory citation.
+    </p>
+</div>
+</body>
+</html>

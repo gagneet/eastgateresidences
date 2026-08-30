@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Finance API Reference</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #0f172a;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px 60px;
+        }
+
+        section {
+            background: #111827;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        h1, h2, h3 {
+            color: #f8fafc;
+        }
+
+        code, pre {
+            background: #020617;
+            border-radius: 8px;
+        }
+
+        code {
+            padding: 2px 6px;
+        }
+
+        pre {
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            border-bottom: 1px solid #334155;
+            padding: 10px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Finance API Reference</h1>
+    <p>This reference documents the finance endpoints affected by the current GST and tenant-scoping model.</p>
+
+    <section>
+        <h2>Cross-cutting rules</h2>
+        <ul>
+            <li>All requests are building-scoped.</li>
+            <li>Administrative and Sinking Fund source values are treated as ex-GST.</li>
+            <li>Owner-facing levy totals are derived using Site Settings fields <code>gst_registered</code> and <code>levy_gst_rate</code>.
+            </li>
+            <li>APIs should normalize legacy per-UOE storage where raw values are historically ambiguous.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Key endpoints</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Purpose</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>GET /api/annual-levies</code></td>
+                <td>Return annual levy summaries</td>
+                <td>Per-UOE values should be exposed as normalized owner-payable rates.</td>
+            </tr>
+            <tr>
+                <td><code>GET /api/annual-levies/{year}</code></td>
+                <td>Return one annual levy summary</td>
+                <td>Use building-scoped settings before presenting levy rates.</td>
+            </tr>
+            <tr>
+                <td><code>GET /api/levy-calculator</code></td>
+                <td>Calculate levy allocations per unit</td>
+                <td>Derive payable amounts from ex-GST fund totals plus GST settings.</td>
+            </tr>
+            <tr>
+                <td><code>GET /api/finance/quarterly-budget</code></td>
+                <td>Quarterly finance summary</td>
+                <td>Expose GST metadata and building-aware totals.</td>
+            </tr>
+            <tr>
+                <td><code>PUT /api/settings</code></td>
+                <td>Update building Site Settings</td>
+                <td>Includes levy timing, branding, and GST behavior.</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>GST-related response fields</h2>
+        <pre>{
+  "gst_registered": true,
+  "gst_rate": 0.10,
+  "gst_label": "GST (10%)",
+  "admin_per_uoe_annual": 30.9882,
+  "admin_per_uoe_payable_annual": 34.08702,
+  "total_per_uoe_payable_annual": 44.03751
+}</pre>
+        <p>Use the payable fields for owner-facing totals. Use the ex-GST fields for administrative planning
+            displays.</p>
+    </section>
+
+    <section>
+        <h2>Implementation note</h2>
+        <p>The recommended derivation order is:</p>
+        <ol>
+            <li>use explicit ex-GST fund totals</li>
+            <li>apply building GST settings</li>
+            <li>use trust billing targets only where exact current-year billing needs penny-safe allocation</li>
+            <li>treat stored raw per-UOE legacy values as compatibility fallbacks, not primary truth</li>
+        </ol>
+    </section>
+
+    <section>
+        <h2>Portal-to-Finance Bridge Endpoints (updated 2026-04-17)</h2>
+        <p>The Civium portal scraper writes to four snapshot collections. Finance endpoints JOIN these at query time.
+            Data is <strong>never</strong> copied into levy system collections (single source of truth rule).</p>
+
+        <h3>GET /api/finance/portal-bank-balances</h3>
+        <p>Returns live bank account balances from the portal scraper snapshot. Requires <code>can_view_finances</code>.
+        </p>
+        <pre>{
+  "accounts": [
+    {
+      "bsb": "062-000",
+      "account_number": "...",
+      "account_name": "Admin Fund",
+      "admin_balance": 123456.78,
+      "sinking_balance": 0,
+      "total_balance": 123456.78
+    }
+  ],
+  "totals": {
+    "admin": 123456.78,
+    "sinking": 45678.90,
+    "total": 169135.68
+  },
+  "owner_summary": {
+    "arrears_count": 5,
+    "credit_count": 2,
+    "clear_count": 80,
+    "total_lots": 87
+  },
+  "synced_at": "2026-04-15T10:30:00Z"
+}</pre>
+
+        <h3>GET /api/finance/portal-actuals?year=YYYY</h3>
+        <p>Returns budget-vs-actual from the portal scraper, mapped to Australian financial year.
+            Levy year <code>"2026"</code> maps to <code>financial_year "2025-2026"</code>. Requires <code>can_view_finances</code>.
+        </p>
+        <pre>{
+  "year": "2026",
+  "financial_year": "2025-2026",
+  "categories": [
+    {
+      "category": "Insurance",
+      "fund": "admin",
+      "planned": 42000.00,
+      "actual": 41500.00,
+      "variance": 500.00
+    }
+  ],
+  "totals": {
+    "admin": { "planned": 340870.20, "actual": 318000.00, "variance": 22870.20 },
+    "capital_works": { "planned": 99504.90, "actual": 88000.00, "variance": 11504.90 }
+  }
+}</pre>
+        <p><strong>Fund mapping:</strong> portal <code>"admin"</code> = levy system <code>"administrative"</code>;
+            portal <code>"capital_works"</code> = levy system <code>"sinking"</code>.</p>
+
+        <h3>Extended fields on existing endpoints</h3>
+        <table>
+            <tr>
+                <th>Endpoint</th>
+                <th>New field</th>
+                <th>Source collection</th>
+            </tr>
+            <tr>
+                <td>GET /finance/summary</td>
+                <td><code>portal_summary</code></td>
+                <td>building_summaries</td>
+            </tr>
+            <tr>
+                <td>GET /levy-status/:unit</td>
+                <td><code>portal_balance</code>, <code>portal_status</code>, <code>portal_synced_at</code></td>
+                <td>strata_owners</td>
+            </tr>
+            <tr>
+                <td>GET /unit-levy-ledger/:unit</td>
+                <td><code>portal_net_balance</code>, <code>portal_synced_at</code> per entry</td>
+                <td>strata_owners</td>
+            </tr>
+        </table>
+
+        <h3>Portal snapshot collections (read-only from finance router)</h3>
+        <table>
+            <tr>
+                <th>Collection</th>
+                <th>Content</th>
+                <th>Written by</th>
+            </tr>
+            <tr>
+                <td>strata_owners</td>
+                <td>Per-unit balance, status, owner name</td>
+                <td>run_scraper.py / strata_sync.py</td>
+            </tr>
+            <tr>
+                <td>bank_accounts</td>
+                <td>Admin/sinking/total bank balances</td>
+                <td>run_scraper.py / strata_sync.py</td>
+            </tr>
+            <tr>
+                <td>building_summaries</td>
+                <td>Arrears total, collection rate, risk level</td>
+                <td>run_scraper.py / strata_sync.py</td>
+            </tr>
+            <tr>
+                <td>strata_financials</td>
+                <td>Budget vs actual per category</td>
+                <td>run_scraper.py / strata_sync.py</td>
+            </tr>
+        </table>
+    </section>
+    <section>
+        <h2>Portal Sync Read Endpoints (added 2026-04-17)</h2>
+        <p>The portal scraper bridge populates <code>levy_categories</code>, <code>annual_levies</code>, and <code>unit_levy_ledger</code>
+            after every sync. Finance pages read from these collections. Two additional read-only endpoints expose the
+            raw portal snapshot:</p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Purpose</th>
+                <th>Source collection</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>GET /api/strata/financials</code></td>
+                <td>Raw budget vs actual categories from portal scrape</td>
+                <td>strata_financials</td>
+            </tr>
+            <tr>
+                <td><code>GET /api/strata/owners</code></td>
+                <td>Per-unit outstanding balance from portal</td>
+                <td>strata_owners</td>
+            </tr>
+            <tr>
+                <td><code>GET /api/strata/sync/status</code></td>
+                <td>Last sync job metadata and building summary</td>
+                <td>building_summaries</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>Data provenance flags</h3>
+        <p><strong>Important:</strong> <code>is_synthetic=True</code> records in <code>annual_levies</code> and <code>data_source="scraper"</code>
+            records in <code>unit_levy_ledger</code> were created by the bridge. They will be refreshed on the next
+            sync.</p>
+        <p>Records with <code>is_synthetic=False</code> (CSV upload / AGM-ratified) are authoritative — the bridge never
+            overwrites their income fields (<code>proposed_admin_expenses</code>, <code>proposed_sinking_expenses</code>).
+        </p>
+        <p>For the full sync architecture including write model, bridge logic, and migration steps, see <a
+                href="strata-sync.html">strata-sync.html</a>.</p>
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Staff Invitations Guide</title>
+    <!-- Last updated: 2026-05-02 — Phase E: invitation bypass for building-scoped account creation -->
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .step-badge {
+            display: inline-block;
+            background: #2F4F4F;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 13px;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .step-row {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+
+        .step-content h3 {
+            margin: 0 0 4px 0;
+            font-size: 15px;
+        }
+
+        .step-content p {
+            margin: 0;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .callout-info {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .callout-warn {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .role-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+
+        .permission-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 14px;
+        }
+
+        .permission-table th {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .permission-table td {
+            border: 1px solid #e5e7eb;
+            padding: 10px;
+        }
+
+        .check-mark {
+            color: #16a34a;
+            font-weight: 700;
+        }
+
+        .x-mark {
+            color: #991b1b;
+            font-weight: 700;
+        }
+
+        .tech-badge {
+            display: inline-block;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            margin: 2px 4px 2px 0;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← User Guides</a>
+        <h1>Staff Invitations Guide</h1>
+        <p>How to invite strata managers, office staff, and committee members to your building. Invitation-based
+            onboarding ensures every staff account is securely scoped to your building from the moment they
+            register.</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2>Overview</h2>
+        <p>Staff invitations allow you to grant access to your building's data to trusted managers and staff members.
+            StrataOS uses an invitation system (not direct signup) to ensure:</p>
+        <ul>
+            <li><strong>Security:</strong> Only authorized staff can access sensitive financial and governance data</li>
+            <li><strong>Building Scoping:</strong> Invitees are automatically assigned to your building's tenant context
+            </li>
+            <li><strong>Role Assignment:</strong> You can assign specific roles (Manager, Accountant, Secretary, etc.)
+                with appropriate permissions
+            </li>
+            <li><strong>Audit Trail:</strong> All invitations are logged with who invited them and when they accepted
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Who can send invitations?</h2>
+        <p>Only users with administrative privileges can invite staff:</p>
+        <ul>
+            <li><strong>Super Admins</strong> — Can invite anyone to any building</li>
+            <li><strong>Building Admin (formerly Chairman)</strong> — Can invite staff to their building only</li>
+            <li><strong>Strata Manager</strong> — Can invite office staff to assist with their management
+                responsibilities
+            </li>
+        </ul>
+
+        <div class="callout-info">
+            <strong>Building-Scoped Access:</strong> Regular owners and tenants cannot send invitations. If you're an
+            owner and need to invite staff, contact your strata manager.
+        </div>
+    </section>
+
+    <section>
+        <h2>Invitable Roles & Permissions</h2>
+
+        <table class="permission-table">
+            <tr>
+                <th>Role</th>
+                <th>Description</th>
+                <th>Finances</th>
+                <th>Maintenance</th>
+                <th>Governance</th>
+                <th>Building Config</th>
+            </tr>
+            <tr>
+                <td><strong>Strata Manager</strong></td>
+                <td>Professional property manager for the building</td>
+                <td><span class="check-mark">✓</span></td>
+                <td><span class="check-mark">✓</span></td>
+                <td><span class="check-mark">✓</span></td>
+                <td><span class="check-mark">✓</span></td>
+            </tr>
+            <tr>
+                <td><strong>Accountant</strong></td>
+                <td>Financial record keeper; access to levy and expense data</td>
+                <td><span class="check-mark">✓</span></td>
+                <td><span class="x-mark">✗</span></td>
+                <td><span class="x-mark">✗</span></td>
+                <td><span class="x-mark">✗</span></td>
+            </tr>
+            <tr>
+                <td><strong>Office Admin</strong></td>
+                <td>Administrative support; document management and communications</td>
+                <td><span class="x-mark">✗</span></td>
+                <td><span class="x-mark">✗</span></td>
+                <td><span class="x-mark">✗</span></td>
+                <td><span class="check-mark">✓</span></td>
+            </tr>
+            <tr>
+                <td><strong>EC Member</strong></td>
+                <td>Executive committee member; view and vote on governance</td>
+                <td><span class="check-mark">✓</span> (read)</td>
+                <td><span class="x-mark">✗</span></td>
+                <td><span class="check-mark">✓</span></td>
+                <td><span class="x-mark">✗</span></td>
+            </tr>
+            <tr>
+                <td><strong>Treasurer</strong></td>
+                <td>EC role; responsible for financial reports and audit coordination</td>
+                <td><span class="check-mark">✓</span></td>
+                <td><span class="x-mark">✗</span></td>
+                <td><span class="check-mark">✓</span></td>
+                <td><span class="x-mark">✗</span></td>
+            </tr>
+            <tr>
+                <td><strong>Secretary</strong></td>
+                <td>EC role; responsible for minutes and correspondence</td>
+                <td><span class="x-mark">✗</span></td>
+                <td><span class="x-mark">✗</span></td>
+                <td><span class="check-mark">✓</span></td>
+                <td><span class="x-mark">✗</span></td>
+            </tr>
+        </table>
+
+        <p><strong>Note:</strong> The Treasurer and Secretary roles are sub-roles of EC Member. Building Admin (formerly
+            Chairman) is appointed separately and has full building administrative access.</p>
+    </section>
+
+    <section>
+        <h2>Step-by-Step: Send an Invitation</h2>
+
+        <div class="step-row">
+            <div class="step-badge">1</div>
+            <div class="step-content">
+                <h3>Navigate to Staff Management</h3>
+                <p>Go to: <strong>Dashboard → Admin → Staff & Invitations</strong></p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">2</div>
+            <div class="step-content">
+                <h3>Click "Invite New Staff"</h3>
+                <p>A form will open where you can enter invitation details.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">3</div>
+            <div class="step-content">
+                <h3>Fill in their details</h3>
+                <p>Provide:</p>
+                <ul style="margin: 8px 0; padding-left: 20px;">
+                    <li><strong>Email address</strong> — Where they'll receive the invitation link</li>
+                    <li><strong>Full name</strong> — For identification in the system</li>
+                    <li><strong>Phone number</strong> — Optional; for notifications</li>
+                    <li><strong>Role</strong> — Select their primary role (Strata Manager, Accountant, etc.)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">4</div>
+            <div class="step-content">
+                <h3>Assign EC roles (if applicable)</h3>
+                <p>If inviting an EC member, specify their position:</p>
+                <ul style="margin: 8px 0; padding-left: 20px;">
+                    <li><strong>Treasurer</strong> — Financial oversight</li>
+                    <li><strong>Secretary</strong> — Governance and minutes</li>
+                    <li><strong>General Member</strong> — Voting rights only</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">5</div>
+            <div class="step-content">
+                <h3>Optional: Add to committee</h3>
+                <p>If this person should be on the Executive Committee, check the "Add to EC" box. They'll be visible in
+                    the governance section.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">6</div>
+            <div class="step-content">
+                <h3>Send invitation</h3>
+                <p>Click <strong>Send Invitation</strong>. An email will be sent to their address with a unique
+                    invitation link.</p>
+                <p style="color: #555; margin-top: 8px; font-size: 13px;">The link is valid for 14 days. After that,
+                    you'll need to resend it.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">7</div>
+            <div class="step-content">
+                <h3>Invitee accepts & creates account</h3>
+                <p>They click the link in their email and complete registration. Their account is automatically assigned
+                    to your building and given the role you specified.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">8</div>
+            <div class="step-content">
+                <h3>Confirmation</h3>
+                <p>Once they've registered, you'll see their status change to "Active" in your Staff list. They can now
+                    log in and access your building's data.</p>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Managing Invitations</h2>
+
+        <h3>View pending invitations</h3>
+        <p>Dashboard → Admin → Staff & Invitations → Pending tab</p>
+        <p>Shows all invitations that have been sent but not yet accepted.</p>
+
+        <h3>Resend an invitation</h3>
+        <p>If an invitee didn't receive the email or lost the link:</p>
+        <ol>
+            <li>Find the pending invitation in your Staff list</li>
+            <li>Click <strong>Resend</strong></li>
+            <li>A new invitation email is sent (the old link is invalidated)</li>
+        </ol>
+
+        <h3>Revoke an invitation</h3>
+        <p>If you need to cancel an invitation before it's accepted:</p>
+        <ol>
+            <li>Find the pending invitation</li>
+            <li>Click <strong>Revoke</strong></li>
+            <li>The invitation link becomes invalid immediately</li>
+            <li>You can invite someone else if needed</li>
+        </ol>
+
+        <h3>Modify a staff member's role</h3>
+        <p>After someone has accepted an invitation and become active:</p>
+        <ol>
+            <li>Find their name in your Staff list (Active tab)</li>
+            <li>Click <strong>Edit</strong></li>
+            <li>Change their role or EC position</li>
+            <li>Click <strong>Save</strong></li>
+            <li>They'll be notified of the role change on their next login</li>
+        </ol>
+
+        <h3>Deactivate or remove staff</h3>
+        <p>If someone no longer needs access:</p>
+        <ol>
+            <li>Find their name in the Staff list</li>
+            <li>Click <strong>Deactivate</strong></li>
+            <li>Their account is disabled; they can't log in</li>
+            <li>All their API tokens are invalidated</li>
+            <li>(Optional) Click <strong>Reactivate</strong> to restore access later)</li>
+        </ol>
+
+        <div class="callout-warn">
+            <strong>⚠️ Permanent Removal:</strong> Deactivation is preferred over deletion. Deletion removes the user
+            completely and is permanent. Deactivation preserves the audit trail.
+        </div>
+    </section>
+
+    <section>
+        <h2>Multi-Tenant Scoping</h2>
+
+        <p><strong>Every invitation automatically assigns the invitee to your building.</strong></p>
+
+        <p>What this means:</p>
+        <ul>
+            <li>When they register via the invitation link, their account is automatically scoped to your building</li>
+            <li>All their activity is automatically filtered to your building — they cannot access other buildings'
+                data
+            </li>
+            <li>If the same person is invited to multiple buildings, they get a separate account for each building and
+                choose which building to work in at login
+            </li>
+        </ul>
+
+        <div class="callout-info">
+            <strong>Example:</strong> You invite accountant@example.com to Building A. Later, another administrator
+            invites the same email to Building B. The system creates two separate accounts — one per building. When the
+            accountant logs in, they see a building selector and choose which building to work in.
+        </div>
+
+        <p><strong>For Super Admins:</strong> You can see a complete audit trail of all invitations sent, accepted, and
+            modified across all buildings.</p>
+    </section>
+
+    <section>
+        <h2>Email Notifications</h2>
+
+        <h3>Invitation email</h3>
+        <p>When you send an invitation, the recipient receives an email with:</p>
+        <ul>
+            <li>Your building's name and details</li>
+            <li>Their assigned role and permissions</li>
+            <li>A unique invitation link (valid for 14 days)</li>
+            <li>Instructions to set up their account</li>
+        </ul>
+
+        <h3>Role change notification</h3>
+        <p>If you change someone's role after they've joined, they're notified on their next login about the change.</p>
+
+        <h3>Deactivation notice</h3>
+        <p>If you deactivate someone's account, they receive an email notification and can no longer log in.</p>
+    </section>
+
+    <section>
+        <h2>Troubleshooting</h2>
+
+        <h3>Invitee didn't receive the email</h3>
+        <p>Check:</p>
+        <ul>
+            <li>Email address is spelled correctly (no typos)</li>
+            <li>Check their spam/junk folder</li>
+            <li>Ask them if their email system has filters</li>
+            <li>Resend the invitation (generates a new link)</li>
+        </ul>
+
+        <h3>Invitation link expired</h3>
+        <p>Links are valid for 14 days. If an invitee didn't accept within that time, resend the invitation.</p>
+
+        <h3>Can't modify a staff member's role</h3>
+        <p>You can only modify active staff members. Pending invitations cannot be modified—you must revoke and
+            resend.</p>
+
+        <h3>Duplicate account issue</h3>
+        <p>If someone has been invited twice (by mistake), contact support. They can help consolidate accounts.</p>
+    </section>
+
+    <section>
+        <h2>Best Practices</h2>
+
+        <ul>
+            <li><strong>Verify email addresses</strong> — Double-check before sending to avoid inviting the wrong person
+            </li>
+            <li><strong>Use descriptive names</strong> — Include company name if available (e.g., "John Smith - ABC
+                Property Management")
+            </li>
+            <li><strong>Follow the principle of least privilege</strong> — Assign the minimum role needed for their job
+            </li>
+            <li><strong>Regular audits</strong> — Review your staff list quarterly; deactivate unused accounts</li>
+            <li><strong>Onboarding documentation</strong> — Send new staff the User Guides relevant to their role</li>
+            <li><strong>Password security</strong> — Remind staff about password best practices</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>For Super Admins: Global Invitation Management</h2>
+
+        <p>Super Admins have additional capabilities:</p>
+
+        <div class="role-card">
+            <h4>Cross-Building Invitations</h4>
+            <p>Invite a user to multiple buildings by:</p>
+            <ol>
+                <li>Going to Admin → Super Admin Dashboard</li>
+                <li>Selecting "Invite Staff" → "Multi-Building"</li>
+                <li>Choosing buildings and roles for each</li>
+                <li>A single invitation email is sent with options to create separate accounts per building</li>
+            </ol>
+        </div>
+
+        <div class="role-card">
+            <h4>Audit Log</h4>
+            <p>View all invitations ever sent across the platform:</p>
+            <ul>
+                <li>Who invited whom</li>
+                <li>When the invitation was sent and accepted</li>
+                <li>Role changes and deactivations</li>
+                <li>Complete timestamps for compliance</li>
+            </ul>
+        </div>
+    </section>
+
+    <section>
+        <h2>Related Guides</h2>
+        <ul>
+            <li><a href="registration-guide.html">Registration Guide</a> — How users create accounts</li>
+            <li><a href="building-onboarding-guide.html">Building Onboarding Guide</a> — Setting up a new building</li>
+            <li><a href="#">Multi-Tenant Architecture</a> — Technical overview for developers</li>
+        </ul>
+    </section>
+
+</main>
+
+<footer>
+    <p>StrataOS User Guides | Last updated: May 2, 2026</p>
+    <p>Questions? Contact your strata manager or visit the <a href="https://eastgateresidences.com.au/support">support
+        center</a>.</p>
+</footer>
+
+</body>
+</html>

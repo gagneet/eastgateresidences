@@ -1,0 +1,89 @@
+{
+  "version": "1.0",
+  "steps": [
+    {
+      "id": "building_metadata",
+      "name": "Building metadata",
+      "category": "setup",
+      "required": true,
+      "description": "Strata plan number, address, state/territory, total lots, UOE schedule"
+    },
+    {
+      "id": "strata_roll_import",
+      "name": "Strata roll import",
+      "category": "data",
+      "required": true,
+      "description": "Import owner names, unit numbers, lot entitlements from Excel or CSV"
+    },
+    {
+      "id": "levy_calendar",
+      "name": "Levy calendar configuration",
+      "category": "financial",
+      "required": true,
+      "description": "Financial year start, levy periods (quarterly/monthly), grace period days"
+    },
+    {
+      "id": "trust_account",
+      "name": "Trust account setup",
+      "category": "financial",
+      "required": true,
+      "description": "Admin fund and sinking fund account configuration"
+    },
+    {
+      "id": "document_folders",
+      "name": "Document folder structure",
+      "category": "documents",
+      "required": true,
+      "description": "Create default folder hierarchy with RBAC"
+    },
+    {
+      "id": "ec_members",
+      "name": "EC member assignment",
+      "category": "governance",
+      "required": true,
+      "description": "Chairman, Treasurer, Secretary, Members"
+    },
+    {
+      "id": "compliance_calendar",
+      "name": "Compliance calendar import",
+      "category": "compliance",
+      "required": true,
+      "description": "Fire safety, lift, essential services, insurance expiry dates"
+    },
+    {
+      "id": "ppm_schedule",
+      "name": "PPM schedule import",
+      "category": "maintenance",
+      "required": false,
+      "description": "Preventive maintenance plan — Excel ingestion"
+    },
+    {
+      "id": "communication_templates",
+      "name": "Communication templates",
+      "category": "comms",
+      "required": true,
+      "description": "Select or customise notice templates for this jurisdiction"
+    },
+    {
+      "id": "work_order_thresholds",
+      "name": "Work order approval thresholds",
+      "category": "financial",
+      "required": true,
+      "description": "Single approval threshold, dual approval threshold (e.g. $1,000/$5,000)"
+    },
+    {
+      "id": "residents_invited",
+      "name": "Resident invitations sent",
+      "category": "onboarding",
+      "required": true,
+      "description": "Bulk invitation email to all owners and tenants"
+    },
+    {
+      "id": "go_live_validation",
+      "name": "Go-live validation",
+      "category": "validation",
+      "required": true,
+      "description": "Automated checks: all required steps complete, test levy run, test notification"
+    }
+  ]
+}

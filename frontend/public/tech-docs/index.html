@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Tech Docs – Strata Management Platform</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">Strata Management Platform</div>
+            <div class="sub">Strata Management Platform · Technical Documentation</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a class="active" data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="router-datastore-map.html" href="router-datastore-map.html"><span class="icon">🧭</span> Router → Datastore Map</a>
+            <a data-page="canonical-owners.html" href="canonical-owners.html"><span class="icon">📌</span> Canonical Owners</a>
+            <a data-page="function-lens.html" href="function-lens.html"><span class="icon">🔎</span> Function Lens</a>
+            <a data-page="mongo-postgres-finance-sync.html" href="mongo-postgres-finance-sync.html"><span class="icon">🔁</span> Mongo &rarr; Postgres Sync</a>
+            <a data-page="postgres-cutover-state.html" href="postgres-cutover-state.html"><span class="icon">🐘</span> PostgreSQL Cutover State</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a href="/tech-docs/mindmap-view/00_master_mindmap" target="_top"><span class="icon">🧠</span> Mind Maps <span style="opacity:.6;font-size:11px">↗</span></a>
+            <a href="/tech-docs/interactive-mindmaps" target="_top"><span class="icon">🕸️</span> Architecture Console
+                <span style="opacity:.6;font-size:11px">↗</span></a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Feature Domains</div>
+            <a data-page="trust-accounting.html" href="trust-accounting.html"><span class="icon">💰</span> Trust
+                Accounting</a>
+            <a data-page="bank-feeds-demo-bank.html" href="bank-feeds-demo-bank.html"><span class="icon">🏦</span> Demo Bank Sync</a>
+            <a data-page="historical-reconstruction.html" href="historical-reconstruction.html"><span class="icon">📜</span> Historical Reconstruction</a>
+            <a data-page="capital-funding-special-levies.html" href="capital-funding-special-levies.html"><span class="icon">🏗️</span> Capital Funding</a>
+            <a data-page="document-ocr.html" href="document-ocr.html"><span class="icon">🔎</span> Document OCR Workspace</a>
+            <a data-page="feature-toggles.html" href="feature-toggles.html"><span class="icon">🎛️</span> Feature Toggles</a>
+            <a data-page="compliance.html" href="compliance.html"><span class="icon">✅</span> Compliance</a>
+            <a data-page="seed-reference.html" href="seed-reference.html"><span class="icon">🌱</span> Seed Reference</a>
+            <a data-page="file-upload-security.html" href="file-upload-security.html"><span class="icon">🛡️</span> File
+                Upload Security</a>
+            <a data-page="management-hierarchy.html" href="management-hierarchy.html"><span class="icon">🏛️</span> Management Hierarchy</a>
+            <a data-page="bi-analytics-overview.html" href="bi-analytics-overview.html"><span class="icon">📊</span> BI Analytics Phase 2</a>
+            <a data-page="financial-data-consolidation-map.md" href="financial-data-consolidation-map.md"><span class="icon">🧭</span> Financial Data Consolidation Map</a>
+            <a data-page="postgresql-schema-and-drift-map.md" href="postgresql-schema-and-drift-map.md"><span class="icon">🐘</span> PostgreSQL Schema &amp; Drift Map</a>
+            <a data-page="identity-ownership-data-consolidation-map.md" href="identity-ownership-data-consolidation-map.md"><span class="icon">🧬</span> Identity &amp; Ownership Data Map</a>
+            <a data-page="occupancy-bi-data-consolidation-map.md" href="occupancy-bi-data-consolidation-map.md"><span class="icon">📈</span> Occupancy &amp; BI Data Map</a>
+            <a data-page="work-orders-maintenance-data-consolidation-map.md" href="work-orders-maintenance-data-consolidation-map.md"><span class="icon">🔧</span> Work Orders &amp; Maintenance Data Map</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+            <a href="/user-guides/" target="_blank"><span class="icon">📖</span> User Guides</a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <h1>Technical Documentation</h1>
+        <p style="color:var(--muted);font-size:15px;margin-bottom:24px">
+            Multi-tenant strata management platform &nbsp;·&nbsp; <strong style="color:#4f8cff">Super Admin
+            reference</strong>
+        </p>
+
+        <div class="callout warn">
+            <strong>Access restricted.</strong> This documentation is visible to <code>super_admin</code> users only. It
+            contains architecture details, database schemas, API references, and deployment instructions.
+        </div>
+
+        <!-- Stats row -->
+        <div class="stat-grid" style="margin-top:28px">
+            <div class="stat-card">
+                <div class="stat-num">1,297</div>
+                <div class="stat-label">OpenAPI Operations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">1,062</div>
+                <div class="stat-label">OpenAPI Paths</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">267</div>
+                <div class="stat-label">Registered Collections</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">building_id</div>
+                <div class="stat-label">Partition Key</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">10</div>
+                <div class="stat-label">User Roles</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">185</div>
+                <div class="stat-label">Feature Toggles</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">58</div>
+                <div class="stat-label">Backend Models</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">103</div>
+                <div class="stat-label">Backend Services</div>
+            </div>
+        </div>
+
+        <h2>Documentation Index</h2>
+        <div class="toc-grid">
+            <a class="toc-item" href="architecture.html">
+                <span class="toc-icon">🏗️</span>
+                <div>
+                    <div class="toc-title">Architecture</div>
+                    <div class="toc-sub">Tech stack, directory layout, system design</div>
+                </div>
+            </a>
+            <a class="toc-item" href="backend.html">
+                <span class="toc-icon">⚙️</span>
+                <div>
+                    <div class="toc-title">Backend</div>
+                    <div class="toc-sub">FastAPI routers, utilities, services, models</div>
+                </div>
+            </a>
+            <a class="toc-item" href="database.html">
+                <span class="toc-icon">🗄️</span>
+                <div>
+                    <div class="toc-title">Database</div>
+                    <div class="toc-sub">MongoDB collections, PostgreSQL schemas, cutover state, ER diagrams</div>
+                </div>
+            </a>
+            <a class="toc-item" href="router-datastore-map.html">
+                <span class="toc-icon">🧭</span>
+                <div>
+                    <div class="toc-title">Router &rarr; Datastore Map</div>
+                    <div class="toc-sub">Which router reads and writes which store &mdash; generated from source, PostgreSQL names verified against the live catalog</div>
+                </div>
+            </a>
+            <a class="toc-item" href="postgres-cutover-state.html">
+                <span class="toc-icon">🐘</span>
+                <div>
+                    <div class="toc-title">PostgreSQL Cutover State</div>
+                    <div class="toc-sub">Where the migration actually is &mdash; all eight domains promoted, 177 of 230 tables still empty, and the one dispatch seam new code goes through</div>
+                </div>
+            </a>
+            <a class="toc-item" href="canonical-owners.html">
+                <span class="toc-icon">📌</span>
+                <div>
+                    <div class="toc-title">Canonical Owners</div>
+                    <div class="toc-sub">One reusable concept, one owning module; generated Python and frontend duplicate-implementation gate</div>
+                </div>
+            </a>
+            <a class="toc-item" href="function-lens.html">
+                <span class="toc-icon">🔎</span>
+                <div>
+                    <div class="toc-title">Function Lens</div>
+                    <div class="toc-sub">Per-function purpose, callers, blast radius, guards, stores and tests &mdash; generated; call edges are name-based, so treat blast radius as an upper bound</div>
+                </div>
+            </a>
+            <a class="toc-item" href="mongo-postgres-finance-sync.html">
+                <span class="toc-icon">🔁</span>
+                <div>
+                    <div class="toc-title">Mongo &rarr; Postgres Finance Sync</div>
+                    <div class="toc-sub">The missing half of the dual-storage pattern &mdash; why replication is asymmetric, and how the gap is closed through Demo Bank rather than around it</div>
+                </div>
+            </a>
+            <a class="toc-item" href="postgresql-live-data-inventory-2026-07-24.md">
+                <span class="toc-icon">🐘</span>
+                <div>
+                    <div class="toc-title">Live PostgreSQL Data Inventory</div>
+                    <div class="toc-sub">2026-07-24 table counts and populated fields, metadata only</div>
+                </div>
+            </a>
+            <a class="toc-item" href="api.html">
+                <span class="toc-icon">🔌</span>
+                <div>
+                    <div class="toc-title">API Reference</div>
+                    <div class="toc-sub">Generated overview for 1,062 OpenAPI paths and 1,297 operations</div>
+                </div>
+            </a>
+            <a class="toc-item" href="swagger.html">
+                <span class="toc-icon">📘</span>
+                <div>
+                    <div class="toc-title">Swagger API Docs</div>
+                    <div class="toc-sub">Browser-accessible OpenAPI UI generated from the live FastAPI route table</div>
+                </div>
+            </a>
+            <a class="toc-item" href="postman/strataos_demo_collection.json">
+                <span class="toc-icon">📦</span>
+                <div>
+                    <div class="toc-title">Postman Collection</div>
+                    <div class="toc-sub">Full generated collection with demo-building defaults and External API X-API-Key headers</div>
+                </div>
+            </a>
+            <a class="toc-item" href="frontend.html">
+                <span class="toc-icon">🖥️</span>
+                <div>
+                    <div class="toc-title">Frontend</div>
+                    <div class="toc-sub">React routing, state, components, pages</div>
+                </div>
+            </a>
+            <a class="toc-item" href="auth.html">
+                <span class="toc-icon">🔐</span>
+                <div>
+                    <div class="toc-title">Auth &amp; Permissions</div>
+                    <div class="toc-sub">JWT, roles, permission matrix, flows</div>
+                </div>
+            </a>
+            <a class="toc-item" href="workflows.html">
+                <span class="toc-icon">🔄</span>
+                <div>
+                    <div class="toc-title">Workflows</div>
+                    <div class="toc-sub">Maintenance, finance, user lifecycle diagrams</div>
+                </div>
+            </a>
+            <a class="toc-item" href="/tech-docs/mindmap-view/00_master_mindmap" target="_top">
+                <span class="toc-icon">🧠</span>
+                <div>
+                    <div class="toc-title">Mind Maps</div>
+                    <div class="toc-sub">Domain-by-domain mind map (11 domains + background jobs) with field-level
+                        DB→API→UI mapping — renders as live diagrams
+                    </div>
+                </div>
+            </a>
+            <a class="toc-item" href="/tech-docs/interactive-mindmaps" target="_top">
+                <span class="toc-icon">🕸️</span>
+                <div>
+                    <div class="toc-title">Architecture Console <span style="opacity:.6;font-size:11px">↗</span></div>
+                    <div class="toc-sub">Live React Flow graph of routers, collections, jobs and audit flags —
+                        click any node to open its mind map
+                    </div>
+                </div>
+            </a>
+            <a class="toc-item" href="financial-data-consolidation-map.md">
+                <span class="toc-icon">🧭</span>
+                <div>
+                    <div class="toc-title">Financial Data Consolidation Map</div>
+                    <div class="toc-sub">Every finance page → API → router → service → database (Mongo/Postgres) source, with cutover-policy status and known-broken/duplicate links flagged</div>
+                </div>
+            </a>
+            <a class="toc-item" href="postgresql-schema-and-drift-map.md">
+                <span class="toc-icon">🐘</span>
+                <div>
+                    <div class="toc-title">PostgreSQL Schema &amp; Drift Map</div>
+                    <div class="toc-sub">Full PG schema (202+ tables), per-domain cutover status, route promotion tiers, and measured Mongo/Postgres drift evidence (shadow_diffs)</div>
+                </div>
+            </a>
+            <a class="toc-item" href="identity-ownership-data-consolidation-map.md">
+                <span class="toc-icon">🧬</span>
+                <div>
+                    <div class="toc-title">Identity &amp; Ownership Data Map</div>
+                    <div class="toc-sub">Every identity/ownership page → API → handler → database source; the read/write split-brain on the promoted identity_core domain (owners-units and user role edits write Mongo only, promoted Postgres read path unchanged)</div>
+                </div>
+            </a>
+            <a class="toc-item" href="occupancy-bi-data-consolidation-map.md">
+                <span class="toc-icon">📈</span>
+                <div>
+                    <div class="toc-title">Occupancy &amp; BI Data Map</div>
+                    <div class="toc-sub">Occupancy and BI are already governed dual-paths; occupancy is promotable (control-plane), BI is blocked on an empty ETL fact layer and superseded by GAP-FIN-050's live-canonical decision — neither needs a code flip</div>
+                </div>
+            </a>
+            <a class="toc-item" href="work-orders-maintenance-data-consolidation-map.md">
+                <span class="toc-icon">🔧</span>
+                <div>
+                    <div class="toc-title">Work Orders &amp; Maintenance Data Map</div>
+                    <div class="toc-sub">Maintenance is fully Mongo-operational with no cutover domain; a disconnected Postgres-native ops.* schema is being built in parallel. Flags a P1 multi-tenant work-order MAJORITY-quorum bug (counts EC members across all buildings)</div>
+                </div>
+            </a>
+            <a class="toc-item" href="levy-fairness.html">
+                <span class="toc-icon">⚖️</span>
+                <div>
+                    <div class="toc-title">Levy Fairness</div>
+                    <div class="toc-sub">Next-Gen Facility Cost-Centre Allocation Engine & Predictive Risk Modeling
+                    </div>
+                </div>
+            </a>
+            <a class="toc-item" href="capital-funding-special-levies.html">
+                <span class="toc-icon">🏗️</span>
+                <div>
+                    <div class="toc-title">Capital Funding &amp; Special Levies</div>
+                    <div class="toc-sub">Planned workspace for funding scenarios, owner elections and levy-notice PDF preview batches</div>
+                </div>
+            </a>
+            <a class="toc-item" href="deployment.html">
+                <span class="toc-icon">🚀</span>
+                <div>
+                    <div class="toc-title">Deployment</div>
+                    <div class="toc-sub">Env vars, systemd services, deploy script</div>
+                </div>
+            </a>
+            <a class="toc-item" href="testing.html">
+                <span class="toc-icon">🧪</span>
+                <div>
+                    <div class="toc-title">Testing</div>
+                    <div class="toc-sub">Pytest, Playwright, coverage guide</div>
+                </div>
+            </a>
+            <a class="toc-item" href="trust-accounting.html">
+                <span class="toc-icon">💰</span>
+                <div>
+                    <div class="toc-title">Trust Accounting</div>
+                    <div class="toc-sub">Double-entry ledger, period locks, reconciliation, bank feeds</div>
+                </div>
+            </a>
+            <a class="toc-item" href="bank-feeds-demo-bank.html">
+                <span class="toc-icon">🏦</span>
+                <div>
+                    <div class="toc-title">Demo Bank Sync</div>
+                    <div class="toc-sub">Demo Bank provider staging, bank-feed sync/rematch, and MatchingEngine backfill</div>
+                </div>
+            </a>
+            <a class="toc-item" href="historical-reconstruction.html">
+                <span class="toc-icon">📜</span>
+                <div>
+                    <div class="toc-title">Historical Reconstruction</div>
+                    <div class="toc-sub">Reconstruction-batch review/approval workflow and GST-aware levy regeneration</div>
+                </div>
+            </a>
+            <a class="toc-item" href="onboarding-financial-pipeline.html">
+                <span class="toc-icon">🔗</span>
+                <div>
+                    <div class="toc-title">Onboarding Financial Pipeline</div>
+                    <div class="toc-sub">The ONE path: sources → Financial Evidence Gateway → financial_core GL → PostgreSQL finance.* ledger → read services → UI; CREATE→DISPLAY→RECONCILE lifecycle, Phase 1/2 supersession, gap register G1–G8 (shipped vs planned)</div>
+                </div>
+            </a>
+            <a class="toc-item" href="document-ocr.html">
+                <span class="toc-icon">🔎</span>
+                <div>
+                    <div class="toc-title">Document OCR Workspace</div>
+                    <div class="toc-sub">Building-scoped OCR job workspace: upload, extract, review, publish to documents</div>
+                </div>
+            </a>
+            <a class="toc-item" href="feature-toggles.html">
+                <span class="toc-icon">🎛️</span>
+                <div>
+                    <div class="toc-title">Feature Toggles</div>
+                    <div class="toc-sub">Two-tier resolution, 40+ toggles, how to add new ones</div>
+                </div>
+            </a>
+            <a class="toc-item" href="compliance.html">
+                <span class="toc-icon">✅</span>
+                <div>
+                    <div class="toc-title">Compliance</div>
+                    <div class="toc-sub">Rental certificates, WHS, NSW/ACT compliance, decisions register</div>
+                </div>
+            </a>
+            <a class="toc-item" href="seed-reference.html">
+                <span class="toc-icon">🌱</span>
+                <div>
+                    <div class="toc-title">Seed Reference</div>
+                    <div class="toc-sub">Snapshot vs idempotent seeds, environment matrix, production data protection
+                    </div>
+                </div>
+            </a>
+            <a class="toc-item" href="file-upload-security.html">
+                <span class="toc-icon">🛡️</span>
+                <div>
+                    <div class="toc-title">File Upload Security</div>
+                    <div class="toc-sub">Magika ML scanning, blocked labels, context allowlists, 14 protected endpoints,
+                        trial leads
+                    </div>
+                </div>
+            </a>
+            <a class="toc-item" href="management-hierarchy.html">
+                <span class="toc-icon">🏛️</span>
+                <div>
+                    <div class="toc-title">Management Hierarchy</div>
+                    <div class="toc-sub">Company → entity → scheme → manager appointment model; PostgreSQL tables; access scopes</div>
+                </div>
+            </a>
+            <a class="toc-item" href="management-hierarchy-api.html">
+                <span class="toc-icon">🔌</span>
+                <div>
+                    <div class="toc-title">Management Hierarchy API</div>
+                    <div class="toc-sub">All /management-hierarchy/* endpoints with role gates and field filtering rules</div>
+                </div>
+            </a>
+            <a class="toc-item" href="sm-organisations-api.html">
+                <span class="toc-icon">🏢</span>
+                <div>
+                    <div class="toc-title">SM Organisations API</div>
+                    <div class="toc-sub">/admin/sm-organisations/* — create/manage strata companies and self-managed schemes</div>
+                </div>
+            </a>
+            <a class="toc-item" href="manager-contracts-api.html">
+                <span class="toc-icon">📋</span>
+                <div>
+                    <div class="toc-title">Manager Contracts API</div>
+                    <div class="toc-sub">/manager-contracts/* — contract lifecycle, expiry notifications, legislative compliance</div>
+                </div>
+            </a>
+            <a class="toc-item" href="bi-analytics-overview.html">
+                <span class="toc-icon">📊</span>
+                <div>
+                    <div class="toc-title">BI Analytics Phase 2</div>
+                    <div class="toc-sub">5-tier analytics hierarchy: building, owner, manager, agency, platform; toggle matrix; PG facts schema</div>
+                </div>
+            </a>
+            <a class="toc-item" href="bi-analytics-building-api.html">
+                <span class="toc-icon">🏢</span>
+                <div>
+                    <div class="toc-title">BI — Building Endpoints</div>
+                    <div class="toc-sub">14 KPI panels per building: financial, maintenance, compliance, occupancy, asset risk</div>
+                </div>
+            </a>
+            <a class="toc-item" href="bi-analytics-portfolio-api.html">
+                <span class="toc-icon">🗂️</span>
+                <div>
+                    <div class="toc-title">BI — Portfolio Endpoints</div>
+                    <div class="toc-sub">Manager portfolio, agency, platform, and management entity cross-building analytics</div>
+                </div>
+            </a>
+            <a class="toc-item" href="bi-analytics-owner-api.html">
+                <span class="toc-icon">👤</span>
+                <div>
+                    <div class="toc-title">BI — Owner Investment API</div>
+                    <div class="toc-sub">Total cost of ownership, yield estimate, risk-adjusted yield, investor intelligence</div>
+                </div>
+            </a>
+        </div>
+
+        <h2>How to Use This Documentation</h2>
+        <div class="two-col">
+            <div class="card">
+                <h3>👩‍💻 Developers</h3>
+                <ul>
+                    <li>Start with <a href="architecture.html">Architecture</a> for system overview</li>
+                    <li>Use <a href="api.html">API Reference</a> and <a href="swagger.html">Swagger UI</a> for endpoint details</li>
+                    <li>See <a href="backend.html">Backend</a> for adding new endpoints</li>
+                    <li>See <a href="frontend.html">Frontend</a> for adding new pages</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🏛️ Architects</h3>
+                <ul>
+                    <li><a href="architecture.html">Architecture</a> has system design diagrams</li>
+                    <li><a href="database.html">Database</a> has ER diagrams and schemas</li>
+                    <li><a href="/tech-docs/mindmap-view/00_master_mindmap" target="_top">Mind Maps</a> map every router → collection → UI page</li>
+                    <li><a href="/tech-docs/interactive-mindmaps" target="_top">Architecture Console</a> for a live
+                        clickable graph
+                    </li>
+                    <li><a href="workflows.html">Workflows</a> shows key business processes</li>
+                    <li><a href="auth.html">Auth</a> details the security model</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>📊 Business Analysts</h3>
+                <ul>
+                    <li><a href="workflows.html">Workflows</a> maps all business processes</li>
+                    <li><a href="auth.html">Permissions</a> shows role-capability matrix</li>
+                    <li><a href="frontend.html">Frontend Pages</a> lists all user-facing screens</li>
+                    <li>Feature toggles control rollout of features; the current seed registry contains 179 entries</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🗄️ DBAs</h3>
+                <ul>
+                    <li><a href="database.html">Database</a> documents the current Mongo/Postgres data model and tenant scoping rules</li>
+                    <li>Seeding scripts in <code>backend/seeds/</code> — see <a href="seed-reference.html">Seed
+                        Reference</a></li>
+                    <li>No migrations — Pydantic runtime validation + MongoDB flexible schema</li>
+                    <li>All tenant collections require <code>building_id</code> in every query</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>📋 Product Managers</h3>
+                <ul>
+                    <li><a href="frontend.html">Frontend Pages</a> lists all 74 screens</li>
+                    <li><a href="workflows.html">Workflows</a> maps user journeys</li>
+                    <li>63 feature toggles for controlled rollout</li>
+                    <li><a href="auth.html">Role matrix</a> shows access by role</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🚀 DevOps</h3>
+                <ul>
+                    <li><a href="deployment.html">Deployment</a> covers all env vars and scripts</li>
+                    <li>systemd service for backend process management</li>
+                    <li>React build output served as static files</li>
+                    <li><a href="testing.html">Testing</a> covers CI integration</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>Quick Reference</h2>
+        <div class="card">
+            <h3>Key File Locations</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Purpose</th>
+                        <th>File</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Backend entry point</td>
+                        <td><code>backend/server.py</code></td>
+                        <td>8,700+ lines — imports all routers</td>
+                    </tr>
+                    <tr>
+                        <td>All API routes</td>
+                        <td><code>backend/routers/*.py</code></td>
+                        <td>22 router files</td>
+                    </tr>
+                    <tr>
+                        <td>Pydantic models</td>
+                        <td><code>backend/models/*.py</code></td>
+                        <td>16 model files</td>
+                    </tr>
+                    <tr>
+                        <td>DB connection</td>
+                        <td><code>backend/database.py</code></td>
+                        <td>Motor async MongoDB client</td>
+                    </tr>
+                    <tr>
+                        <td>App config</td>
+                        <td><code>backend/config.py</code></td>
+                        <td>JWT, email, Stripe config</td>
+                    </tr>
+                    <tr>
+                        <td>Frontend routes</td>
+                        <td><code>frontend/src/App.js</code></td>
+                        <td>40+ routes, ProtectedRoute wrapper</td>
+                    </tr>
+                    <tr>
+                        <td>Global auth state</td>
+                        <td><code>frontend/src/contexts/AuthContext.js</code></td>
+                        <td>JWT, permissions, notifications</td>
+                    </tr>
+                    <tr>
+                        <td>Sidebar navigation</td>
+                        <td><code>frontend/src/components/layout/DashboardLayout.jsx</code></td>
+                        <td>50+ nav items</td>
+                    </tr>
+                    <tr>
+                        <td>DB seed scripts</td>
+                        <td><code>backend/seeds/*.py</code></td>
+                        <td>19 seed files</td>
+                    </tr>
+                    <tr>
+                        <td>Environment template</td>
+                        <td><code>backend/.env.example</code></td>
+                        <td>Copy to <code>.env</code></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="callout success" style="margin-top:32px">
+            <strong>Last updated:</strong> 2026-03-06 &nbsp;·&nbsp;
+            Platform: <strong>Strata Management Platform v3.0</strong>
+        </div>
+    </main>
+</div>
+<footer>Strata Management Platform · Technical Documentation · Super Admin Only · 2026 · A vision by:
+    Silverfox Technologies, Australia · Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Onboarding Workflow — Tech Doc</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <h1>Onboarding Workflow</h1>
+    <p class="subtitle">SM organisations + buildings + self-managed schemes (May 2026)</p>
+</header>
+
+<main>
+    <section>
+        <h2>Overview</h2>
+        <p>
+            Three paths land in the same Postgres data model
+            (<code>core.tenants</code> + <code>core.schemes</code>):
+        </p>
+        <ol>
+            <li><strong>Trial-request approval.</strong> Public form → SA reviews → atomic tenant + invitation creation.
+                Future work; see <a href="#status">Status</a>.
+            </li>
+            <li><strong>SA direct create (SM-managed).</strong> SA fills <code>POST /api/admin/sm-organisations</code>
+                form. Creates one tenant; primary admin invitation sent.
+            </li>
+            <li><strong>SA direct create (self-managed).</strong> SA fills <code>POST
+                /api/admin/sm-organisations/self-managed</code>. Atomic: tenant + scheme + EC admin invitation.
+            </li>
+        </ol>
+    </section>
+
+    <section>
+        <h2>Financial-only onboarding (historical reconstruction) — added 2026-07-26</h2>
+        <p>
+            A separate, later-stage flow for a building that has <em>already</em> completed the
+            three paths above (scheme + tenant already exist) and now needs prior years' financial
+            history added or filled in — for example a building migrating from another platform, or
+            one with a partial history that only needs the gaps closed. It never creates a scheme or
+            tenant. Router: <code>backend/routers/financial_onboarding.py</code> (prefix
+            <code>/api/financials</code>). Full endpoint contract:
+            <code>docs/architecture/onboarding/02_endpoint_contracts.md</code> §3.
+        </p>
+        <p>
+            <strong>Where to find it:</strong> Dashboard → Financial → <strong>Financial
+            Onboarding</strong> (<code>/admin/financial-onboarding</code>, a
+            building-selector wrapper) or <strong>Historical Reconstruction</strong> directly
+            (<code>/financials/historical-reconstruction</code>). Both are gated by the
+            <code>historical_financial_reconstruction</code> feature toggle, which — together with
+            <code>historical_reconstruction_posting</code> — was flipped from disabled to
+            <strong>enabled by default globally</strong> in this same change (both classified
+            <code>ADMIN_ONLY</code> in <code>backend/core/toggle_classification.py</code>, safe to
+            bulk-enable). Before this, the nav items were wired into the sidebar but invisible.
+        </p>
+        <h3>Generating financial history: two source modes</h3>
+        <p>
+            Creating a reconstruction batch now offers a <strong>Generation source</strong> choice:
+        </p>
+        <ul>
+            <li>
+                <strong>Generate from proposed budget (Admin/Sinking/GST)</strong> — the new
+                default (<code>reconstruction_method = "generate_from_budget_v1"</code>). Building-
+                agnostic: works for <em>any</em> building, not just East Gate. Computes one combined
+                Admin+Sinking(+GST) Demo Bank transaction per lot per quarter directly from the
+                building's proposed levy budget and unit entitlements
+                (<code>services/reconstruction_generators/budget_levy_generator.py</code>). Before
+                generating anything, the page calls <code>GET
+                .../historical-data-status</code> and shows either <em>"No financial history
+                found — ready to generate"</em> or <em>"Partial financial history found (N of M
+                lot/year/fund periods already paid) — generation will skip those"</em>. The
+                generator itself dedups against <code>finance.levy_items.paid_cents</code>: any
+                lot/year/fund combination that already shows a real recorded payment is skipped
+                entirely rather than duplicated — the same mechanism covers both "some history
+                already exists" and "no history exists" without separate code paths.
+            </li>
+            <li>
+                <strong>Link existing Demo Bank rows</strong> — the original, East-Gate-only path
+                (any other <code>reconstruction_method</code> value, e.g.
+                <code>gst_uoe_largest_remainder_v5</code>). Only links pre-existing
+                <code>demo_bank_transactions</code> rows that already happen to exist; does not
+                generate new ones. Hidden by default in the UI, kept for backward compatibility.
+            </li>
+        </ul>
+        <h3>From batch to visible data</h3>
+        <p>
+            A batch moves through <code>draft → extracted → needs_review → approved →
+            generation_ready → generated → syncing → synced/matching/partially_posted/posted</code>
+            (or <code>failed</code>/<code>reversed</code>/<code>superseded</code>). Approval is a
+            genuine two-person control: <code>POST .../review</code> and <code>POST
+            .../approve</code> are separate endpoints, and the server rejects an approval attempt by
+            the same user who recorded the review. Once a batch reaches
+            <code>synced</code>/<code>matching</code>/<code>partially_posted</code>/<code>posted</code>,
+            the page shows a <strong>"Go to Payment Matching Review"</strong> button linking to
+            <code>/financials/matching</code> — the existing matching-review page, which
+            needed no changes for this feature.
+        </p>
+    </section>
+
+    <section>
+        <h2>Data model (after migration 0028)</h2>
+        <h3><code>core.tenants</code> additions</h3>
+        <pre><code>is_self_managed       BOOLEAN NOT NULL DEFAULT FALSE
+legal_name            TEXT
+created_from_trial_id UUID</code></pre>
+
+        <h3>New table <code>core.trial_requests</code></h3>
+        <pre><code>request_id           UUID PK
+status               core.trial_request_status   -- enum: submitted | approved | rejected | expired
+org_name             TEXT
+contact_email        CITEXT
+created_tenant_id    UUID NULLABLE FK core.tenants
+invitation_id        UUID NULLABLE FK core.user_invitations
+expires_at           TIMESTAMPTZ                  -- default NOW() + 30 days</code></pre>
+
+        <h3>Invariants enforced at DB level</h3>
+        <ul>
+            <li><strong>Active-only ABN uniqueness</strong> — partial unique index
+                <code>tenants_abn_unique_active</code> WHERE <code>status = 'active'</code>.
+            </li>
+            <li><strong>Self-managed 1:1</strong> — trigger <code>schemes_self_managed_one_per_tenant</code> blocks a
+                second non-archived scheme insert under any tenant where <code>is_self_managed=TRUE</code>.
+            </li>
+            <li><strong>One open trial per email</strong> — partial unique index
+                <code>trial_requests_email_open_unique</code> WHERE <code>status = 'submitted'</code>.
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Endpoints</h2>
+
+        <h3>SM-Organisation administration (super-admin only)</h3>
+        <ul>
+            <li><code>POST /api/admin/sm-organisations</code> — direct-create SM-managed tenant + invitation</li>
+            <li><code>POST /api/admin/sm-organisations/self-managed</code> — atomic tenant + scheme + EC invitation</li>
+            <li><code>GET /api/admin/sm-organisations[?include_self_managed=true&amp;status=active]</code></li>
+            <li><code>GET /api/admin/sm-organisations/{tenant_id}</code></li>
+            <li><code>GET /api/admin/sm-organisations/{tenant_id}/schemes</code></li>
+            <li><code>GET /api/admin/sm-organisations/{tenant_id}/members</code></li>
+            <li><code>PATCH /api/admin/sm-organisations/{tenant_id}</code></li>
+        </ul>
+
+        <h3>Building / scheme onboarding (SA, strata_admin, or strata_manager)</h3>
+        <ul>
+            <li><code>POST /api/onboarding/scheme/start</code> — create scheme + onboarding session (SA must supply
+                <code>tenant_id</code>; strata_admin/manager forced to own tenant)
+            </li>
+            <li><code>GET /api/onboarding/scheme/{session_id}</code></li>
+            <li><code>PATCH /api/onboarding/scheme/{session_id}</code> — update <code>step_data</code></li>
+            <li><code>POST /api/onboarding/scheme/{session_id}/lots</code> — bulk-import lots, idempotent on (scheme_id,
+                lot_number)
+            </li>
+            <li><code>POST /api/onboarding/scheme/{session_id}/finalize</code> — post genesis journals, dispatch
+                invitations, mark complete
+            </li>
+        </ul>
+
+        <h3>Error codes returned</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <thead>
+            <tr style="text-align:left;border-bottom:1px solid #ccc;">
+                <th style="padding:6px 0;">Code</th>
+                <th>HTTP</th>
+                <th>Where</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>abn_already_active</code></td>
+                <td>409</td>
+                <td>SM org create paths</td>
+            </tr>
+            <tr>
+                <td><code>scheme_number_taken_in_jurisdiction</code></td>
+                <td>409</td>
+                <td>self-managed create, scheme start</td>
+            </tr>
+            <tr>
+                <td><code>self_managed_already_has_scheme</code></td>
+                <td>409</td>
+                <td>scheme start under self-managed tenant</td>
+            </tr>
+            <tr>
+                <td><code>tenant_id_required_for_super_admin</code></td>
+                <td>400</td>
+                <td>scheme start as SA without tenant_id</td>
+            </tr>
+            <tr>
+                <td><code>tenant_not_found</code></td>
+                <td>404</td>
+                <td>scheme start with bad tenant_id</td>
+            </tr>
+            <tr>
+                <td><code>not_a_strata_admin</code></td>
+                <td>403</td>
+                <td>scheme start by non-{SA,SAdm,SMgr}</td>
+            </tr>
+            <tr>
+                <td><code>session_not_found</code> / <code>session_already_finalized</code></td>
+                <td>404 / 409</td>
+                <td>/lots</td>
+            </tr>
+            <tr>
+                <td><code>duplicate_lot_number_in_request</code> / <code>invalid_lot_payload</code></td>
+                <td>409 / 422</td>
+                <td>/lots</td>
+            </tr>
+            <tr>
+                <td><code>partial_invitation_failures</code></td>
+                <td>200</td>
+                <td>/finalize (partial OK; failed addresses returned)</td>
+            </tr>
+            <tr>
+                <td><code>invitation_email_failed</code></td>
+                <td>200</td>
+                <td>SM org create paths (tenant created OK; email failed)</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section id="status">
+        <h2>Status (May 2026)</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <thead>
+            <tr style="text-align:left;border-bottom:1px solid #ccc;">
+                <th style="padding:6px 0;">Item</th>
+                <th>State</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Migration 0028</td>
+                <td>Applied to live PG; 12 tests pass</td>
+            </tr>
+            <tr>
+                <td>SM-organisations router</td>
+                <td>Live; 7 tests pass</td>
+            </tr>
+            <tr>
+                <td>Onboarding /start, /lots, /finalize</td>
+                <td>Live; auth relaxed for strata_admin/manager</td>
+            </tr>
+            <tr>
+                <td>SA direct-create form (frontend)</td>
+                <td>Live at <code>/admin/sm-organisations/new-self-managed</code></td>
+            </tr>
+            <tr>
+                <td>Owner / EC invitation emails</td>
+                <td>Now contain a real <code>/onboarding/claim/{token}</code> link (raw token captured across the txn
+                    boundary; HTML-escaped HTML body via <code>_owner_invitation_email_html</code> / <code>_ec_invitation_email_html</code>;
+                    FRONTEND_URL fallback to <code>https://www.eastgateresidences.com.au</code>). Fixed 2026-05-03 in
+                    commit <code>e2403a4d</code>.
+                </td>
+            </tr>
+            <tr>
+                <td>SA <code>/auth/switch-building</code> (cross-tenant)</td>
+                <td>Patched 2026-05-03 — <code>identity_repo.get_scheme_by_id</code> / <code>get_scheme_by_number</code>
+                    now set the RLS bypass sentinel <code>app.tenant_id = '00000000-…'</code> before the SELECT, so the
+                    SA can resolve schemes belonging to other tenants. Same bypass is now used with
+                    <code>is_local=true</code> across all 5 admin helpers to prevent GUC leak across pooled connections.
+                </td>
+            </tr>
+            <tr>
+                <td>Trial-request flow (PG-backed)</td>
+                <td>Pending — see spec doc 02 §2.1</td>
+            </tr>
+            <tr>
+                <td>Invitation role-matrix (strata_admin can invite strata_manager)</td>
+                <td>Pending — currently SA-only</td>
+            </tr>
+            <tr>
+                <td>Legacy <code>/api/organisations/*</code> removal</td>
+                <td>Pending</td>
+            </tr>
+            <tr>
+                <td>Legacy building-setup endpoint removal</td>
+                <td>Completed — replaced by <code>/api/admin/onboarding/scheme</code> and SM-organisation detail endpoints</td>
+            </tr>
+            <tr>
+                <td>Manual "Current Balances" (Track A) reaching genesis posting</td>
+                <td>Fixed 2026-07-25 (GAP-ONBOARD-001) — previously silently discarded; also fixed two
+                    latent defects in the posting path itself (a UUID-construction crash and a missing
+                    accounting-period bootstrap step) found while adding live test coverage.
+                </td>
+            </tr>
+            <tr>
+                <td>Trust bank account details (Setup → Bank Accounts step)</td>
+                <td>Fixed 2026-07-25 (GAP-ONBOARD-001) — now creates a real trust account on finalize
+                    (respecting the building's Trust Accounting feature toggle); a standalone
+                    "Add Account" form was also added to Trust Bank Accounts settings so accounts can be
+                    created after onboarding too, not only during it.
+                </td>
+            </tr>
+            <tr>
+                <td>Quick-create form (<code>/admin/buildings/onboard</code>) Strata Roll import</td>
+                <td>Fixed 2026-07-25 (GAP-ONBOARD-001) — now really imports via the same <code>/lots</code>
+                    endpoint the full wizard uses; the other two uploads on that form (Financial
+                    Statements, Levy Records) are not imported by that quick form and now say so
+                    honestly, with a link to this full wizard.
+                </td>
+            </tr>
+            <tr>
+                <td>Per-building bank-feed auto-approve setting</td>
+                <td>Added 2026-07-25 (GAP-ONBOARD-001) — Settings → Payment &amp; Bank →
+                    "Bank Feed Transaction Matching". Default (on) matches the pre-existing
+                    confidence-based auto-allocate behaviour exactly; turning it off forces every
+                    matched bank-feed transaction to manual review regardless of confidence.
+                </td>
+            </tr>
+            <tr>
+                <td><code>PATCH /onboarding/scheme/{id}</code> step-data save</td>
+                <td>Fixed 2026-07-25 — a pre-existing SQL bug (parameter type ambiguity in the
+                    underlying query) meant this endpoint threw a 500 for any real <code>step_data</code>
+                    payload; had zero prior test coverage. Found and fixed while adding coverage for the
+                    fix above.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            Specs: <code>docs/architecture/onboarding/01_data_model_migration.md</code>,
+            <code>02_endpoint_contracts.md</code>, <code>03_ui_screens.md</code>.
+            Full audit + fix write-up: <code>tasks/GAP-ONBOARD-001-onboarding-financial-setup-completion.md</code>.
+        </p>
+    </section>
+
+    <section>
+        <h2>Multi-tenant isolation</h2>
+        <p>
+            Every endpoint resolves <code>tenant_id</code> from the caller's JWT
+            claim, not from URL parameters or request body for non-SA callers.
+            For SA callers, the body's <code>tenant_id</code> is validated against
+            <code>core.tenants</code> before any write. Postgres RLS on
+            <code>core.lots</code>, <code>core.schemes</code>,
+            <code>core.user_invitations</code> blocks any cross-tenant read or
+            write that bypasses the application layer. See
+            <code>tests/backend/test_onboarding_e2e.py</code> for the live
+            cross-tenant isolation assertion.
+        </p>
+    </section>
+</main>
+</body>
+</html>

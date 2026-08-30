@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Guest Information &amp; House Rules</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .emergency-banner {
+            background: rgba(239, 68, 68, .18);
+            border: 2px solid var(--danger);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin: 16px 0 24px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 15px;
+            color: #fca5a5;
+            letter-spacing: .02em;
+        }
+
+        .zone-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .zone-item {
+            background: rgba(11, 18, 32, .65);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 13px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .zone-num {
+            color: var(--danger);
+            font-weight: 700;
+            min-width: 56px;
+        }
+
+        .floor-plan-img {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin: 12px 0;
+        }
+
+        .rule-icon {
+            margin-right: 6px;
+            font-size: 15px;
+        }
+
+        .step {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            margin: 10px 0;
+        }
+
+        .step-num {
+            min-width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--brand);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            font-size: 14px;
+            color: #d6deea;
+            line-height: 1.55;
+            padding-top: 3px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div data-bldg="address">your building\'s address</div>
+            </div>
+        </div>
+        <div class="badge">Guest Information</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Contents</h3>
+        <a href="#welcome">Welcome</a>
+        <a href="#rules">House Rules</a>
+        <a href="#pets">Pet Policy</a>
+        <a href="#amenities">Amenities &amp; Access</a>
+        <a href="#parking">Parking &amp; Deliveries</a>
+        <a href="#waste">Waste &amp; Recycling</a>
+        <a href="#contact">Contact &amp; Help</a>
+        <a href="#emergency">Emergency Procedures</a>
+        <a href="#fire-plan">Fire Detection Plan</a>
+    </nav>
+
+    <article class="content">
+
+        <h1 id="welcome">Guest Information Guide</h1>
+        <p>Welcome to <span data-bldg="name">your building</span>. This guide covers everything you need to know for a
+            comfortable and
+            compliant stay. Please read it before or on arrival — your host expects you to follow all rules below.</p>
+
+        <div class="card callout warn">
+            <strong>Your stay in summary</strong>
+            <ul>
+                <li>You are a registered short-term guest of a unit owner</li>
+                <li>You are bound by the same by-laws and house rules as residents</li>
+                <li>Your host (the unit owner) is responsible for your conduct on the premises</li>
+                <li>Breaches may result in immediate removal and reporting to the Owners Corporation</li>
+            </ul>
+        </div>
+
+        <!-- ─── HOUSE RULES ──────────────────────────────────────────────────── -->
+        <h2 id="rules">House Rules</h2>
+
+        <h3>Noise &amp; Quiet Hours</h3>
+        <ul>
+            <li><span class="rule-icon">🔇</span><strong>Quiet hours: 10 pm – 8 am</strong> daily. No amplified music,
+                parties, or loud gatherings.
+            </li>
+            <li>Keep voices and TV at a considerate level at all times in common areas.</li>
+            <li>No slamming doors, running in corridors, or excessive noise in stairwells.</li>
+        </ul>
+
+        <h3>Common Areas &amp; Corridors</h3>
+        <ul>
+            <li>Keep all corridors, fire exits, and stairwells completely clear — no bikes, prams, boxes, or personal
+                items.
+            </li>
+            <li>No smoking anywhere inside the building, in corridors, on balconies, or within 4 metres of any
+                entrance.
+            </li>
+            <li>No vaping, hookahs, or open-flame devices anywhere on the premises.</li>
+            <li>Do not prop open fire doors or building entry doors at any time.</li>
+            <li>Report any lift faults or safety hazards to your host or the emergency number below.</li>
+        </ul>
+
+        <h3>Unit Conduct</h3>
+        <ul>
+            <li>No parties or events that exceed the normal occupancy of the unit.</li>
+            <li>No subletting — you may not let others stay in the unit on your behalf.</li>
+            <li>Treat all appliances, furniture, and fixtures with care. Report damage promptly to your host.</li>
+            <li>No alterations, drilling, or affixing anything to walls without owner permission.</li>
+            <li>Do not remove any furniture or equipment from the unit.</li>
+        </ul>
+
+        <h3>Balconies</h3>
+        <ul>
+            <li>No hanging laundry, towels, or items visible from outside (including over balcony railings).</li>
+            <li>No throwing or dropping anything from balconies.</li>
+            <li>BBQ use on balconies is not permitted unless your host has confirmed it is approved for the unit.</li>
+        </ul>
+
+        <!-- ─── PET POLICY ────────────────────────────────────────────────────── -->
+        <h2 id="pets">Pet Policy for Guests</h2>
+
+        <div class="card callout danger">
+            <strong>No pets permitted for short-term guests</strong>
+            <p style="margin:6px 0 0">Short-term guests are not permitted to bring pets (including dogs, cats, birds, or
+                any animals) onto the premises without prior written approval from both the unit owner and the Owners
+                Corporation. Unauthorised pets will result in immediate removal of the animal and may incur a by-law
+                breach notice against your host.</p>
+        </div>
+
+        <p>If you believe an exception applies, your host must contact the Strata Manager <em>before</em> your arrival
+            at <a data-bldg="ec_email" href="mailto:">EC email</a>.</p>
+
+        <!-- ─── AMENITIES ─────────────────────────────────────────────────────── -->
+        <h2 id="amenities">Amenities &amp; Access</h2>
+        <ul>
+            <li><strong>Gym / Pool / BBQ areas</strong> — available to guests accompanied by their host. Hours are
+                posted on-site. Book via the portal if your host has enabled this, or ask your host to book for you.
+            </li>
+            <li><strong>Visitor parking</strong> — short-term guest use only (see Parking section below).</li>
+            <li><strong>Lift access</strong> — please allow residents priority during peak hours (7–9 am, 5–7 pm).</li>
+            <li><strong>Bike cages &amp; storage</strong> — not available to short-term guests unless your host has
+                arranged access.
+            </li>
+            <li>Do not use resident-only facilities (e.g., rooftop access, resident gym) outside bookings or without
+                host accompaniment.
+            </li>
+        </ul>
+
+        <!-- ─── PARKING ───────────────────────────────────────────────────────── -->
+        <h2 id="parking">Parking &amp; Deliveries</h2>
+        <ul>
+            <li><strong>Visitor parking is for temporary guest use only — maximum 24 hours</strong> per space per visit.
+            </li>
+            <li>Do not park in numbered resident bays without explicit permission from the bay owner.</li>
+            <li>Overnight parking in visitor bays must be disclosed to your host, who is responsible for notifying
+                management.
+            </li>
+            <li>Street parking near the building may be available — check local signage and time restrictions.</li>
+            <li><strong>Deliveries:</strong> Arrange deliveries during your host's available hours. Parcel lockers or
+                the concierge area are available — ask your host for the access code.
+            </li>
+        </ul>
+
+        <!-- ─── WASTE ─────────────────────────────────────────────────────────── -->
+        <h2 id="waste">Waste &amp; Recycling</h2>
+        <ul>
+            <li>Use the designated bin rooms on each floor — general waste (red lid), recycling (yellow lid), organics
+                (green lid where available).
+            </li>
+            <li>Do not leave rubbish bags in corridors or at the lift lobby.</li>
+            <li>Bulk / hard waste must be arranged via your host and booked through management — do not place large
+                items in common areas.
+            </li>
+            <li>Cardboard should be broken down flat and placed in the recycling chute or bin room.</li>
+        </ul>
+
+        <!-- ─── CONTACT ───────────────────────────────────────────────────────── -->
+        <h2 id="contact">Contact &amp; Help</h2>
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Who</th>
+                <th>Contact</th>
+                <th>When</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Your host (unit owner)</td>
+                <td>As provided to you directly</td>
+                <td>First point of contact for all issues</td>
+            </tr>
+            <tr>
+                <td>Strata Manager – Jessica Minichiello (Civium)</td>
+                <td><a data-bldg="contact_email" href="mailto:">contact email</a><br><a
+                        href="tel:1300724256"><strong>1300 724 256</strong></a></td>
+                <td>Building issues, by-law queries, after-hours emergencies</td>
+            </tr>
+            <tr>
+                <td>EC Chairperson – Anthony McDonald</td>
+                <td><a data-bldg="contact_email" href="mailto:">contact email</a><br><a
+                        href="tel:0412017126">0412 017 126</a></td>
+                <td>Owners Corporation matters</td>
+            </tr>
+            <tr>
+                <td>Fire / Police / Ambulance</td>
+                <td><a href="tel:000"><strong>000</strong></a></td>
+                <td>All life-threatening emergencies</td>
+            </tr>
+            <tr>
+                <td>Non-Emergency Police</td>
+                <td><a href="tel:131444"><strong>131 444</strong></a></td>
+                <td>Police assistance (non-urgent)</td>
+            </tr>
+            <tr>
+                <td>Fire System Maintenance – 360 Degree Fire</td>
+                <td><a href="tel:0262990006">02 6299 0006</a></td>
+                <td>Fire alarm faults (non-emergency); testing every 2nd Thursday 9 AM</td>
+            </tr>
+            <tr>
+                <td>Lift Emergency – Electra Lift Co</td>
+                <td><a href="tel:1300725290"><strong>1300 725 290</strong></a></td>
+                <td>If trapped in lift (24/7) — also call 000 if no response</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- ─── EMERGENCY PROCEDURES ──────────────────────────────────────────── -->
+        <h2 id="emergency">Emergency Procedures</h2>
+
+        <div class="emergency-banner">
+            IN THE EVENT OF A FIRE — RING <strong>000</strong> IMMEDIATELY TO ENSURE FIRE SERVICES RESPONSE
+        </div>
+
+        <h3>On hearing the fire alarm</h3>
+        <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text">Stay calm. Do NOT use the lifts.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text">Check if your door is hot before opening. If hot, stay in your unit, seal the gap
+                under the door with towels, and call 000.
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text">If safe to leave, close (do not lock) your door behind you and proceed to the nearest
+                stairwell exit.
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-text">Follow exit signs to the designated Assembly Area shown on the fire safety notice in
+                your building's lobby
+                St.
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-text">Do NOT re-enter the building until the Fire Brigade gives the all-clear.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">6</div>
+            <div class="step-text">If you require mobility assistance, wait in the pressurised stairwell refuge area and
+                alert the Fire Brigade warden.
+            </div>
+        </div>
+
+        <div class="card callout">
+            <strong>Key emergency contacts at a glance</strong>
+            <ul>
+                <li>Fire / Police / Ambulance: <strong>000</strong></li>
+                <li>Non-Emergency Police: <strong>131 444</strong></li>
+                <li>Civium Strata (24/7 emergencies): <strong>1300 724 256</strong></li>
+                <li>Lift Emergency – Electra Lift Co: <strong>1300 725 290</strong></li>
+                <li>SES (storm, flood): <strong>132 500</strong></li>
+                <li>Poison Information Centre: <strong>13 11 26</strong></li>
+            </ul>
+        </div>
+
+        <!-- ─── FIRE DETECTION PLAN ────────────────────────────────────────────── -->
+        <h2 id="fire-plan">Fire Detection Block Plan</h2>
+        <p><span data-bldg="name">your building</span> — <span data-bldg="address">your building's address</span>. The
+            automatic fire detection system is installed
+            in accordance with BCA (2016), AS1670.1 (2015) and Fire Engineering Report CA170085 R1.2 by Warringtonfire
+            (August 2020).</p>
+
+        <img alt="Building Fire Detection Block Plan — Zone Schedule and Floor Plans"
+             class="floor-plan-img" src="../images/20260211_082458.jpg"/>
+        <p style="font-size:12px;color:var(--muted);margin-top:-4px">Fire Detection Block Plan — showing all zones,
+            floor layouts and lift shafts. Refer to the visual block plans located near fire indicator panels for exit
+            routes.</p>
+
+        <h3>Zone Schedule</h3>
+        <div class="zone-grid">
+            <div class="zone-item"><span class="zone-num">Zone 1</span> Ground Floor South</div>
+            <div class="zone-item"><span class="zone-num">Zone 2</span> Ground Floor North</div>
+            <div class="zone-item"><span class="zone-num">Zone 3</span> Level One South</div>
+            <div class="zone-item"><span class="zone-num">Zone 4</span> Level One North</div>
+            <div class="zone-item"><span class="zone-num">Zone 5</span> Building A Level 2 South</div>
+            <div class="zone-item"><span class="zone-num">Zone 6</span> Building A Level 2 North</div>
+            <div class="zone-item"><span class="zone-num">Zone 7</span> Building B Level 2</div>
+            <div class="zone-item"><span class="zone-num">Zone 8</span> Building A Level 3 South</div>
+            <div class="zone-item"><span class="zone-num">Zone 9</span> Building A Level 3 North</div>
+            <div class="zone-item"><span class="zone-num">Zone 10</span> Building B Level 3 South</div>
+            <div class="zone-item"><span class="zone-num">Zone 11</span> Building B Level 3 North</div>
+            <div class="zone-item"><span class="zone-num">Zone 12</span> Building A Level 4 South</div>
+            <div class="zone-item"><span class="zone-num">Zone 13</span> Building A Level 4 North</div>
+            <div class="zone-item"><span class="zone-num">Zone 14</span> Building B Level 4 South</div>
+            <div class="zone-item"><span class="zone-num">Zone 15</span> Building B Level 4 North</div>
+            <div class="zone-item"><span class="zone-num">Zone 16</span> Building A Level 5 South</div>
+            <div class="zone-item"><span class="zone-num">Zone 17</span> Building A Level 5 North</div>
+            <div class="zone-item"><span class="zone-num">Zone 18</span> Building B Level 5 South</div>
+            <div class="zone-item"><span class="zone-num">Zone 19</span> Building B Level 5 North</div>
+            <div class="zone-item"><span class="zone-num">Zone 20</span> Building A Level 6 North</div>
+            <div class="zone-item"><span class="zone-num">Zone 21</span> Building B Level 6 South</div>
+            <div class="zone-item"><span class="zone-num">Zone 22</span> Building B Level 6 North</div>
+            <div class="zone-item"><span class="zone-num">Zone 23</span> Building B Level 7 North</div>
+            <div class="zone-item"><span class="zone-num">Zone 30</span> Building A South Lift Shaft</div>
+            <div class="zone-item"><span class="zone-num">Zone 31</span> Building A North Lift Shaft</div>
+            <div class="zone-item"><span class="zone-num">Zone 32</span> Building B South Lift Shaft</div>
+            <div class="zone-item"><span class="zone-num">Zone 33</span> Building B North Lift Shaft</div>
+        </div>
+
+        <img alt="Building Fire Detection Block Plan — framed display in lobby" class="floor-plan-img"
+             src="../images/20260211_082416.jpg"/>
+        <p style="font-size:12px;color:var(--muted);margin-top:-4px">The framed fire detection block plan as displayed
+            near the fire indicator panel in the building lobby. Locate the panel nearest to your floor on arrival.</p>
+
+        <div class="card" style="margin-top:24px;font-size:13px;color:var(--muted)">
+            <strong style="color:#d6deea">Performance Solution Notice</strong><br>
+            This building incorporates performance solution designs for National Construction Code compliance. Residents
+            and guests should refer to the visual block plans located near fire indicator panels for exact exit routes.
+            <br><br>
+            <strong style="color:#d6deea">Fire System Service Provider:</strong> O'Neill &amp; Brown Fire Services — PH:
+            (02) 6297 2022
+        </div>
+
+    </article>
+</main>
+
+<footer>
+    <span data-bldg="name">your building</span> | Executive Committee | Strata Manager &nbsp;·&nbsp; E: <a
+        data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC email</a>
+    &nbsp;·&nbsp; P: <span data-bldg="contact_phone">(contact number)</span>
+    P: (02) 6285 0325 / 1300 724 256
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

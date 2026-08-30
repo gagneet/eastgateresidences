@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – EC Member Quick Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform
+                </div>
+            </div>
+        </div>
+        <div class="badge">Quick Guide</div>
+    </div>
+</header>
+
+<main style="display:block">
+
+    <article class="content">
+
+        <h1>EC Member Quick Guide</h1>
+        <p>For EC members managing documents, announcements, maintenance workflows, finance tools, and meetings/AGM
+            setup.</p>
+
+        <div class="card callout success">
+            <strong>You can do</strong>
+            <ul>
+                <li>Upload documents and maintain document records</li>
+                <li>Post announcements and notifications (where enabled)</li>
+                <li>Review and manage maintenance requests</li>
+                <li>Access Financial Intelligence, Budget Projections, Collection Rate dashboard</li>
+                <li>Create meetings and publish minutes (where enabled)</li>
+                <li>View My Property View management dashboard</li>
+                <li>Access Resident Management — view and manage user accounts</li>
+                <li>View Owner Details — unit ownership and levy information</li>
+                <li>Review Administrative Requests, Ownership Transfers, Lease Renewals</li>
+                <li>Manage Account Expiry and view Activity Logs</li>
+                <li>Access Asset Register and Strata Roll</li>
+                <li>Approve / reject Tenant &amp; Guest registrations</li>
+                <li>Upload Financial Data</li>
+            </ul>
+        </div>
+
+        <div class="card callout danger">
+            <strong>You cannot</strong>
+            <ul>
+                <li>Change system configuration (feature toggles, email settings, access control) — Super Admin only
+                </li>
+                <li>Create or modify staff user accounts — Super Admin only</li>
+                <li>Set Chairman-only document access levels — Chairman only</li>
+                <li>Approve invoices — Chairman/Strata Manager only</li>
+            </ul>
+        </div>
+
+        <h2>Top tasks (checklist)</h2>
+        <ul>
+            <li>Triaging maintenance requests daily by priority</li>
+            <li>Assigning contractors and tracking progress</li>
+            <li>Publishing meeting minutes/notices with correct access</li>
+            <li>Posting time-sensitive announcements</li>
+            <li>Maintaining accurate finance entries and reports</li>
+        </ul>
+
+        <h2>My Property View — Personal Finance Dashboard</h2>
+        <p>EC Members who own a unit can access their <strong>personal Owner Dashboard</strong> via <strong>Overview →
+            My Property View</strong> in the sidebar. This is the <code>/dashboard/regular</code> page.</p>
+        <ul>
+            <li><strong>"Next Estimated Payment"</strong> — shows the amount due for your <em>next instalment only</em>,
+                not the total remaining for the year. Advance payments are automatically reflected: if you have
+                pre-paid, the displayed amount shows only what remains for the upcoming period.
+            </li>
+            <li><strong>Advance payments</strong> — If you pay more than one instalment at once, the dashboard correctly
+                calculates your next obligation using the Session-53 algorithm:
+                <br><code>net_credit = total_paid − opening_arrears</code>
+                <br><code>periods_funded = floor(net_credit / period_levy)</code>
+                <br><code>next_payment = (periods_funded + 1) × period_levy − net_credit</code>
+            </li>
+            <li><strong>"Due in X days" badge</strong> — shows <em>your</em> next instalment due date, not the
+                building's current quarter date. If you have paid three quarters in advance, the badge shows your fourth
+                quarter due date. Your building's levy due dates (check financial settings): March 1, June 1, September
+                1, December 1.
+            </li>
+            <li><strong>"Back to Management View"</strong> button — returns you to the building-wide Management
+                Dashboard.
+            </li>
+        </ul>
+
+        <div class="card callout">
+            <strong>Example:</strong> If your quarterly levy is $1,530.30 and you paid $4,590.90 (3 quarters) in
+            advance, "Next Estimated Payment" shows $1,530.30 for Q4 — not the $6,121.00 full-year balance. "Due in X
+            days" shows 1 December 2026 (your Q4 date), not 1 June 2026 (the building's current period).
+        </div>
+
+        <h2>Key screens (where to click)</h2>
+        <ul>
+            <li><strong>Dashboard</strong> → Loads the <em>Management Dashboard</em> (Building Intelligence Hub) with
+                building-wide KPIs and finance overview
+            </li>
+            <li><strong>Overview → My Property View</strong> → Switches to your personal <em>Owner Dashboard</em> at
+                <code>/dashboard/regular</code> if you own a unit; use "Back to Management View" to return
+            </li>
+            <li>Maintenance → All Requests → Status/assignment</li>
+            <li>Documents → Upload / Categories</li>
+            <li>Announcements → Create / Priority</li>
+            <li>Finance → Financial Intelligence / Budget Projections / Collection Rate</li>
+            <li>Meetings → Create / Minutes</li>
+            <li><strong>Management → Resident Management</strong> → View and manage all resident/owner accounts</li>
+            <li><strong>Management → Owner Details</strong> → Full unit ownership, levy status, contact details</li>
+            <li><strong>Management → Tenant &amp; Guest Approvals</strong> → Approve/reject incoming tenant and guest
+                registrations
+            </li>
+            <li><strong>Management → Administrative Requests</strong> → Change requests, ownership transfers, lease
+                renewals
+            </li>
+            <li><strong>Management → Asset Register</strong> → Building asset inventory</li>
+            <li><strong>Management → Strata Roll</strong> → Official lot register and owner details</li>
+            <li><strong>Management → Activity Logs</strong> → Audit trail of actions taken in the platform</li>
+        </ul>
+
+        <h2>Financial Intelligence Tools</h2>
+        <ul>
+            <li><strong>Levy Benefit Fairness Index (LBFI)</strong> — Score 0–100 measuring levy equity across lot
+                types. Your building: 80.8 (Good). Subsidy map shows Townhouses → Apartments ~$569/yr via lift costs.
+                Path:
+                Intelligence → Levy Fairness.
+            </li>
+            <li><strong>Capital Works Planner</strong> — Dedicated planning page at Intelligence → Capital Planner. 3
+                editable tabs: Sinking Fund Plan, Capital Event Milestones, 10-Year Replacement Schedule. EC Members
+                have <em>Edit Plan</em> access. Current risk: HIGH for 2029 repaints.
+            </li>
+        </ul>
+
+        <h2 id="levy-fairness">Levy Fairness Engine</h2>
+        <p>The <strong>Levy Fairness Engine</strong> (<a href="/dashboard/intelligence/levy-fairness">/dashboard/intelligence/levy-fairness</a>)
+            provides a facility-level cost allocation model that shows how much each lot pays versus the value of shared
+            facilities it actually benefits from. It computes three key metrics:</p>
+        <ul>
+            <li><strong>LEI (Levy Equity Index):</strong> A 0–100 scheme-wide fairness score. Higher is fairer. 100 = no
+                cross-subsidies.
+            </li>
+            <li><strong>SEI (Subsidy Exposure Index):</strong> The fraction of a unit's levy that is a cross-subsidy (or
+                over-payment relative to its benefit share).
+            </li>
+            <li><strong>LBFI (Levy Benefit Fairness Index):</strong> Per-unit ratio of levy paid to benefit received —
+                ideal value is 1.0.
+            </li>
+        </ul>
+        <p>EC members can run a recompute with optional <em>transition caps</em> (e.g., max 15% increase per unit per
+            year) to model phased implementation. The Monte Carlo module also forecasts the probability of a special
+            levy being required over the next 10 years. Download options: PDF AGM report, PPTX presentation, CSV unit
+            impact data.</p>
+
+        <h3>Explain This Result (new)</h3>
+        <p>Click any row in the unit table to open the <strong>Explain drawer</strong> for that unit. It shows the
+            facility-by-facility breakdown of what drives the proposed levy — useful when presenting AGM results or
+            responding to owner queries. EC members can view any unit.</p>
+
+        <h3>Model Confidence Badge (new)</h3>
+        <p>A <strong>High / Medium / Low</strong> confidence badge is displayed near the LEI score. It is calculated
+            from three factors: ledger data coverage (% units with real levy records), asset database completeness, and
+            benefit group granularity. Review the factors list when the badge is Medium or Low before using the model
+            for formal AGM decisions.</p>
+
+        <h3>Distribution Tab (new)</h3>
+        <p>The <strong>Distribution</strong> tab shows a before/after histogram of levy amounts across all units. The
+            <em>equity improvement</em> figure shows how much the standard deviation of levies decreases under the
+            proposed model — a positive number means the proposed allocation is more evenly spread.</p>
+
+        <h3>Cross-Subsidy Report (new)</h3>
+        <p>The <strong>Cross-Subsidy</strong> tab summarises which unit types (Apartments, Townhouses, Penthouses) are
+            net contributors or recipients across all facilities. Download the full report as CSV via the export button.
+            This is valuable evidence for AGM motions on levy model changes.</p>
+
+        <h2>Permission Slugs (RBAC System)</h2>
+        <p>As of Session 63, the platform uses a granular <strong>RBAC + ABAC</strong> permission system. Your EC Member
+            role grants the following permission slugs (checked server-side on every request):</p>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+            <tr style="background:rgba(255,255,255,.06)">
+                <th style="padding:6px 10px;text-align:left">Permission slug</th>
+                <th style="padding:6px 10px;text-align:left">What it allows</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td style="padding:5px 10px"><code>financial.view</code></td>
+                <td style="padding:5px 10px">View all building financials and reports</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>financial.export</code></td>
+                <td style="padding:5px 10px">Export financial data (CSV, PDF)</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>committee.vote</code></td>
+                <td style="padding:5px 10px">Vote on committee motions at AGM / meetings</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>workorder.create</code> / <code>workorder.update</code></td>
+                <td style="padding:5px 10px">Raise and update maintenance work orders</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>workorder.review</code></td>
+                <td style="padding:5px 10px">Review contractor reports and progress</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>documents.upload</code> / <code>documents.view</code></td>
+                <td style="padding:5px 10px">Upload documents and view all building documents</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>building.view</code></td>
+                <td style="padding:5px 10px">View building profile and configuration</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>user.view</code></td>
+                <td style="padding:5px 10px">View resident and owner records</td>
+            </tr>
+            </tbody>
+        </table>
+        <p style="font-size:12px;margin-top:6px;color:var(--muted)">All permissions are scoped to your assigned
+            building(s). Chairman role grants additional slugs including <code>financial.approve_invoice</code> and
+            <code>committee.finalize_minutes</code>.</p>
+
+        <div class="shot"><strong>Screenshot placeholder:</strong> EC Member Quick Guide – key screens</div>
+
+    </article>
+</main>
+
+<footer>
+    <span data-bldg="name">your building</span> | Executive Committee | Strata Manager &nbsp;·&nbsp; E: <a
+        data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC email</a>
+    &nbsp;·&nbsp; P: <span data-bldg="contact_phone">(contact number)</span>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

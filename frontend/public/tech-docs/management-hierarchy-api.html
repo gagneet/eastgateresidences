@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Management Hierarchy API – StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">StrataOS</div>
+            <div class="sub">Technical Documentation · Management Hierarchy API</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Feature Domains</div>
+            <a data-page="management-hierarchy.html" href="management-hierarchy.html"><span class="icon">🏢</span> Management Hierarchy</a>
+            <a class="active" data-page="management-hierarchy-api.html" href="management-hierarchy-api.html"><span class="icon">🔌</span> Hierarchy API</a>
+            <a data-page="sm-organisations-api.html" href="sm-organisations-api.html"><span class="icon">🏛️</span> SM Organisations API</a>
+            <a data-page="manager-contracts-api.html" href="manager-contracts-api.html"><span class="icon">📄</span> Manager Contracts API</a>
+            <a data-page="trust-accounting.html" href="trust-accounting.html"><span class="icon">🏦</span> Trust Accounting</a>
+            <a data-page="feature-toggles.html" href="feature-toggles.html"><span class="icon">🎛️</span> Feature Toggles</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#overview">Overview</a>
+            <a href="#ensure-hierarchy">POST /ensure</a>
+            <a href="#get-scheme-hierarchy">GET /schemes/{id}</a>
+            <a href="#get-entity">GET /entities/{id}</a>
+            <a href="#get-entity-buildings">GET /entities/{id}/buildings</a>
+            <a href="#get-manager-buildings">GET /managers/{id}/buildings</a>
+            <a href="#create-appointment">POST /appointments</a>
+            <a href="#list-appointments">GET /appointments</a>
+            <a href="#field-filtering">Field Filtering</a>
+            <a href="#error-codes">Error Codes</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <h1>Management Hierarchy API</h1>
+        <p>
+            Router: <code>backend/routers/management_hierarchy.py</code><br/>
+            Prefix: <code>/management-hierarchy</code><br/>
+            Full base path: <code>/api/management-hierarchy</code><br/>
+            Toggle: <code>management_hierarchy_enabled</code>
+        </p>
+        <p>
+            All endpoints require an authenticated, approved user (<code>get_approved_user</code> dependency).
+            Access is further controlled by <code>require_management_hierarchy_access()</code> which resolves
+            an access scope (platform → agency → management_entity → scheme → building) and enforces
+            read/write gates per scope. See <a href="management-hierarchy.html#access-scopes">Access Scopes</a>
+            for the full scope table.
+        </p>
+        <div class="callout">
+            <strong>UUIDs are identifiers, not authorisation.</strong> Knowing a UUID does not grant access to any
+            endpoint. Explicit scheme/entity/agency membership is always verified before returning data.
+        </div>
+
+        <section id="overview">
+            <h2>Endpoint Summary</h2>
+            <table>
+                <thead>
+                    <tr><th>Method</th><th>Path</th><th>Description</th><th>Min role</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-post">POST</span></td>
+                        <td><code>/management-hierarchy/schemes/{scheme_id}/ensure</code></td>
+                        <td>Idempotent create placeholder hierarchy</td>
+                        <td>strata_admin or super_admin</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-get">GET</span></td>
+                        <td><code>/management-hierarchy/schemes/{scheme_id}</code></td>
+                        <td>Get active primary assignment + entity for a scheme</td>
+                        <td>Scheme read access</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-get">GET</span></td>
+                        <td><code>/management-hierarchy/entities/{management_entity_id}</code></td>
+                        <td>Get entity details (field-filtered by scope)</td>
+                        <td>Entity membership</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-get">GET</span></td>
+                        <td><code>/management-hierarchy/entities/{management_entity_id}/buildings</code></td>
+                        <td>List scheme_numbers assigned to entity</td>
+                        <td>Entity read access</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-get">GET</span></td>
+                        <td><code>/management-hierarchy/managers/{user_id}/buildings</code></td>
+                        <td>Buildings where user has active appointment</td>
+                        <td>Self or strata_admin/super_admin</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-post">POST</span></td>
+                        <td><code>/management-hierarchy/schemes/{scheme_id}/appointments</code></td>
+                        <td>Create a manager appointment</td>
+                        <td>strata_admin or super_admin</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-get">GET</span></td>
+                        <td><code>/management-hierarchy/schemes/{scheme_id}/appointments</code></td>
+                        <td>List active appointments for a scheme</td>
+                        <td>Scheme read access</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="ensure-hierarchy">
+            <h2>POST /management-hierarchy/schemes/{scheme_id}/ensure</h2>
+            <p>
+                Idempotently ensures a scheme has an active primary management assignment. If one already exists,
+                it is returned unchanged. If none exists, the appropriate
+                <code>core.management_entities</code> and <code>core.scheme_management_assignments</code>
+                rows are created.
+            </p>
+            <p><strong>Auth:</strong> strata_admin or super_admin. Also requires explicit scheme write access.</p>
+
+            <h3>Request body</h3>
+            <table>
+                <thead>
+                    <tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>mode</code></td><td>string</td><td>Yes</td><td>agency_managed | self_managed | independent_manager | unknown</td></tr>
+                    <tr><td><code>entity_name_hint</code></td><td>string</td><td>No</td><td>Max 200 chars. Used as entity name when creating a new entity.</td></tr>
+                    <tr><td><code>source_agency_id</code></td><td>UUID string</td><td>Conditional</td><td>Required when mode=agency_managed. Must reference an existing core.agencies row.</td></tr>
+                    <tr><td><code>building_id</code></td><td>string</td><td>No</td><td>Human-readable building identifier (scheme_number). Informational only.</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Response 200</h3>
+            <pre><code>{
+  "scheme_id": "uuid",
+  "created": true,            // false if assignment already existed
+  "entity": { ... },         // management entity fields (filtered by scope)
+  "assignment": { ... },     // scheme_management_assignments row
+  "warnings": []             // non-fatal issues encountered during ensure
+}</code></pre>
+
+            <h3>Error responses</h3>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Condition</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>400</td><td>scheme_id or source_agency_id is not a valid UUID</td></tr>
+                    <tr><td>403</td><td>Caller is not strata_admin or super_admin, or lacks scheme write access</td></tr>
+                    <tr><td>422</td><td>Invalid mode value, or mode=agency_managed with missing source_agency_id</td></tr>
+                    <tr><td>500</td><td>Database error during entity/assignment creation</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="get-scheme-hierarchy">
+            <h2>GET /management-hierarchy/schemes/{scheme_id}</h2>
+            <p>
+                Returns the active primary management assignment and its linked management entity for a scheme.
+                Entity fields are filtered according to the caller's access scope.
+            </p>
+            <p><strong>Auth:</strong> Any authenticated user with scheme read access (EC member, assigned manager, or admin).</p>
+
+            <h3>Response 200</h3>
+            <pre><code>{
+  "scheme_id": "uuid",
+  "assignment": {
+    "assignment_id": "uuid",
+    "scheme_id": "uuid",
+    "management_entity_id": "uuid",
+    "assignment_type": "agency_managed",
+    "start_date": "2026-01-01",
+    "end_date": null,
+    "status": "active",
+    "is_primary": true
+  },
+  "entity": {
+    // full fields for platform|agency|management_entity scope:
+    "management_entity_id": "uuid",
+    "entity_type": "agency",
+    "name": "Strata Solutions Pty Ltd",
+    "legal_name": "Strata Solutions Pty Ltd ACN 123 456 789",   // filtered for scheme|building
+    "abn": "12 345 678 901",                                     // filtered for scheme|building
+    "email": "admin@stratasolutions.com.au",                     // filtered for scheme|building
+    "phone": "+61 2 1234 5678",                                  // filtered for scheme|building
+    "status": "active",
+    "is_system_generated": false,
+    "is_self_managed": false,
+    "is_independent": false
+  }
+}</code></pre>
+
+            <h3>Error responses</h3>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Condition</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>400</td><td>scheme_id is not a valid UUID</td></tr>
+                    <tr><td>403</td><td>Caller lacks scheme read access</td></tr>
+                    <tr><td>404</td><td>No active primary management assignment found for the scheme</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="get-entity">
+            <h2>GET /management-hierarchy/entities/{management_entity_id}</h2>
+            <p>
+                Returns management entity details. The entity must be linked to the caller's scheme, or the
+                caller must have entity/agency membership.
+            </p>
+            <p><strong>Auth:</strong> Entity membership or scheme assignment.</p>
+            <p>
+                Sensitive fields (<code>abn</code>, <code>email</code>, <code>phone</code>,
+                <code>legal_name</code>) are returned only to callers with scope
+                <code>platform | agency | management_entity</code>. EC members and scheme-scoped callers
+                receive a subset without these fields.
+            </p>
+
+            <h3>Response 200 (full access)</h3>
+            <pre><code>{
+  "management_entity_id": "uuid",
+  "tenant_id": "uuid",
+  "entity_type": "agency",
+  "name": "Strata Solutions Pty Ltd",
+  "legal_name": "Strata Solutions Pty Ltd ACN 123 456 789",
+  "abn": "12 345 678 901",
+  "email": "admin@stratasolutions.com.au",
+  "phone": "+61 2 1234 5678",
+  "status": "active",
+  "is_system_generated": false,
+  "is_self_managed": false,
+  "is_independent": false,
+  "source": "manual",
+  "source_agency_id": "uuid-or-null",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "updated_at": "2026-06-09T00:00:00+00:00",
+  "archived_at": null
+}</code></pre>
+
+            <h3>Response 200 (limited access — scope: scheme | building)</h3>
+            <pre><code>{
+  "management_entity_id": "uuid",
+  "entity_type": "agency",
+  "name": "Strata Solutions Pty Ltd",
+  "status": "active",
+  "is_self_managed": false,
+  "is_independent": false
+  // abn, email, phone, legal_name, tenant_id, source_agency_id omitted
+}</code></pre>
+
+            <h3>Error responses</h3>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Condition</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>400</td><td>management_entity_id is not a valid UUID</td></tr>
+                    <tr><td>403</td><td>Caller lacks entity read access</td></tr>
+                    <tr><td>404</td><td>Entity not found</td></tr>
+                    <tr><td>500</td><td>Database error</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="get-entity-buildings">
+            <h2>GET /management-hierarchy/entities/{management_entity_id}/buildings</h2>
+            <p>
+                Returns the list of <code>scheme_number</code> values for schemes currently assigned to this
+                management entity (via active <code>scheme_management_assignments</code> rows).
+            </p>
+            <p><strong>Auth:</strong> Entity read access (same rules as GET /entities/{id}).</p>
+
+            <h3>Response 200</h3>
+            <pre><code>{
+  "management_entity_id": "uuid",
+  "building_ids": ["13195", "16244", "UP-DEMO-001"],
+  "count": 3
+}</code></pre>
+
+            <h3>Error responses</h3>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Condition</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>400</td><td>management_entity_id is not a valid UUID</td></tr>
+                    <tr><td>403</td><td>Caller lacks entity read access</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="get-manager-buildings">
+            <h2>GET /management-hierarchy/managers/{user_id}/buildings</h2>
+            <p>
+                Returns the list of <code>scheme_number</code> values for buildings where the specified user
+                has an active manager appointment (<code>core.scheme_manager_appointments</code> WHERE
+                <code>status = 'active'</code>). Archived schemes are excluded.
+                <code>is_test_data = TRUE</code> rows are filtered.
+            </p>
+            <p><strong>Auth:</strong> Callers may query their own <code>user_id</code>. strata_admin and
+            super_admin may query any user_id. Other roles receive 403.</p>
+
+            <h3>Response 200</h3>
+            <pre><code>{
+  "user_id": "uuid",
+  "building_ids": ["13195", "UP-DEMO-001"],
+  "count": 2
+}</code></pre>
+
+            <h3>Error responses</h3>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Condition</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>400</td><td>user_id is not a valid UUID</td></tr>
+                    <tr><td>403</td><td>Caller is not the target user and is not strata_admin/super_admin</td></tr>
+                    <tr><td>500</td><td>Database error</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="create-appointment">
+            <h2>POST /management-hierarchy/schemes/{scheme_id}/appointments</h2>
+            <p>
+                Creates a manager appointment record in <code>core.scheme_manager_appointments</code>.
+                EC-internal and volunteer appointment types require <code>approved_by_ec = true</code> before
+                they take full effect.
+            </p>
+            <p><strong>Auth:</strong> strata_admin or super_admin. Also requires explicit scheme write access.</p>
+
+            <h3>Request body</h3>
+            <table>
+                <thead>
+                    <tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>user_id</code></td><td>UUID string</td><td>Yes</td><td>Must reference a valid core.users row</td></tr>
+                    <tr><td><code>management_entity_id</code></td><td>UUID string</td><td>Yes</td><td>Must reference a valid core.management_entities row</td></tr>
+                    <tr><td><code>appointment_type</code></td><td>string</td><td>Yes</td><td>One of the 6 valid appointment_type values (see below)</td></tr>
+                    <tr><td><code>role_title</code></td><td>string</td><td>Yes</td><td>Max 100 chars. e.g. "Strata Manager", "Building Manager"</td></tr>
+                    <tr><td><code>start_date</code></td><td>date string</td><td>No</td><td>ISO-8601. Defaults to CURRENT_DATE.</td></tr>
+                    <tr><td><code>approved_by_ec</code></td><td>boolean</td><td>No</td><td>Default false. EC-internal and volunteer types require true.</td></tr>
+                    <tr><td><code>approval_reference</code></td><td>string</td><td>No</td><td>Max 200 chars. Meeting minute reference or motion number.</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Valid appointment_type values</h3>
+            <table>
+                <thead>
+                    <tr><th>Value</th><th>Requires EC approval</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>agency_strata_manager</code></td><td>No</td></tr>
+                    <tr><td><code>independent_strata_manager</code></td><td>No</td></tr>
+                    <tr><td><code>ec_internal_strata_manager</code></td><td>Yes</td></tr>
+                    <tr><td><code>owner_volunteer_manager</code></td><td>Yes</td></tr>
+                    <tr><td><code>building_manager</code></td><td>No</td></tr>
+                    <tr><td><code>caretaker</code></td><td>No</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Response 200</h3>
+            <p>Returns the created <code>core.scheme_manager_appointments</code> row as a dict.</p>
+            <pre><code>{
+  "appointment_id": "uuid",
+  "scheme_id": "uuid",
+  "user_id": "uuid",
+  "management_entity_id": "uuid",
+  "appointment_type": "agency_strata_manager",
+  "role_title": "Strata Manager",
+  "status": "active",
+  "approved_by_ec": false,
+  "start_date": "2026-06-09",
+  "end_date": null,
+  "approval_reference": null,
+  "appointed_by": "uuid"
+}</code></pre>
+
+            <h3>Error responses</h3>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Condition</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>400</td><td>Any UUID parameter is not a valid UUID</td></tr>
+                    <tr><td>403</td><td>Caller is not strata_admin/super_admin or lacks scheme write access</td></tr>
+                    <tr><td>409</td><td>Appointment conflicts with existing active appointment (duplicate constraint)</td></tr>
+                    <tr><td>422</td><td>Invalid appointment_type value</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="list-appointments">
+            <h2>GET /management-hierarchy/schemes/{scheme_id}/appointments</h2>
+            <p>
+                Lists active manager appointments for a scheme. Only rows with
+                <code>status = 'active'</code> and <code>is_test_data = FALSE</code> are returned.
+                Results ordered by <code>created_at DESC</code>.
+            </p>
+            <p><strong>Auth:</strong> Scheme read access (EC member, assigned manager, or admin).</p>
+
+            <h3>Response 200</h3>
+            <pre><code>{
+  "scheme_id": "uuid",
+  "appointments": [
+    {
+      "appointment_id": "uuid",
+      "scheme_id": "uuid",
+      "user_id": "uuid",
+      "management_entity_id": "uuid",
+      "appointment_type": "agency_strata_manager",
+      "role_title": "Strata Manager",
+      "status": "active",
+      "approved_by_ec": true,
+      "start_date": "2026-01-01",
+      "end_date": null,
+      "approval_reference": "AGM 2026 Motion 3",
+      "appointed_by": "uuid"
+    }
+  ],
+  "count": 1
+}</code></pre>
+
+            <h3>Error responses</h3>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Condition</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>400</td><td>scheme_id is not a valid UUID</td></tr>
+                    <tr><td>403</td><td>Caller lacks scheme read access</td></tr>
+                    <tr><td>500</td><td>Database error</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="field-filtering">
+            <h2>Field Filtering Rules</h2>
+            <p>
+                Sensitive entity fields are filtered by <code>filter_entity_fields()</code> in
+                <code>backend/services/management_hierarchy_service.py</code>.
+            </p>
+            <table>
+                <thead>
+                    <tr><th>Scope</th><th>abn</th><th>email</th><th>phone</th><th>legal_name</th><th>tenant_id</th><th>source_agency_id</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>platform</code></td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+                    <tr><td><code>agency</code></td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+                    <tr><td><code>management_entity</code></td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+                    <tr><td><code>scheme</code></td><td>No</td><td>No</td><td>No</td><td>No</td><td>No</td><td>No</td></tr>
+                    <tr><td><code>building</code></td><td>No</td><td>No</td><td>No</td><td>No</td><td>No</td><td>No</td></tr>
+                </tbody>
+            </table>
+            <p>
+                The <code>full_access</code> flag is <code>True</code> when
+                <code>access_ctx["scope"] in {"platform", "agency", "management_entity"}</code>.
+                When <code>full_access = False</code>, the filter function removes the sensitive keys
+                before returning the dict.
+            </p>
+        </section>
+
+        <section id="error-codes">
+            <h2>Common Error Codes</h2>
+            <table>
+                <thead>
+                    <tr><th>HTTP Status</th><th>Cause</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>400</td><td>UUID parameter fails parse (not a valid UUID format)</td></tr>
+                    <tr><td>401</td><td>No valid JWT / session token provided</td></tr>
+                    <tr><td>403</td><td>Authenticated but access scope check failed; or role gate (strata_admin/super_admin) failed</td></tr>
+                    <tr><td>404</td><td>Requested entity/assignment/scheme not found in Postgres</td></tr>
+                    <tr><td>409</td><td>Duplicate appointment — unique constraint violation on (scheme_id, user_id, appointment_type)</td></tr>
+                    <tr><td>422</td><td>Pydantic validation error — invalid mode or appointment_type value</td></tr>
+                    <tr><td>500</td><td>Unhandled database error — check backend logs</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+</body>
+</html>

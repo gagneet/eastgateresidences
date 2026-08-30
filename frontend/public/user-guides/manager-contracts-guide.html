@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Manager Contract Management Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform</div>
+            </div>
+        </div>
+        <div class="badge">User Guide</div>
+    </div>
+</header>
+
+<main style="display:block">
+    <article class="content">
+
+        <h1>Manager Contract Management Guide</h1>
+        <p>This guide is for <strong>Strata Admins</strong>. It explains how to create and manage strata manager
+            contracts in StrataOS — so that appointments are properly recorded, contract dates are tracked,
+            and expiry notifications are sent automatically.</p>
+
+        <h2>What Is a Manager Contract on StrataOS?</h2>
+        <p>A manager contract records the formal appointment of a strata manager to a specific building. It
+            captures the key terms of the appointment:</p>
+        <ul>
+            <li>Which manager is appointed and to which building.</li>
+            <li>The start and end date of the appointment.</li>
+            <li>The agreed management fee.</li>
+            <li>The notice period required to terminate the appointment early.</li>
+        </ul>
+        <p>Recording contracts in StrataOS means the system can send you automatic alerts before a contract
+            expires, helping you avoid gaps in management coverage or last-minute renewals.</p>
+
+        <div class="card callout warn">
+            <strong>Important:</strong> The contract record in StrataOS is a management record — it is not
+            the legally binding document itself. You should still retain the signed contract document in your
+            records and, where required, file it with the relevant strata authority.
+        </div>
+
+        <h2>Creating a Contract for an Appointed Manager</h2>
+        <ol>
+            <li>Go to <strong>Admin → Manager Contracts</strong>.</li>
+            <li>Click <strong>New Contract</strong>.</li>
+            <li>Select the strata manager from your company's staff list.</li>
+            <li>Select the building the contract applies to.</li>
+            <li>Enter the contract start date and end date.</li>
+            <li>Enter the agreed management fee (annual amount or percentage of levy, depending on your
+                company's fee structure).</li>
+            <li>Enter the notice period (in days) required to end the contract early.</li>
+            <li>Optionally, add a note (for example, "Renewal pending EC vote at October AGM").</li>
+            <li>Click <strong>Save Contract</strong>.</li>
+        </ol>
+
+        <div class="card callout success">
+            <strong>Tip:</strong> You can attach the signed contract PDF directly to the contract record
+            in StrataOS. Use the <strong>Attach Document</strong> button after saving. This keeps the
+            contract document and the record in one place.
+        </div>
+
+        <h2>Setting Contract Dates, Fee, and Notice Period</h2>
+        <p>When completing the contract record, keep these points in mind:</p>
+        <ul>
+            <li><strong>Start date</strong> — should match the date the manager formally took over
+                responsibility for the building (often the date the owners corporation resolution was
+                passed at a general meeting).</li>
+            <li><strong>End date</strong> — for a fixed-term appointment, enter the date the contract
+                expires. For an ongoing (month-to-month) arrangement, leave this field blank and set the
+                notice period instead.</li>
+            <li><strong>Management fee</strong> — enter the agreed fee amount. This is for your records
+                and does not automatically generate an invoice — fee invoicing is handled separately.</li>
+            <li><strong>Notice period</strong> — the number of days' notice either party must give to
+                end the appointment. Common values are 30, 60, or 90 days.</li>
+        </ul>
+
+        <h2>Viewing Expiring Contracts</h2>
+        <p>The <strong>Contract Expiry</strong> panel on the Manager Contracts page shows all contracts
+            that are due to expire within the next 90 days, sorted by expiry date. For each contract, you
+            can see:</p>
+        <ul>
+            <li>The manager's name and the building.</li>
+            <li>The number of days until expiry.</li>
+            <li>Whether a renewal has been initiated.</li>
+        </ul>
+        <p>StrataOS also sends automatic email reminders to the strata admin at 90 days, 60 days, and 30
+            days before expiry. These reminders go to the email address on your strata admin account.</p>
+
+        <h2>What Happens When a Contract Expires</h2>
+        <p>When a contract's end date passes, StrataOS does the following:</p>
+        <ul>
+            <li>Marks the contract as <strong>Expired</strong> in the contracts list.</li>
+            <li>Sends a notification to the strata admin alerting them that the contract has expired.</li>
+            <li>The manager's appointment to the building remains active in the system — the expiry of
+                a contract record does not automatically remove the manager from the building. You must
+                take action to either renew or end the appointment.</li>
+        </ul>
+
+        <h3>Renewing a Contract</h3>
+        <ol>
+            <li>Open the expired or expiring contract from the Manager Contracts page.</li>
+            <li>Click <strong>Renew Contract</strong>.</li>
+            <li>Enter the new end date (and updated fee if applicable).</li>
+            <li>Save. The existing record is closed and a new contract record is created for the renewal period.</li>
+        </ol>
+
+        <h3>Ending an Appointment</h3>
+        <ol>
+            <li>Open the contract record.</li>
+            <li>Click <strong>End Appointment</strong>.</li>
+            <li>Select the end reason (contract expiry, EC resolution, mutual agreement).</li>
+            <li>Confirm. The manager is removed from the building appointment and the building will appear
+                as "unassigned" until a new manager is appointed.</li>
+        </ol>
+
+        <div class="card callout warn">
+            <strong>Important:</strong> Always appoint a replacement or relief manager to the building
+            before ending an existing appointment. A building without an appointed manager will not have
+            a named contact for owners and EC members.
+        </div>
+
+    </article>
+</main>
+
+<footer>
+    <span data-bldg="name">your building</span> | Executive Committee | Strata Manager &nbsp;·&nbsp; E: <a
+        data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC email</a>
+    &nbsp;·&nbsp; P: <span data-bldg="contact_phone">(contact number)</span>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

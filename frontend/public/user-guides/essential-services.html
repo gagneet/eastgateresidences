@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Essential Services Log — User Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-compliant {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-advisory {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-pending {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-noncompliant {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .role-table td, .role-table th {
+            padding: 8px 14px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .role-table th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        .step {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #2F4F4F;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .tip-box {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+
+        .warn-box {
+            background: #fefce8;
+            border-left: 4px solid #f59e0b;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+
+        .danger-box {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+
+        dl dt {
+            font-weight: 700;
+            margin-top: 16px;
+        }
+
+        dl dd {
+            margin-left: 0;
+            margin-top: 4px;
+            color: #555;
+        }
+
+        .audience-pill {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .audience-manager {
+            background: #fae8ff;
+            color: #7e22ce;
+        }
+
+        .audience-ec {
+            background: #fce7f3;
+            color: #9d174d;
+        }
+    </style>
+</head>
+<body>
+<div class="guide-container">
+    <header class="guide-header">
+        <h1>Essential Services Log</h1>
+        <p class="guide-subtitle">Record and track compliance service events for critical building infrastructure</p>
+        <p style="margin-top:8px;">
+            <span class="audience-pill audience-manager">Strata Managers</span>
+            <span class="audience-pill audience-ec">EC Members</span>
+            <span class="audience-pill audience-manager">Building Supervisors</span>
+        </p>
+    </header>
+
+    <section class="guide-section">
+        <h2>What are essential services?</h2>
+        <p>
+            Essential services are building systems that must be regularly inspected, tested, and certified
+            to meet safety and compliance requirements. They include fire safety equipment, lifts, cooling
+            towers, and other infrastructure where failure could endanger occupants or cause regulatory penalties.
+        </p>
+        <p>
+            Your building's strata portal provides an <strong>Essential Services Log</strong> to record every
+            service event — who did the work, when, their licence number, the outcome, and when the next
+            service is due. This creates a complete, auditable compliance history for your building.
+        </p>
+    </section>
+
+    <section class="guide-section">
+        <h2>Who can use this feature?</h2>
+        <table class="role-table" style="width:100%; border-collapse:collapse; margin-top:12px;">
+            <thead>
+            <tr>
+                <th>Role</th>
+                <th>View log</th>
+                <th>Log a service event</th>
+                <th>Update certificate / status</th>
+                <th>View overdue items</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Owner</td>
+                <td>&#10003; Yes (read-only)</td>
+                <td>&#10007; No</td>
+                <td>&#10007; No</td>
+                <td>&#10003; Yes (read-only)</td>
+            </tr>
+            <tr>
+                <td>Tenant</td>
+                <td>&#10003; Yes (read-only)</td>
+                <td>&#10007; No</td>
+                <td>&#10007; No</td>
+                <td>&#10003; Yes (read-only)</td>
+            </tr>
+            <tr>
+                <td>EC Member</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+            </tr>
+            <tr>
+                <td>Chairman / Strata Manager</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="guide-section">
+        <h2>Service types and typical inspection intervals</h2>
+        <table class="role-table" style="width:100%; border-collapse:collapse; margin-top:12px;">
+            <thead>
+            <tr>
+                <th>Service type</th>
+                <th>Description</th>
+                <th>Typical interval</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><strong>Cooling Tower</strong></td>
+                <td>Legionella risk management inspection and water treatment</td>
+                <td>Monthly / Quarterly</td>
+                <td>Regulatory requirement in most states</td>
+            </tr>
+            <tr>
+                <td><strong>HVAC</strong></td>
+                <td>Heating, ventilation, and air-conditioning system servicing</td>
+                <td>6 months / Annual</td>
+                <td>Filter changes, coil cleaning, BMS checks</td>
+            </tr>
+            <tr>
+                <td><strong>Backflow Prevention</strong></td>
+                <td>Backflow prevention device testing on potable water supply</td>
+                <td>Annual</td>
+                <td>Licensed plumber required; certificate to water authority</td>
+            </tr>
+            <tr>
+                <td><strong>Lift</strong></td>
+                <td>Passenger lift statutory inspection and service</td>
+                <td>6 months / Annual</td>
+                <td>Inspection must be by accredited lift inspector</td>
+            </tr>
+            <tr>
+                <td><strong>Fire Pump</strong></td>
+                <td>Fire pump flow test and service</td>
+                <td>6 months</td>
+                <td>Part of annual fire safety statement obligations</td>
+            </tr>
+            <tr>
+                <td><strong>Emergency Lighting</strong></td>
+                <td>Emergency and exit lighting 90-minute battery discharge test</td>
+                <td>Annual</td>
+                <td>Six-monthly functional test also required in many states</td>
+            </tr>
+            <tr>
+                <td><strong>Exit Lighting</strong></td>
+                <td>Exit sign and egress path lighting inspection</td>
+                <td>6 months / Annual</td>
+                <td>Included in fire safety inspection</td>
+            </tr>
+            <tr>
+                <td><strong>Other</strong></td>
+                <td>Any other compliance-driven service event</td>
+                <td>As required</td>
+                <td>Use this type for BMS, generator, pool, or custom items</td>
+            </tr>
+            </tbody>
+        </table>
+        <p style="font-size:13px; color:#555; margin-top:8px;">
+            Intervals are indicative. Consult your contractor and the relevant state authority for
+            the requirements that apply to your building.
+        </p>
+    </section>
+
+    <section class="guide-section">
+        <h2>How to log a service event</h2>
+
+        <div class="step">
+            <div class="step-num">1</div>
+            <div>Go to <strong>Dashboard &rarr; Compliance &rarr; Essential Services</strong>.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <div>Click <strong>Log Service Event</strong>. A form opens.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <div>
+                Fill in the event details:
+                <ul style="margin-top:8px;">
+                    <li><strong>Service type</strong> — choose from the list above</li>
+                    <li><strong>Asset name</strong> — a clear label for the equipment serviced
+                        (e.g. "Cooling Tower A — Level 2")
+                    </li>
+                    <li><strong>Service date</strong> — the date the work was carried out</li>
+                    <li><strong>Technician name</strong> — the person who performed the service</li>
+                    <li><strong>Company</strong> (optional) — the contractor's company name</li>
+                    <li><strong>Licence number</strong> (optional but recommended) — the technician's
+                        relevant licence or accreditation number
+                    </li>
+                    <li><strong>Status</strong> — the compliance outcome (see status table below)</li>
+                    <li><strong>Certificate URL</strong> (optional) — a link to the compliance certificate
+                        if available online, or leave blank to add later
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">4</div>
+            <div>
+                Set the <strong>next service due date</strong> in one of two ways:
+                <ul style="margin-top:8px;">
+                    <li><strong>Enter directly</strong> — type a specific date in the "Next due" field</li>
+                    <li><strong>Auto-calculate</strong> — enter an <strong>interval in months</strong>
+                        (e.g. 6) and the system calculates "next due = service date + 6 months" automatically.
+                        Leave the next due date blank when using this option.
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">5</div>
+            <div>Add any notes, then click <strong>Save</strong>. The entry appears in the log immediately.</div>
+        </div>
+
+        <div class="tip-box">
+            <strong>Attaching a certificate:</strong> If you do not have the certificate URL at the time
+            of logging, save the entry first. Once the certificate is issued, open the entry and click
+            <strong>Edit</strong> to add the URL.
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <h2>Status meanings</h2>
+        <table class="role-table" style="width:100%; border-collapse:collapse; margin-top:12px;">
+            <thead>
+            <tr>
+                <th>Status</th>
+                <th>Meaning</th>
+                <th>Action required?</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><span class="badge badge-compliant">Compliant</span></td>
+                <td>Service completed successfully; equipment is in compliance</td>
+                <td>No — schedule next service per the due date</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-advisory">Advisory</span></td>
+                <td>Service completed but the technician noted items to monitor or address before next inspection</td>
+                <td>Monitor — record follow-up actions in notes</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-pending">Pending Certificate</span></td>
+                <td>Service completed but the compliance certificate has not yet been issued or uploaded</td>
+                <td>Follow up — update the record with the certificate URL once received</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-noncompliant">Non-Compliant</span></td>
+                <td>Equipment failed inspection or is in breach of compliance requirements</td>
+                <td>Urgent — remediate the issue and log a follow-up service event</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="guide-section">
+        <h2>Checking for overdue items</h2>
+        <p>
+            The <strong>Overdue</strong> tab (or <em>View Overdue</em> button) shows all log entries where
+            the <em>next due</em> date has passed and the status is not yet <span class="badge badge-compliant">Compliant</span>.
+            Each overdue item shows the number of days it is past due.
+        </p>
+        <p>Use the overdue list to:</p>
+        <ul>
+            <li>Identify services that need to be booked urgently</li>
+            <li>Prepare for annual fire safety statements or compliance audits</li>
+            <li>Confirm which items have already been serviced (update the log to remove them from overdue)</li>
+        </ul>
+
+        <div class="danger-box">
+            <strong>Non-compliant overdue items are a liability.</strong> If a non-compliant service is
+            overdue, notify the strata committee immediately and engage a contractor. Unaddressed essential
+            service failures can lead to regulatory action and may affect your building's insurance.
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <h2>How auto-calculated next due dates work</h2>
+        <p>
+            When you enter an <strong>interval in months</strong> and leave the "next due" date blank,
+            the system automatically computes:
+        </p>
+        <blockquote
+                style="background:#f8fafc; border-left:4px solid #2F4F4F; padding:10px 16px; margin:12px 0; border-radius:4px; font-family:monospace; font-size:14px;">
+            next_due = service_date + interval_months
+        </blockquote>
+        <p>
+            For example: service date of <strong>15 March 2026</strong> with interval
+            <strong>6 months</strong> produces next due of <strong>15 September 2026</strong>.
+        </p>
+        <p>
+            The calculation uses calendar months (not days), so 31 January + 1 month = 28 February
+            (or 29 in a leap year), as per standard date arithmetic.
+        </p>
+    </section>
+
+    <section class="guide-section">
+        <h2>Filtering and searching the log</h2>
+        <p>Use the filter options at the top of the log to narrow results by:</p>
+        <ul>
+            <li><strong>Service type</strong> — e.g. show only Lift records</li>
+            <li><strong>Status</strong> — e.g. show only Non-Compliant records</li>
+            <li><strong>Date range</strong> — filter by service date from/to</li>
+        </ul>
+        <p>Results are sorted by service date (most recent first) by default.</p>
+    </section>
+
+    <section class="guide-section">
+        <h2>Multi-building support</h2>
+        <p>
+            The essential services log is scoped to your building. If you manage multiple buildings,
+            use the building selector at the top of the dashboard to view the log for each building
+            separately.
+        </p>
+    </section>
+
+    <section class="guide-section">
+        <h2>Frequently asked questions</h2>
+        <dl>
+            <dt>Can I log the same service type more than once?</dt>
+            <dd>Yes. Each service event is a separate log entry. You build up a history of all services
+                for each asset, which is important for demonstrating ongoing compliance.
+            </dd>
+
+            <dt>What if the technician doesn't have a licence number?</dt>
+            <dd>The licence number field is optional. However, many essential services legally require
+                a licensed technician — check the relevant requirements for your state and service type
+                before proceeding without one.
+            </dd>
+
+            <dt>Can owners see this log?</dt>
+            <dd>Yes. Owners and tenants can view the log in read-only mode. This supports transparency
+                about the building's compliance status.
+            </dd>
+
+            <dt>What is the certificate URL for?</dt>
+            <dd>When your contractor issues a compliance certificate (e.g. a fire safety certificate or
+                lift inspection report), it is often a PDF stored on their platform. Paste the direct URL
+                here so it can be retrieved quickly during audits. Alternatively, upload the document to
+                your building's document management area and link from there.
+            </dd>
+
+            <dt>Does the system send reminders when a service is due?</dt>
+            <dd>The overdue list shows items past their due date. Proactive reminders before the due
+                date depend on your building's configuration — ask your strata manager whether due-date
+                alerts are set up.
+            </dd>
+        </dl>
+    </section>
+
+    <footer class="guide-footer">
+        <p>Your strata portal &nbsp;|&nbsp; Essential Services Log &nbsp;|&nbsp; For help contact your strata
+            manager</p>
+    </footer>
+</div>
+</body>
+</html>

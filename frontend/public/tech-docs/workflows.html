@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Workflows – Eastgate Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad: true, theme: 'dark', securityLevel: 'strict'});</script>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">East Gate Residences</div>
+            <div class="sub">Technical Documentation · Workflows</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a class="active" data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#maintenance">Maintenance Workflow</a>
+            <a href="#finance">Levy &amp; Finance Workflow</a>
+            <a href="#due-date-priority">Due Date Priority Algorithm</a>
+            <a href="#arrears-recovery">Arrears Recovery</a>
+            <a href="#debt-recovery-detail">Debt Recovery — State Fields &amp; Sync</a>
+            <a href="#announcement">Announcement Workflow</a>
+            <a href="#user-lifecycle">User Lifecycle &amp; Registration</a>
+            <a href="#registration-visibility">Registration &amp; User Visibility Architecture</a>
+            <a href="#owner-transfer">Ownership Transfer</a>
+            <a href="#tenant-renewal">Tenant Renewal</a>
+            <a href="#agm">AGM Voting Workflow</a>
+            <a href="#document">Document Workflow</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <h1>Business Workflows</h1>
+        <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role/state labels on this page naming "Chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+        <p>Mermaid diagrams for all major platform workflows, showing how API endpoints, database collections, and
+            frontend screens connect.</p>
+
+        <section id="maintenance">
+            <h2>Maintenance Request Workflow</h2>
+            <p>From resident submission to contractor completion, purchase order, and invoice approval.</p>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    stateDiagram-v2
+                    [*] --> submitted: Resident submits\nPOST /api/maintenance
+                    submitted --> reviewed: Admin reviews\nnotes added
+                    reviewed --> approved: Chairman approves\nPUT /maintenance/id/status
+                    reviewed --> rejected: Rejected with reason
+                    approved --> assigned: Contractor selected\nPUT /maintenance/id/status\n?contractor_id=xxx
+                    assigned --> in_progress: Contractor starts work\nStatus updated
+                    in_progress --> completed: Work completed
+                    completed --> [*]: PO created → Invoice raised\n→ Invoice approved → Paid
+                    rejected --> [*]
+                </div>
+                <div class="diagram-caption">Maintenance request status lifecycle</div>
+            </div>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart TD
+                    A(["Resident<br/>Submits Request"]) -->|"POST /api/maintenance"| B[("maintenance_requests<br/>collection")]
+                    B --> C["Admin sees request<br/>/maintenance"]
+                    C -->|"PUT status=reviewed"| D["Review + add notes"]
+                    D -->|"PUT status=approved"| E["Chairman Approval"]
+                    E -->|"PUT status=assigned<br/>?contractor_id"| F["Contractor Assigned"]
+                    F --> G["Work Completed<br/>status=in_progress→completed"]
+                    G --> H["Admin creates PO<br/>POST /api/purchase-orders"]
+                    H --> I[("purchase_orders<br/>collection")]
+                    I --> J["Contractor submits Invoice<br/>POST /api/invoices"]
+                    J --> K[("invoices<br/>collection<br/>status=pending")]
+                    K --> L["Admin reviews invoice<br/>/maintenance → Invoices tab"]
+                    L -->|"PUT /api/invoices/{id}/approve"| M["Invoice Approved"]
+                    M -->|"PUT /api/invoices/{id}/pay"| N(["Marked as Paid<br/>Workflow Complete"])
+                </div>
+                <div class="diagram-caption">Complete maintenance → invoice workflow with API calls</div>
+            </div>
+        </section>
+
+        <section id="finance">
+            <h2>Levy &amp; Finance Workflow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart TD
+                    A(["Annual Budget Set<br/>by EC"]) -->|"Excel import or UI"| B["POST
+                    /api/finance/upload-budget-categories<br/>Creates levy_categories docs"]
+                    B --> C["Annual levy totals set<br/>PUT /api/annual-levies/2026"]
+                    C --> D[("annual_levies<br/>collection")]
+                    D --> E["System calculates<br/>per-unit levies<br/>GET /api/levy-calculator?year=2026&unit=TH017"]
+                    E --> F["Unit ledgers created<br/>POST /api/finance/upload-unit-ledger"]
+                    F --> G[("unit_levy_ledger<br/>collection")]
+                    G --> H["Quarterly payment due<br/>/api/events → levy due dates"]
+                    H --> I{"Owner pays?"}
+                    I -->|"Stripe online"| J["Stripe payment processed<br/>POST /api/stripe/create-payment-intent"]
+                    I -->|"Bank transfer"| K["Admin records<br/>POST /api/levy-payments"]
+                    J --> L[("levy_payments<br/>collection")]
+                    K --> L
+                    L --> M["Ledger updated<br/>Balance recalculated"]
+                    M --> N{"Overdue?"}
+                    N -->|"Yes"| O["Levy reminder sent<br/>POST /api/notifications/levy-reminder"]
+                    N -->|"No"| P(["Account current ✓"])
+                </div>
+                <div class="diagram-caption">Annual levy lifecycle from budget setting to payment tracking</div>
+            </div>
+            <div class="callout">
+                <strong>Levy calculation formula:</strong><br/>
+                <code>unit_levy = (unit.uoe / total_uoe) × annual_levy_income</code><br/>
+                Example: TH017 (UOE=141) → <code>(141/10000) × $340,870.20 = $4,806.27</code> admin levy per year.
+            </div>
+        </section>
+
+        <section id="due-date-priority">
+            <h2>Levy Due Date Priority Algorithm (Session 68)</h2>
+            <p>The <strong>"Due in X days"</strong> badge on the Owner Dashboard and EC My Property View uses a
+                two-field priority to determine which date to display. The owner-specific <code>next_due_date</code>
+                from <code>/owners-units/{unit}</code> always takes precedence over the building-calendar <code>period_status.current_due_date</code>.
+            </p>
+
+            <div class="callout">
+                <strong>Data source priority (highest first):</strong><br/>
+                1. <code>next_due_date</code> — owner-specific; computed per-unit from ledger (API: <code>GET
+                /owners-units/{unit}</code>)<br/>
+                2. <code>period_status.current_due_date</code> — building's current calendar quarter (same for all
+                units)<br/>
+                3. Fallback hardcoded dates: March 1, June 1, September 1, December 1 (East Gate schedule)
+            </div>
+
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart TD
+                    A(["FinancialSummaryCard renders"]) --> B["Fetch GET /owners-units/{unit}"]
+                    B --> C[("unit_levy_ledger<br/>collection")]
+                    C --> D["Compute next_due_date<br/>(owner-specific)"]
+                    D --> E{"next_due_date<br/>returned?"}
+                    E -->|"Yes"| F["Display next_due_date<br/>(owner-specific date)"]
+                    E -->|"No"| G{"period_status.<br/>current_due_date?"}
+                    G -->|"Yes"| H["Display current_due_date<br/>(building calendar)"]
+                    G -->|"No"| I["Display fallback:<br/>Mar 1 / Jun 1 / Sep 1 / Dec 1"]
+                    F --> J[/"Due in X days badge"/]
+                    H --> J
+                    I --> J
+                </div>
+                <div class="diagram-caption">Due date field priority — owner-specific date always overrides building
+                    calendar date
+                </div>
+            </div>
+
+            <h3>next_due_date Computation Algorithm</h3>
+            <p>Computed server-side in <code>server.py</code> (both <code>GET /owners-units</code> list and <code>GET
+                /owners-units/{unit}</code> single endpoints). Uses <strong>integer-cent arithmetic</strong> to avoid
+                floating-point rounding errors.</p>
+            <div class="callout">
+                <strong>Algorithm (Session 53, refined Session 68):</strong><br/>
+                <code>net_credit = effective_total_paid − opening_arrears</code><br/>
+                <code>nc_cents = round(net_credit × 100)</code><br/>
+                <code>pl_cents = round(period_levy × 100)</code><br/>
+                <code>periods_funded = nc_cents // pl_cents &nbsp;&nbsp;&nbsp;# integer division</code><br/>
+                <code>outstanding = (periods_funded + 1) × period_levy − net_credit</code><br/><br/>
+                <strong>Before grace deadline</strong> (<code>today ≤ due_dates[periods_funded] + 14 days</code>):<br/>
+                <code>next_due_date = due_dates[periods_funded]</code><br/><br/>
+                <strong>After grace deadline:</strong><br/>
+                <code>next_due_date = due_dates[periods_funded + 1]</code><br/><br/>
+                <strong>Fully paid:</strong> <code>next_due_date = None</code>; "All levies fully paid" shown
+            </div>
+
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart LR
+                    subgraph DB["MongoDB"]
+                    L["unit_levy_ledger<br/>- opening_arrears<br/>- effective_total_paid<br/>- period_levy"]
+                    S["settings<br/>- levy_period_months: [3,6,9,12]<br/>- levy_period_day: 'first'"]
+                    end
+                    subgraph ALGO["Backend (server.py)"]
+                    A["compute_period_due_dates()<br/>→ [Mar 1, Jun 1, Sep 1, Dec 1]"]
+                    B["nc = effective_total_paid - opening_arrears"]
+                    C["periods_funded = nc_cents // pl_cents"]
+                    D["next_due = due_dates[periods_funded]<br/>(or [pf+1] after grace)"]
+                    E["next_payment_adjusted =<br/>(pf+1)×period_levy − nc"]
+                    end
+                    subgraph FE["Frontend"]
+                    F["FinancialSummaryCard.jsx<br/>→ 'Due in X days' badge<br/>(uses next_due_date)"]
+                    G["FinancialHero.tsx<br/>→ 'Next Estimated Payment' amount<br/>(uses next_payment_adjusted)"]
+                    end
+                    L --> B
+                    S --> A
+                    A --> D
+                    B --> C --> D
+                    B --> E
+                    D --> F
+                    E --> G
+                </div>
+                <div class="diagram-caption">Complete data flow: unit_levy_ledger → next_due_date +
+                    next_payment_adjusted → frontend display
+                </div>
+            </div>
+
+            <h3>East Gate Building Due Dates</h3>
+            <p>Settings: <code>levy_period_months = [3, 6, 9, 12]</code>, <code>levy_period_day = "first"</code>.<br/>
+                Resolved dates: <strong>March 1, June 1, September 1, December 1</strong>.<br/>
+                Grace period: 14 days after each due date. Overdue detection uses grace deadline, not raw due date.</p>
+
+            <div class="callout">
+                <strong>Bug fixed (Session 68):</strong> <code>FinancialSummaryCard.jsx</code> previously used <code>period_status?.current_due_date
+                ?? next_due_date</code> — the wrong priority. The building's calendar date (June 1 = 76 days) overrode
+                the owner-specific date (December 1 = 258 days for advance payers). Fixed to <code>next_due_date ??
+                period_status?.current_due_date</code>.
+            </div>
+        </section>
+
+        <section id="arrears-recovery">
+            <h2>Arrears Recovery Workflow (Advanced Financial Enhancements)</h2>
+            <p>A 4-tier severity model for recovering outstanding levies. Units progress through tiers based on balance
+                size and time elapsed since a Section 83 notice was issued. A nightly cron job (<code>cron/cron_finance_recompute.py</code>)
+                auto-promotes eligible units to Tier 3.</p>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    graph TD
+                    A(["Unit has outstanding<br/>levy balance"]) --> B{"Tier 1:<br/>Monitor"}
+                    B -->|"Balance owing,<br/>no action yet"| B
+                    B -->|"Manager sends<br/>Section 83 notice"| C["POST /api/finance/s83-notice/UNIT<br/>Generates PDF,
+                    logs notice date"]
+                    C --> D{"Tier 2:<br/>Contacted"}
+                    D -->|"Within 14-day<br/>window"| D
+                    D -->|"Nightly cron detects:<br/>balance over $1500<br/>AND 14+ days since notice"| E{"Tier 3:<br/>DCA
+                    Eligible"}
+                    E -->|"Manager records<br/>formal referral"| F["POST /api/finance/dca-referral/UNIT<br/>Generates
+                    DCA reference number"]
+                    F --> G{"Tier 4:<br/>DCA Referred"}
+                    G -->|"Payment received<br/>or plan agreed"| H(["Account resolved"])
+                    B -->|"Optional at any stage"| PP["POST /api/payment-plans<br/>Create instalment schedule"]
+                    D --> PP
+                    E --> PP
+                    G --> PP
+                    PP --> H
+                </div>
+                <div class="diagram-caption">4-tier arrears recovery severity model with DCA referral pathway</div>
+            </div>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    sequenceDiagram
+                    participant MGR as Manager (Frontend)
+                    participant API as FastAPI
+                    participant DB as MongoDB
+                    participant CRON as Nightly Cron
+                    participant DCA as Debt Collection Agency
+
+                    MGR->>API: GET /api/finance/arrears-board
+                    API-->>MGR: Units grouped by Tier 1-4 severity
+                    MGR->>API: POST /api/finance/s83-notice/{unit}
+                    API->>DB: Insert arrears_metadata.s83_notice_date
+                    API-->>MGR: Section 83 PDF (StreamingResponse)
+                    Note over CRON: Runs nightly at 02:00 AEST
+                    CRON->>DB: Find units: balance > $1500 AND s83_date + 14 days past
+                    CRON->>DB: Set arrears_metadata.tier = 3 (DCA Eligible)
+                    MGR->>API: POST /api/finance/dca-referral/{unit}
+                    API->>DB: Insert dca_referral record, generate reference number
+                    API->>DB: Set arrears_metadata.tier = 4 (DCA Referred)
+                    API-->>MGR: DCA reference number returned
+                    MGR->>DCA: Forward reference number + debt details
+                </div>
+                <div class="diagram-caption">Arrears recovery sequence — from arrears board to DCA referral</div>
+            </div>
+            <div class="callout">
+                <strong>Tier thresholds:</strong><br/>
+                Tier 1 — Monitor: any outstanding balance<br/>
+                Tier 2 — Contacted: Section 83 notice sent, within 14-day window<br/>
+                Tier 3 — DCA Eligible: balance &gt; $1,500 AND 14+ days since Section 83 notice<br/>
+                Tier 4 — DCA Referred: formally referred, DCA reference number issued<br/>
+                Payment plans may be created at any tier to halt escalation.
+            </div>
+        </section>
+
+        <section id="announcement">
+            <h2>Announcement &amp; Email Notification Workflow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    sequenceDiagram
+                    participant A as Admin (Frontend)
+                    participant API as POST /api/announcements
+                    participant DB as announcements collection
+                    participant EMAIL as email.py (SMTP/Resend)
+                    participant USERS as users collection
+                    participant NOTIF as user_notifications collection
+
+                    A->>API: { title, content, target_roles: ["owner","tenant"] }
+                    API->>DB: Insert announcement document
+                    API->>USERS: Find all users with matching roles
+                    loop For each matching user
+                    API->>EMAIL: send_email_async(user.email, subject, html)
+                    API->>EMAIL: send_email_async(user.mail_username, subject, html) [if different]
+                    API->>NOTIF: Insert user_notification (bell icon)
+                    end
+                    API-->>A: { id, email_sent_count: 87 }
+                    Note over USERS,NOTIF: Users see toast + notification badge
+                </div>
+                <div class="diagram-caption">Announcement creation triggers dual-email and in-app notifications</div>
+            </div>
+        </section>
+
+        <section id="user-lifecycle">
+            <h2>User Account Lifecycle</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    stateDiagram-v2
+                    [*] --> Active: POST /auth/register (owner)\nis_approved=false, status=active\nAdmin approval still
+                    needed
+                    [*] --> PendingOwner: POST /auth/register (tenant/guest)\nstatus=pending_owner_approval\nowner email
+                    sent immediately
+                    PendingOwner --> InfoRequested: Admin requests correction
+                    PendingOwner --> Active: Owner approves via token link\nPOST
+                    /auth/registration-decision\nis_approved=false, owner_approved=true
+                    PendingOwner --> Archived: Owner rejects via token link
+                    PendingOwner --> Active: Admin override\nPOST /users/id/owner-decision
+                    Active --> InfoRequested: Admin requests correction\nPOST /users/id/request-info
+                    InfoRequested --> Active: User resubmits\nPUT /registration/update
+                    Active --> FullyActive: Admin approves\nPUT /users/id\nis_approved=true
+                    Active --> Archived: Admin rejects
+                    FullyActive --> Archived: User leaves or expires\nPOST /users/id/archive
+                    Archived --> Active: Admin restores\nPOST /users/id/restore
+                    note right of Archived
+                    Re-registration attempt → 409 Conflict
+                    Admin notified via /admin/expired-accounts
+                    Not auto-restored — manual admin action required
+                    end note
+
+                    note right of PendingOwner
+                    Guest escalation: 2 hours
+                    Tenant escalation: 48 hours
+                    Cron: cron_approval_escalation.py
+                    Owner bell: link=/requests/tenant-approvals
+                    Admin notified: super_admin+chairman+strata_manager
+                    end note
+                </div>
+                <div class="diagram-caption">User account status state machine — tenant/guest require owner approval
+                    before admin activation
+                </div>
+            </div>
+
+            <h3>Tenant / Guest Two-Stage Registration Flow</h3>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    sequenceDiagram
+                    participant G as Guest/Tenant
+                    participant B as Backend
+                    participant O as Unit Owner
+                    participant A as Super Admin
+                    participant Cron as Escalation Cron
+
+                    G->>B: POST /auth/register (role=guest|tenant)
+                    B->>B: status = pending_owner_approval
+                    B->>O: Email — portal link to /requests/tenant-approvals
+                    B->>O: Bell notification — link=/requests/tenant-approvals
+                    B->>A: FYI email + bell — owner notified (super_admin + chairman + strata_manager)
+
+                    alt Owner responds via portal (bell notification)
+                    O->>+A: Click bell → /requests/tenant-approvals
+                    O->>B: POST /users/id/owner-decision (approve/reject)
+                    B->>B: status = active, owner_approved = true
+                    B->>G: Email — owner confirmed, strata manager completing activation
+                    B->>A: Bell in db.user_notifications + email (super_admin + chairman + strata_manager)
+                    A->>B: PUT /users/id — is_approved=true
+                    else Owner responds via email token link
+                    O->>B: GET /auth/registration-decision?token=X&action=approve
+                    B->>O: Shows confirmation form (+ instructions field for guest)
+                    O->>B: POST /auth/registration-decision (with optional instructions)
+                    B->>B: status = active, owner_approved = true
+                    B->>G: Email — approved + host instructions (guest only)
+                    B->>A: Bell + email (super_admin + chairman + strata_manager)
+                    A->>B: PUT /users/id — is_approved=true
+                    else Owner ignores — cron fires
+                    Cron->>B: Query: pending_owner_approval AND past window (2h guest, 48h tenant)
+                    B->>A: Escalation email — Approve/Reject buttons (same token-based flow)
+                    end
+                </div>
+                <div class="diagram-caption">Tenant/Guest two-stage approval — owner first, escalates to admin if no
+                    response
+                </div>
+            </div>
+        </section>
+
+        <section id="owner-transfer">
+            <h2>Ownership Transfer Workflow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart TD
+                    A(["Property sold"]) --> B["Strata Manager opens<br/>/admin/owner-transfers"]
+                    B --> C["Select unit + enter<br/>new owner details"]
+                    C --> D["Existing owner archived<br/>POST /users/{old_id}/archive"]
+                    D --> E["New owner invited<br/>POST /auth/register or admin creates"]
+                    E --> F["Unit record updated<br/>PUT /api/owners-units/{unit}"]
+                    F --> G["New user approved<br/>Email credentials set"]
+                    G --> H(["New owner can access<br/>dashboard"])
+
+                    subgraph DataUpdated["Data Updated"]
+                    D
+                    F
+                    end
+                </div>
+                <div class="diagram-caption">Property ownership transfer process</div>
+            </div>
+        </section>
+
+        <section id="tenant-renewal">
+            <h2>Tenant Renewal Workflow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart TD
+                    A(["Cron job detects<br/>tenant nearing end_date"]) --> B["Notification sent to<br/>Property Owner"]
+                    B --> C["Owner reviews<br/>/requests/tenant-approvals"]
+                    C --> D{"Decision"}
+                    D -->|"Renew"| E["Update tenant.end_date<br/>PUT /api/users/{tenant_id}"]
+                    D -->|"End tenancy"| F["Archive tenant account<br/>POST /users/{tenant_id}/archive"]
+                    D -->|"New tenant"| G["Old tenant archived<br/>New tenant registered"]
+                    E --> H(["Tenant continues access"])
+                    F --> I(["Unit available for<br/>new tenant"])
+                    G --> I
+                </div>
+                <div class="diagram-caption">Tenant lease renewal and expiry process</div>
+            </div>
+        </section>
+
+        <section id="agm">
+            <h2>AGM Voting Workflow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    sequenceDiagram
+                    participant A as Admin
+                    participant DB as MongoDB
+                    participant O as Owners
+                    participant FE as AGM Page
+
+                    A->>DB: Create AGM record — POST /api/agm
+                    A->>DB: Add motions — POST /api/agm/id/motions
+                    A->>DB: Send announcement to all owners
+                    O->>FE: Visit /governance/agm
+                    FE->>DB: GET /api/agm/id/motions
+                    loop For each motion
+                    O->>DB: Cast vote — POST /api/agm/motions/id/vote (for, against, abstain)
+                    DB-->>O: Vote recorded
+                    end
+                    A->>DB: Close voting + record outcome
+                    A->>DB: Record meeting minutes — PUT /api/meetings/id
+                </div>
+                <div class="diagram-caption">Annual General Meeting voting process</div>
+            </div>
+        </section>
+
+        <section id="document">
+            <h2>Document Management Workflow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart LR
+                    A(["Admin uploads document<br/>POST /api/documents"]) --> B{"Set access<br/>permissions"}
+                    B -->|"Public"| C["All residents can see"]
+                    B -->|"Owners only"| D["Filtered by role in GET /api/documents"]
+                    B -->|"EC only"| E["EC members + admins only"]
+                    B -->|"Financial"| F["Owners with can_view_finances"]
+                    C --> G[("documents collection<br/>base64 content stored")]
+                    D --> G
+                    E --> G
+                    F --> G
+                    G --> H["Tenant requests document<br/>GET /api/documents"]
+                    H --> I{"Permission check<br/>check_document_access()"}
+                    I -->|"Denied"| J["403 Forbidden"]
+                    I -->|"Allowed"| K["Document returned<br/>as base64 download"]
+                </div>
+                <div class="diagram-caption">Document upload, permission setting, and access control</div>
+            </div>
+        </section>
+
+
+        <section id="login-endpoint">
+            <h2>Login Flow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    sequenceDiagram
+                    actor U as User
+                    participant F as Frontend (NextAuth)
+                    participant B as Backend (FastAPI)
+                    participant DB as MongoDB
+
+                    U->>F: Submit email + password
+                    F->>B: POST /api/auth/login {email, password}
+                    B->>DB: Find user by email
+                    alt User not found
+                    B-->>F: 401 Invalid email or password
+                    else Password mismatch
+                    B-->>F: 401 Invalid email or password
+                    else Account deactivated
+                    B-->>F: 401 Account is deactivated
+                    else Account archived
+                    B-->>F: 401 This account has been archived
+                    else Valid
+                    B->>DB: Update last_login_at
+                    B->>DB: Insert login_audit_log (success)
+                    B-->>F: 200 {token, user}
+                    F->>F: Store JWT in localStorage + AuthContext
+                    F-->>U: Redirect to /dashboard
+                    end
+                </div>
+                <div class="diagram-caption">Login flow — rate-limited 10/minute, full audit logging</div>
+            </div>
+            <div class="callout warning">
+                <strong>Implementation note:</strong> POST /api/auth/login is defined directly in
+                <code>server.py</code> (line ~2074). It was previously only in <code>routers/auth.py</code>
+                but not registered — causing 404 → CredentialsSignin for all users. Fixed in commit 6547faf.
+            </div>
+        </section>
+
+        <section id="auto-approval">
+            <h2>Registration Auto-Approval Flow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    sequenceDiagram
+                    actor T as Guest/Tenant
+                    actor O as Unit Owner
+                    actor A as Super Admin
+                    participant B as Backend
+                    participant C as Cron (*/5 min)
+                    participant E as Email
+
+                    T->>B: POST /api/auth/register
+                    B->>B: status=pending_owner_approval
+                    B->>E: Email to Owner — please confirm
+                    O->>B: GET/POST /api/auth/registration-decision?token=TOKEN
+                    B->>B: status=active, is_approved=false, owner_approved_at=now
+                    B->>E: Email to Guest/Tenant — owner confirmed, final review underway
+                    B->>E: Email to Admins/Chairman — new registration awaiting approval
+                    Note over A,B: Admin has ADMIN_AUTO_APPROVE_MINUTES (default 15 min)
+                    alt Admin approves within 15 min
+                    A->>B: PUT /api/users/id (is_approved=true)
+                    B->>E: Email to Guest/Tenant — account approved
+                    B->>E: Email to Strata Managers — new user approved
+                    else No admin action within 15 min
+                    C->>B: cron_admin_auto_approve.py runs
+                    B->>B: is_approved=true, auto_approved=true
+                    B->>E: Email to Guest/Tenant — account approved
+                    B->>E: Email to Admins/Strata Managers — auto-approved notification
+                    end
+                </div>
+                <div class="diagram-caption">Two-stage registration: owner confirmation → admin review → auto-approve
+                    fallback
+                </div>
+            </div>
+            <table>
+                <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Default</th>
+                    <th>DB field (site_settings)</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>admin_auto_approve_minutes</td>
+                    <td>15</td>
+                    <td>admin_auto_approve_minutes</td>
+                    <td>Auto-approve after this many minutes of no admin action</td>
+                </tr>
+                <tr>
+                    <td>guest_escalation_hours</td>
+                    <td>2</td>
+                    <td>guest_escalation_hours</td>
+                    <td>Escalate guest to admins after this many hours without owner response</td>
+                </tr>
+                <tr>
+                    <td>tenant_escalation_hours</td>
+                    <td>48</td>
+                    <td>tenant_escalation_hours</td>
+                    <td>Escalate tenant to admins after this many hours without owner response</td>
+                </tr>
+                <tr>
+                    <td>token_validity_hours</td>
+                    <td>72</td>
+                    <td>token_validity_hours</td>
+                    <td>One-click approve/reject link validity window</td>
+                </tr>
+                <tr>
+                    <td>notify_bcc_email</td>
+                    <td>gagneet@eastgateresidences.com.au</td>
+                    <td>notify_bcc_email</td>
+                    <td>BCC address on all registration notifications</td>
+                </tr>
+                <tr>
+                    <td>notify_bcc_name</td>
+                    <td>Building Administrator</td>
+                    <td>notify_bcc_name</td>
+                    <td>BCC display name</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="password-reset">
+            <h2>Password Reset Flow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    sequenceDiagram
+                    actor U as User
+                    participant F as Frontend
+                    participant B as Backend (FastAPI)
+                    participant E as Email (SMTP)
+                    participant DB as MongoDB
+
+                    U->>F: Visit /forgot-password, enter email
+                    F->>B: POST /api/auth/forgot-password {email}
+                    B->>DB: Look up user by email
+                    alt User not found
+                    B-->>F: 200 OK (enumeration prevention)
+                    else User found
+                    B->>DB: Insert password_resets {token, user_id, expires_at: +1h}
+                    B->>E: Send branded reset email → /reset-password?token=TOKEN
+                    B-->>F: 200 OK "If email exists, reset link sent"
+                    end
+                    U->>F: Click link in email → /reset-password?token=TOKEN
+                    F->>B: POST /api/auth/reset-password {token, new_password}
+                    B->>DB: Find token (used=false, not expired)
+                    alt Invalid/expired
+                    B-->>F: 400 "Invalid or expired reset token"
+                    else Valid
+                    B->>DB: Update user hashed_password
+                    B->>DB: Mark token used=true
+                    B->>DB: Insert password_change_audit record
+                    B-->>F: 200 "Password reset successfully"
+                    F-->>U: Show success → redirect to /login
+                    end
+                </div>
+                <div class="diagram-caption">Password reset flow — 1-hour token, single-use, audit-logged</div>
+            </div>
+        </section>
+
+        <section id="returning-archived-user">
+            <h2>Returning Archived User Flow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    sequenceDiagram
+                    actor U as User (archived)
+                    participant F as Frontend /register
+                    participant B as Backend
+                    participant A as Admins (email + in-app)
+                    participant DB as MongoDB
+
+                    U->>F: Fills out /register with same email
+                    F->>B: POST /api/auth/register {email, unit_number?, role}
+                    B->>DB: find_one({email}) → status=archived
+                    B->>DB: Update {return_requested_at, return_requested_unit?, return_requested_role?}
+                    B->>A: Send branded email with old/new unit, requested role, link to Expired Accounts
+                    B->>A: Create in-app notifications for super_admin + chairman
+                    B-->>F: 409 {code:"archived_user_return_request", returning_user:true}
+                    F-->>U: toast.info("Your account was previously archived. Request sent to admin.")
+                    note over A,DB: Admin reviews at /admin/expired-accounts
+                    A->>B: POST /users/{id}/restore OR updates unit + restores
+                    B->>DB: Set status=active, is_active=true, clear archived fields
+                    B->>U: Email notification "Account restored"
+                </div>
+                <div class="diagram-caption">Returning archived user — captures desired new unit/role, notifies admins
+                    with full context
+                </div>
+            </div>
+        </section>
+
+        <section id="debt-recovery-detail">
+            <h2>Debt Recovery — Three-State Fields &amp; Opening Balance Sync (2026-03-30)</h2>
+            <p>The Debt Recovery Board at <code>/financials/arrears</code> is driven by three fields in <code>units.arrears_metadata</code>.
+                Each field serves a distinct purpose and must be kept in sync after any data import or manual update.
+            </p>
+
+            <h3>Recovery State Fields</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Values</th>
+                    <th>UI Column</th>
+                    <th>Set by</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>dca_status</code></td>
+                    <td>none / eligible / referred / recovering / resolved / recalled</td>
+                    <td>Recovery Status</td>
+                    <td>Nightly cron (eligible); admin (all others)</td>
+                </tr>
+                <tr>
+                    <td><code>legal_referral_status</code></td>
+                    <td>none / referred / resolved</td>
+                    <td>Legal/Plan</td>
+                    <td><code>POST /arrears/{unit}/refer-dca</code> (sets both fields atomically)</td>
+                </tr>
+                <tr>
+                    <td><code>has_active_payment_plan</code></td>
+                    <td>true / false</td>
+                    <td>Legal/Plan (takes priority)</td>
+                    <td>Payment plan endpoints</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <p><strong>Legal/Plan column priority:</strong> PAYMENT PLAN (plan active) &gt; LEGAL ACTION
+                (legal_referral_status=referred) &gt; NO PLAN.</p>
+            <p><strong>Bug fixed 2026-03-30:</strong> <code>refer-dca</code> previously only set <code>dca_status</code>,
+                leaving <code>legal_referral_status = "none"</code>. The Legal/Plan column showed "NO PLAN" even after
+                referral. Fix: both fields are now set atomically in a single <code>update_one()</code>.</p>
+
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    sequenceDiagram
+                    participant Admin as Admin (Frontend)
+                    participant API as POST /arrears/{unit}/refer-dca
+                    participant DB as MongoDB (units)
+                    participant FE as fetchData() → UI
+
+                    Admin->>API: POST /api/arrears/TH017/refer-dca
+                    API->>DB: $set dca_status="referred" AND legal_referral_status="referred" (atomic)
+                    DB-->>API: acknowledged
+                    API-->>Admin: 200 {dca_reference: "DCA-2026-0042"}
+                    Admin->>FE: fetchData() on success
+                    Note over FE: Recovery Status → "DCA REFERRED"
+                    Note over FE: Legal/Plan → "LEGAL ACTION"
+                </div>
+                <div class="diagram-caption">Refer DCA — both fields updated atomically; UI refreshes in one fetchData()
+                    call
+                </div>
+            </div>
+
+            <h3>Opening Balance — Single Source of Truth</h3>
+            <p>Three fields track opening balances across two collections. The invariant is: <code>opening_arrears =
+                admin_opening + sinking_opening</code> in both <code>units</code> and <code>unit_levy_ledger</code>.</p>
+
+            <table>
+                <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Collection</th>
+                    <th>Read by</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>opening_arrears</code></td>
+                    <td>units + unit_levy_ledger</td>
+                    <td>Arrears Board, levy calculation engine</td>
+                </tr>
+                <tr>
+                    <td><code>admin_opening</code></td>
+                    <td>units + unit_levy_ledger</td>
+                    <td>Per-fund breakdown, levy calculation</td>
+                </tr>
+                <tr>
+                    <td><code>sinking_opening</code></td>
+                    <td>units + unit_levy_ledger</td>
+                    <td>Per-fund breakdown, levy calculation</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <p><strong>Sync triggers:</strong> <code>PUT /api/owners-units/{unit}</code> with any balance field writes
+                all three to both collections. <code>POST /api/owners-units/sync-arrears</code> does a full bulk
+                reconcile (Super Admin only). Run this after any financial data import to ensure the Arrears Board and
+                levy calculations are consistent.</p>
+
+            <div class="callout">
+                <strong>Contact Log — JSON body (changed 2026-03-30):</strong><br/>
+                <code>POST /api/arrears/{unit}/contact-log</code> now accepts a JSON body: <code>{"method": "email",
+                "description": "..."}</code><br/>
+                method values: <code>email | phone | letter | meeting</code>. Previously required query params —
+                frontend updated to send JSON.
+            </div>
+        </section>
+
+        <section id="register-success">
+            <h2>Registration Success Page</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart TD
+                    A(["POST /api/auth/register success"]) --> B["Redirect → /register/success"]
+                    B --> C{"User role?"}
+                    C -->|"owner"| D["Show Quick Guide: quick_role_owner.html"]
+                    C -->|"tenant"| E["Show Quick Guide: quick_role_tenant.html"]
+                    C -->|"guest"| F["Show Quick Guide: quick_role_guest.html"]
+                    C -->|"other"| G["Show role-specific guide"]
+                    D & E & F & G --> H["Display: name, email, role, unit, phone, end_date"]
+                    H --> I["Edit contact info button"]
+                    I --> J["PUT /api/users/{id}: phone, phone_mobile, home_address"]
+                    J --> K["Show 'What Happens Next' steps for role"]
+                </div>
+                <div class="diagram-caption">
+                    Registration success — role-specific guides; Resident Handbook and Unit Plan removed (authenticated
+                    only).
+                    Contact details editable while pending.
+                </div>
+            </div>
+        </section>
+        <section id="registration-visibility">
+            <h2>Registration &amp; User Visibility Architecture</h2>
+            <p>Session 2026-03-30 fixed a critical two-step visibility bug: a user could register successfully but never
+                appear in the admin user list. This section documents the root cause, the fix, and the architectural
+                rules that prevent recurrence.</p>
+
+            <h3>The Two-Step Visibility Problem</h3>
+            <p>The <code>get_users()</code> pipeline in <code>server.py</code> starts its aggregation from the <strong>memberships</strong>
+                collection (not users). If a registered user has no corresponding membership document, they are
+                invisible to all admin list views — even though their user document exists in MongoDB.</p>
+            <div class="callout">
+                <strong>Root cause:</strong> <code>register()</code> in <code>routers/auth.py</code> created a <code>users</code>
+                document and a <code>user_units</code> document but did <em>not</em> create a <code>memberships</code>
+                document. Any registration made before the 2026-03-30 fix produces an invisible user.
+            </div>
+
+            <h3>GLOBAL vs. TENANT-SCOPED Collections</h3>
+            <p>The <code>database.py</code> module classifies every MongoDB collection as either <strong>GLOBAL</strong>
+                (shared across all buildings, no auto-injected <code>building_id</code>) or
+                <strong>TENANT-SCOPED</strong> (the <code>TenantCollection</code> wrapper auto-injects the current
+                building's <code>building_id</code> into every query).</p>
+
+            <table>
+                <thead>
+                <tr>
+                    <th>Collection</th>
+                    <th>Type</th>
+                    <th>Notes</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>users</code></td>
+                    <td>GLOBAL</td>
+                    <td>No auto-inject — <code>building_id</code> must be set explicitly on insert</td>
+                </tr>
+                <tr>
+                    <td><code>memberships</code></td>
+                    <td>GLOBAL</td>
+                    <td>No auto-inject — <code>building_id</code> from <code>_building_id</code> param</td>
+                </tr>
+                <tr>
+                    <td><code>units</code></td>
+                    <td>TENANT-SCOPED</td>
+                    <td>Auto-injects <code>building_id</code> — caused 500 when no ctx set</td>
+                </tr>
+                <tr>
+                    <td><code>user_units</code></td>
+                    <td>TENANT-SCOPED</td>
+                    <td>Auto-injects <code>building_id</code></td>
+                </tr>
+                <tr>
+                    <td><code>feature_toggles</code></td>
+                    <td>GLOBAL</td>
+                    <td>Two-tier: global (<code>building_id=None</code>) + per-building override</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h3>X-Building-ID Header Flow</h3>
+            <p>The frontend sends <code>X-Building-ID: 13195</code> (East Gate) in every API request. The FastAPI
+                dependency <code>get_optional_building()</code> (<code>utils/auth.py</code> ~line 281) resolves the
+                building context in this priority order:</p>
+            <ol>
+                <li>JWT token claim <code>building_id</code></li>
+                <li><code>X-Building-ID</code> request header</li>
+                <li><code>building_id</code> query parameter</li>
+                <li>Default: <code>DEFAULT_BUILDING_ID = "13195"</code></li>
+            </ol>
+            <p>The resolved value is stored in a Python context variable via <code>set_ctx_building_id()</code>. When a
+                TENANT-SCOPED collection is accessed, the <code>TenantCollection</code> wrapper reads this context
+                variable and injects <code>building_id</code> automatically. If no context is set, it raises <code>RuntimeError</code>
+                — which was the original 500 error.</p>
+
+            <h3>Full Registration Flow (with Fixes Applied)</h3>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    sequenceDiagram
+                    participant Browser
+                    participant Nginx
+                    participant FastAPI as FastAPI (routers/auth.py)
+                    participant MongoDB
+
+                    Browser->>Nginx: POST /api/auth/register (X-Building-ID 13195)
+                    Nginx->>FastAPI: Forward with header
+                    FastAPI->>FastAPI: get_optional_building() reads X-Building-ID header
+                    FastAPI->>FastAPI: set_ctx_building_id 13195
+                    FastAPI->>MongoDB: db.users.find_one by email — GLOBAL, no auto-inject
+                    FastAPI->>MongoDB: db.units.find_one by unit_number — TENANT-SCOPED, auto-injects building_id 13195
+                    FastAPI->>MongoDB: db.users.insert_one — GLOBAL, building_id set explicitly
+                    FastAPI->>MongoDB: db.memberships.insert_one — GLOBAL, building_id from _building_id param
+                    FastAPI->>MongoDB: db.user_units.insert_one — TENANT-SCOPED, auto-injects
+                    FastAPI-->>Browser: AuthResponse (token + user)
+                </div>
+                <div class="diagram-caption">Full registration sequence — all four persistence writes shown with
+                    collection types
+                </div>
+            </div>
+
+            <h3>get_users() Pipeline — Why Memberships Is the Master List</h3>
+            <p>The admin user list endpoint (<code>GET /api/users</code>, implemented in <code>server.py</code> ~line
+                1941) uses MongoDB aggregation starting from the <code>memberships</code> collection, not from <code>users</code>.
+                This is intentional: memberships is the source of truth for which users belong to which building.</p>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart TD
+                    A(["GET /api/users"]) --> B[("memberships<br/>collection<br/>GLOBAL")]
+                    B -->|"$match building_id=13195"| C["Filter to current building"]
+                    C -->|"$lookup users on user_id"| D[("users<br/>collection<br/>GLOBAL")]
+                    D --> E["Merge user fields"]
+                    E -->|"$match filters: role, status, search"| F["Apply query filters"]
+                    F -->|"$sort created_at desc"| G["Sort results"]
+                    G -->|"$skip + $limit"| H["Paginate"]
+                    H --> I(["Return UserResponse list"])
+
+                    style B fill:#c0392b,color:#fff
+                    style D fill:#2980b9,color:#fff
+                </div>
+                <div class="diagram-caption">get_users() aggregation pipeline — users without a memberships document are
+                    invisible
+                </div>
+            </div>
+
+            <h3>Membership Document Structure</h3>
+            <p>Each membership document created during registration links a user to a building. The document is inserted
+                into the GLOBAL <code>memberships</code> collection with an explicit <code>building_id</code> (not
+                auto-injected by TenantCollection).</p>
+            <div class="callout">
+<pre><code>{
+  "id": "uuid4()",
+  "user_id": "&lt;users._id&gt;",
+  "building_id": "13195",          // explicitly set from _building_id param
+  "roles": ["owner"],              // primary role
+  "units": ["TH017"],              // unit(s) associated at registration
+  "is_active": true,
+  "is_primary": true,
+  "created_at": "2026-03-30T..."
+}</code></pre>
+            </div>
+
+            <h3>Known Edge Cases</h3>
+            <ul>
+                <li><strong>Pre-fix registrations:</strong> Users registered before 2026-03-30 may have no membership
+                    document. Manually backfill with <code>db.memberships.insert_one(membership_doc)</code> and set
+                    correct <code>building_id</code>.
+                </li>
+                <li><strong>building_id=None memberships:</strong> A membership with <code>building_id=None</code> will
+                    not be returned by <code>get_users()</code> for any building. Fix: update to the correct building_id
+                    string.
+                </li>
+                <li><strong>No X-Building-ID header:</strong> Falls back to <code>DEFAULT_BUILDING_ID="13195"</code>.
+                    Safe for East Gate but incorrect for Sierra/Harbourview registrations.
+                </li>
+                <li><strong>Motor collection truthiness:</strong> Never use <code>if not db_collection:</code> with
+                    Motor — it raises <code>NotImplementedError</code>. Always use <code>if db_collection is
+                        None:</code>.
+                </li>
+            </ul>
+
+            <h3>Rollback Mechanism</h3>
+            <p>MongoDB does not support cross-document transactions in the default replica-set-free configuration.
+                Registration uses a <em>best-effort</em> sequential insert approach with a
+                <code>persistence_tasks</code> list:</p>
+            <ol>
+                <li><code>db.users.insert_one(user_doc)</code></li>
+                <li><code>db.memberships.insert_one(membership_doc)</code></li>
+                <li><code>db.user_units.insert_one(user_unit_doc)</code></li>
+            </ol>
+            <p>If step 2 or 3 fails, the user document is left orphaned in <code>users</code>. The admin dashboard will
+                not display the user (no membership). A re-registration attempt will return 409 Conflict (email already
+                exists). Resolution: delete the orphaned user document from <code>users</code> and have the person
+                re-register, or manually complete the missing inserts.</p>
+        </section>
+
+    </main>
+</div>
+<footer>East Gate Residences · Technical Documentation · Workflows · Super Admin Only · 2026 · A vision by: Silverfox
+    Technologies, Australia · Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+</body>
+</html>

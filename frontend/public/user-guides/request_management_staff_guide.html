@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Request Management — Staff Guide | your building</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-yellow {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-purple {
+            background: #ede9fe;
+            color: #5b21b6;
+        }
+
+        .badge-gray {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .badge-teal {
+            background: #ccfbf1;
+            color: #0f766e;
+        }
+
+        .step {
+            border-left: 4px solid #2F4F4F;
+            padding: 10px 16px;
+            margin: 12px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        th {
+            background: #2F4F4F;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0;
+        }
+
+        .warn-box {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0;
+        }
+
+        .tip-box {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0;
+        }
+
+        .role-pill {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            border-radius: 9999px;
+            padding: 2px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 2px;
+        }
+
+        .flow-box {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 8px 0;
+            font-size: 0.9rem;
+        }
+
+        .flow-arrow {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #64748b;
+            margin: 4px 0;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Request Management — Staff Guide</h1>
+<p><strong>Applies to:</strong>
+    <span class="role-pill">Strata Manager</span>
+    <span class="role-pill">EC Chairman</span>
+    <span class="role-pill">EC Member</span>
+    <span class="role-pill">Super Admin</span>
+</p>
+<p><strong>Location:</strong> <code>/dashboard/requests</code> (Requests tab) and the smart-request manager queue at
+    <code>/dashboard/smart-request</code></p>
+
+<div class="info-box">
+    <strong>Who reviews requests?</strong><br/>
+    All incoming requests are visible to every staff role (Strata Manager, EC Chairman, EC Member, Super Admin).
+    Any of these roles can triage, assign, update the status, and close a request. Residents (owners, tenants, guests)
+    can only see their own requests — they cannot see or act on other residents' requests.
+</div>
+
+<h2>1 — The Request Lifecycle</h2>
+
+<div class="flow-box"><strong>Resident submits</strong> via Smart Request (<code>/dashboard/smart-request</code>)</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box"><strong>Auto-classification</strong> — the system attempts to categorise and optionally
+    auto-resolve levy queries and general enquiries
+</div>
+<div class="flow-arrow">↓ (if not auto-resolved)</div>
+<div class="flow-box"><span class="badge badge-yellow">Awaiting Review</span> — request lands in the staff triage queue
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box"><strong>Staff assigns</strong> to themselves (or a colleague) and sets status to <span
+        class="badge badge-blue">In Progress</span></div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">If more information is needed: set to <span class="badge badge-purple">Awaiting Resident</span> —
+    SLA timer pauses
+</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-box">Once actioned: add resolution notes and set to <span class="badge badge-green">Closed</span></div>
+
+<h2>2 — Accessing the Request Queue</h2>
+
+<h3>From the Smart Request page (recommended for triage)</h3>
+<ol>
+    <li>Go to <code>/dashboard/smart-request</code></li>
+    <li>Staff roles automatically see a <strong>Management Queue</strong> panel above the resident submission form</li>
+    <li>Use the filter tabs — <strong>Open</strong>, <strong>In Progress</strong>, <strong>Resolved</strong>, <strong>All</strong>
+        — to switch views
+    </li>
+    <li>Overdue requests are highlighted with a red border and an <span class="badge badge-red">Overdue</span> badge
+    </li>
+</ol>
+
+<h3>From the Requests page</h3>
+<ol>
+    <li>Go to <code>/dashboard/requests</code></li>
+    <li>The <strong>My Requests</strong> tab shows all requests for the building when you are a staff role</li>
+    <li>Use the structured tabs (Maintenance, Insurance, Pet, etc.) to filter by request type</li>
+</ol>
+
+<h3>Triage stats panel</h3>
+<p>At the top of the management queue you will see live metrics:</p>
+<table>
+    <tr>
+        <th>Metric</th>
+        <th>What it means</th>
+    </tr>
+    <tr>
+        <td>Auto-resolved today</td>
+        <td>Requests answered instantly by the system (no staff action needed)</td>
+    </tr>
+    <tr>
+        <td>Deflection rate (7 days)</td>
+        <td>Percentage of all requests that were auto-resolved — higher is better</td>
+    </tr>
+    <tr>
+        <td>Received this week</td>
+        <td>Total new requests in the last 7 days</td>
+    </tr>
+</table>
+
+<h2>3 — Status Reference</h2>
+
+<table>
+    <tr>
+        <th>Status</th>
+        <th>Meaning</th>
+        <th>Who sets it</th>
+    </tr>
+    <tr>
+        <td><span class="badge badge-teal">Auto-Resolved</span></td>
+        <td>System answered the request instantly (e.g. levy balance query). No staff action required.</td>
+        <td>System</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-yellow">Awaiting Review</span></td>
+        <td>Request received, not yet assigned. SLA clock is running.</td>
+        <td>System (on creation)</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-blue">In Progress</span></td>
+        <td>A staff member has taken ownership and is actively working on it.</td>
+        <td>Staff</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-purple">Awaiting Resident</span></td>
+        <td>Staff needs more information from the resident. SLA is paused.</td>
+        <td>Staff</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-green">Closed</span></td>
+        <td>Request fully resolved and archived. Resident notified.</td>
+        <td>Staff</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-red">Overdue</span></td>
+        <td>SLA deadline has passed without resolution. Shown as a warning — not a final status.</td>
+        <td>System (computed)</td>
+    </tr>
+</table>
+
+<h2>4 — How to Triage a Request</h2>
+
+<div class="step"><strong>Step 1 — Open the request</strong><br/>
+    Click a request row in the management queue to view its full details and activity timeline.
+</div>
+
+<div class="step"><strong>Step 2 — Review the auto-classification</strong><br/>
+    The system displays the detected category (e.g. <em>maintenance_request</em>) and a confidence score.
+    If confidence is below 70%, a <strong>Needs Human Review</strong> flag is shown — the classification may be wrong,
+    so read the description carefully before proceeding.
+</div>
+
+<div class="step"><strong>Step 3 — Assign to yourself</strong><br/>
+    Use the <strong>Assigned To</strong> dropdown to assign the request. This records your name on the request
+    and notifies the resident that their request is being handled.
+</div>
+
+<div class="step"><strong>Step 4 — Change the status</strong><br/>
+    Use the status dropdown (inline in the queue row, or on the detail page) to move the request to
+    <span class="badge badge-blue">In Progress</span>.
+    You can also type a note — this is appended to the activity timeline visible to the resident.
+</div>
+
+<div class="step"><strong>Step 5 — Resolve and close</strong><br/>
+    Once the matter is resolved, add <strong>Resolution Notes</strong> summarising what was done, then set the
+    status to <span class="badge badge-green">Closed</span>. The resident receives a notification with your notes.
+</div>
+
+<h2>5 — SLA Deadlines by Request Type</h2>
+
+<table>
+    <tr>
+        <th>Request Type</th>
+        <th>SLA</th>
+        <th>Auto-resolvable?</th>
+    </tr>
+    <tr>
+        <td>Levy query</td>
+        <td>4 hours</td>
+        <td>Yes (balance lookup)</td>
+    </tr>
+    <tr>
+        <td>General enquiry</td>
+        <td>24 hours</td>
+        <td>Yes (FAQ match)</td>
+    </tr>
+    <tr>
+        <td>Noise complaint</td>
+        <td>24 hours</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td>By-law query</td>
+        <td>24 hours</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td>Insurance enquiry</td>
+        <td>48 hours</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td>Payment plan</td>
+        <td>48 hours</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td>General complaint</td>
+        <td>48 hours</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td>Maintenance request</td>
+        <td>72 hours</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td>Record request</td>
+        <td>72 hours</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td>Reimbursement</td>
+        <td>120 hours (5 days)</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td>Pet request</td>
+        <td>120 hours (5 days)</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td>Renovation approval</td>
+        <td>168 hours (7 days)</td>
+        <td>No</td>
+    </tr>
+</table>
+
+<div class="warn-box">
+    <strong>Overdue requests</strong><br/>
+    When the SLA deadline passes without the request being closed or auto-resolved, it is flagged as
+    <span class="badge badge-red">Overdue</span> and appears at the top of your triage queue. It will also
+    appear on your Morning Card dashboard widget. Respond or escalate immediately.
+</div>
+
+<h2>6 — The Triage Queue (Attention Required)</h2>
+
+<p>Go to the triage dashboard via the morning card on your dashboard, or navigate directly to
+    <code>/dashboard/smart-request</code>. The triage queue is split into three buckets:</p>
+
+<table>
+    <tr>
+        <th>Bucket</th>
+        <th>What it contains</th>
+        <th>Sort order</th>
+    </tr>
+    <tr>
+        <td><span class="badge badge-red">Overdue</span></td>
+        <td>Requests where SLA has already been breached</td>
+        <td>Oldest first — most urgent at the top</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-yellow">Needs Review</span></td>
+        <td>Requests flagged for human review (low auto-classification confidence)</td>
+        <td>Newest first</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-blue">Due Soon</span></td>
+        <td>Requests with SLA expiring within the next 2 hours</td>
+        <td>Soonest deadline first</td>
+    </tr>
+</table>
+
+<h2>7 — Adding Resolution Notes</h2>
+
+<p>Resolution notes are visible to the resident in their activity timeline. Write them clearly, as you would
+    in an email — avoid internal shorthand. Good examples:</p>
+<ul>
+    <li><em>"Plumber attended on 22 April. Tap washer replaced in common bathroom, ground floor. No further action
+        required."</em></li>
+    <li><em>"Levy balance as at 21 April 2026: $0 outstanding. All instalments are current."</em></li>
+    <li><em>"Pet application approved by the EC at the April meeting. A pet bond of $500 applies. Refer to By-Law
+        18."</em></li>
+</ul>
+
+<h2>8 — Request Reference Numbers</h2>
+
+<p>Every request is assigned a unique reference number in the format <code>REQ-YYYY-NNNN</code>
+    (e.g. <code>REQ-2026-0042</code>). Use this number when communicating with residents or when escalating
+    to a contractor or legal advisor.</p>
+
+<h2>9 — Role Permissions Summary</h2>
+
+<table>
+    <tr>
+        <th>Action</th>
+        <th>Owner / Tenant / Guest</th>
+        <th>EC Member</th>
+        <th>EC Chairman</th>
+        <th>Strata Manager</th>
+        <th>Super Admin</th>
+    </tr>
+    <tr>
+        <td>Submit a request</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+    </tr>
+    <tr>
+        <td>View own request</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+    </tr>
+    <tr>
+        <td>View all requests (building)</td>
+        <td>❌</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+    </tr>
+    <tr>
+        <td>Change request status</td>
+        <td>❌</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+    </tr>
+    <tr>
+        <td>Assign a request to staff</td>
+        <td>❌</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+    </tr>
+    <tr>
+        <td>Add resolution notes</td>
+        <td>❌</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+    </tr>
+    <tr>
+        <td>View triage queue &amp; stats</td>
+        <td>❌</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+    </tr>
+    <tr>
+        <td>View auto-resolution confidence</td>
+        <td>❌</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+    </tr>
+    <tr>
+        <td>View deflection rate stats</td>
+        <td>❌</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+        <td>✅</td>
+    </tr>
+</table>
+
+<div class="tip-box">
+    <strong>Tip — Checking the Morning Card</strong><br/>
+    Your dashboard's Morning Card will alert you when there are requests with a breached SLA. The card includes
+    a count (e.g. "3 requests past SLA") and a direct link to the requests page. Check your dashboard at the
+    start of each working day.
+</div>
+
+<h2>10 — Notifications Sent to Residents</h2>
+
+<p>The system automatically notifies residents at the following events:</p>
+<ul>
+    <li><strong>Request submitted</strong> — acknowledgement with reference number and expected SLA</li>
+    <li><strong>Auto-resolved</strong> — immediate answer sent (e.g. levy balance)</li>
+    <li><strong>Status changed to In Progress</strong> — confirmation that staff has taken ownership</li>
+    <li><strong>Status changed to Awaiting Resident</strong> — prompt to supply the requested information</li>
+    <li><strong>Status changed to Closed</strong> — resolution notes delivered to resident</li>
+</ul>
+
+<footer style="margin-top: 3rem; border-top: 1px solid #e5e7eb; padding-top: 1rem; color: #9ca3af; font-size: 0.8rem;">
+    East Gate Residences | Executive Committee | Strata Manager &nbsp;/&nbsp;
+    E: eastgatedenman13195@gmail.com / ec@eastgateresidences.com.au &nbsp;/&nbsp;
+    P: (02) 6285 0325 / 1300 724 256 &nbsp;/&nbsp;
+    W: my.civium.com.au / eastgateresidences.com.au
+</footer>
+
+</body>
+</html>

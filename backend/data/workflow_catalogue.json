@@ -1,0 +1,538 @@
+{
+  "version": "2.0",
+  "description": "EastGate Strata Workflow Catalogue — named automation definitions (S1+S2)",
+  "building_id_scope": "per_building",
+  "workflows": [
+    {
+      "id": "levy_run_quarterly",
+      "name": "Quarterly Levy Run",
+      "description": "Generates levy notices and sends emails to all owners at the start of each quarter.",
+      "category": "financial",
+      "trigger": "scheduled",
+      "trigger_type": "scheduled",
+      "trigger_description": "1st day of Mar/Jun/Sep/Dec, 06:00 AEST",
+      "schedule": "0 20 1 3,6,9,12 *",
+      "stakeholders": [
+        "strata_manager",
+        "owner"
+      ],
+      "required_artefacts": [
+        "levy_notice_pdf",
+        "email_to_owners",
+        "audit_log_entry"
+      ],
+      "sla_hours": 24,
+      "jurisdiction_notes": "NSW: must include hardship statement. ACT: standard notice.",
+      "failure_mode": "Retry once; notify strata_manager if second failure",
+      "test_coverage": "test_levy_run_quarterly",
+      "implemented": true,
+      "last_verified": null,
+      "module": "cron.cron_levy_reminders",
+      "function": "run_levy_run"
+    },
+    {
+      "id": "arrears_notice_tier1",
+      "name": "Arrears Notice — Tier 1 (14 days overdue)",
+      "description": "Sends formal arrears notice when levy payment is 14+ days overdue.",
+      "category": "financial",
+      "trigger": "scheduled",
+      "trigger_type": "scheduled",
+      "trigger_description": "Weekly Sunday — levy_payments overdue >= 14 days",
+      "schedule": "0 20 * * 0",
+      "stakeholders": [
+        "strata_manager",
+        "owner"
+      ],
+      "required_artefacts": [
+        "notice_pdf",
+        "email_to_owner",
+        "audit_log_entry"
+      ],
+      "sla_hours": 4,
+      "jurisdiction_notes": "UTM Act s.83 (ACT) — formal notice required before interest accrues at statutory rate",
+      "failure_mode": "Flag in arrears board; notify strata_manager",
+      "test_coverage": "test_arrears_notice_tier1",
+      "implemented": true,
+      "last_verified": null,
+      "module": "cron.cron_levy_reminders",
+      "function": "run_levy_reminders"
+    },
+    {
+      "id": "sla_breach_check",
+      "name": "Work Request SLA Breach Alert",
+      "description": "Marks workflow_requests as sla_breached when sla_due_at has passed. Notifies assigned strata manager.",
+      "category": "operations",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Every 15 minutes — workflow_requests where status not closed and sla_due_at < now",
+      "schedule": "*/15 * * * *",
+      "stakeholders": [
+        "strata_manager",
+        "ec_member"
+      ],
+      "required_artefacts": [
+        "notification_to_manager",
+        "sla_breached_flag",
+        "audit_log_entry"
+      ],
+      "sla_hours": 0.25,
+      "failure_mode": "Log scheduler failure; alert via separate monitoring",
+      "test_coverage": "test_sla_breach_check",
+      "implemented": true,
+      "last_verified": null,
+      "module": "workers.scheduler",
+      "function": "check_sla_breaches"
+    },
+    {
+      "id": "agm_notice_dispatch",
+      "name": "AGM Notice Dispatch",
+      "description": "Strata manager triggers with minimum statutory notice period.",
+      "category": "governance",
+      "trigger": "manual",
+      "trigger_type": "manual_triggered",
+      "trigger_description": "Strata manager triggers with min 14 days notice (UTM Act, ACT) / 21 days (NSW SSMA)",
+      "schedule": null,
+      "stakeholders": [
+        "strata_manager",
+        "chairman",
+        "owner"
+      ],
+      "required_artefacts": [
+        "agm_notice_pdf",
+        "proxy_form_pdf",
+        "email_to_all_owners",
+        "audit_log_entry"
+      ],
+      "sla_hours": 0,
+      "jurisdiction_notes": "ACT: 14 days. NSW: 21 days. Platform enforces minimum notice period at creation.",
+      "failure_mode": "Block notice creation if < minimum days; surface error to strata_manager",
+      "test_coverage": "test_agm_notice_dispatch",
+      "implemented": true,
+      "last_verified": null,
+      "module": null,
+      "function": null
+    },
+    {
+      "id": "proposal_auto_close",
+      "name": "Proposal Voting Auto-Close",
+      "description": "Automatically closes proposals when voting_closes_at has passed. Records pass/fail outcome based on votes.",
+      "category": "governance",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Every 30 minutes — proposals where voting_closes_at < now and status = open",
+      "schedule": "*/30 * * * *",
+      "stakeholders": [
+        "strata_manager",
+        "chairman",
+        "owner"
+      ],
+      "required_artefacts": [
+        "proposal_outcome_record",
+        "notification_to_all_voters",
+        "audit_log_entry"
+      ],
+      "sla_hours": 0.5,
+      "failure_mode": "Log; proposal remains open; next run corrects",
+      "test_coverage": "test_proposal_auto_close",
+      "implemented": true,
+      "last_verified": null,
+      "module": "workers.scheduler",
+      "function": "proposal_auto_close"
+    },
+    {
+      "id": "compliance_deadline_check",
+      "name": "Compliance Deadline Reminder",
+      "description": "Marks compliance_items as overdue when due_date has passed. Weekly Monday 08:00 AEST.",
+      "category": "compliance",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Every Monday 08:00 — check compliance_items due within 30/14/7 days",
+      "schedule": "0 22 * * 0",
+      "stakeholders": [
+        "strata_manager",
+        "chairman"
+      ],
+      "required_artefacts": [
+        "notification_to_manager",
+        "audit_log_entry"
+      ],
+      "sla_hours": 8,
+      "failure_mode": "Log and retry next run",
+      "test_coverage": "test_compliance_deadline_check",
+      "implemented": true,
+      "last_verified": null,
+      "module": "workers.scheduler",
+      "function": "compliance_deadline_check"
+    },
+    {
+      "id": "ppm_due_notification",
+      "name": "Preventive Maintenance Due Notification",
+      "description": "Notifies when PPM schedule items are due. Daily 07:00 AEST.",
+      "category": "maintenance",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Daily 07:00 — check ppm_schedules with due_date within threshold",
+      "schedule": "0 21 * * *",
+      "stakeholders": [
+        "strata_manager",
+        "building_manager"
+      ],
+      "required_artefacts": [
+        "notification_to_manager",
+        "email_if_high_priority",
+        "audit_log_entry"
+      ],
+      "sla_hours": 24,
+      "failure_mode": "Log and retry",
+      "test_coverage": "test_ppm_due_notification",
+      "implemented": true,
+      "last_verified": null,
+      "module": "cron.cron_ppm_notifications",
+      "function": "run_ppm_notifications"
+    },
+    {
+      "id": "lease_expiry_alerts",
+      "name": "Lease Expiry Alert",
+      "description": "Sends notifications when lease agreements are approaching expiry. Daily 07:00 AEST.",
+      "category": "residency",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Daily 07:00 — leases expiring in 90/60/30/14 days",
+      "schedule": "0 21 * * *",
+      "stakeholders": [
+        "strata_manager",
+        "real_estate_agent",
+        "tenant",
+        "owner"
+      ],
+      "required_artefacts": [
+        "notification_to_tenant",
+        "notification_to_owner",
+        "email_to_agent"
+      ],
+      "sla_hours": 24,
+      "failure_mode": "Log and retry",
+      "test_coverage": "test_lease_expiry_alerts",
+      "implemented": false,
+      "last_verified": null,
+      "module": "workers.scheduler",
+      "function": "lease_expiry_alerts"
+    },
+    {
+      "id": "building_summary_recompute",
+      "name": "Building Health Score Recompute",
+      "description": "Recomputes intelligence/analytics summary for all active buildings. Daily 02:00 AEST.",
+      "category": "analytics",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Daily 02:00 AEST — per building (all active buildings)",
+      "schedule": "0 16 * * *",
+      "stakeholders": [
+        "strata_manager",
+        "ec_member",
+        "owner"
+      ],
+      "required_artefacts": [
+        "building_summaries_updated",
+        "audit_log_entry"
+      ],
+      "sla_hours": 2,
+      "failure_mode": "Stale data shown with computed_at timestamp; alert strata_manager",
+      "test_coverage": "test_building_summary_recompute",
+      "implemented": true,
+      "last_verified": null,
+      "module": "workers.scheduler",
+      "function": "recompute_all_building_summaries"
+    },
+    {
+      "id": "bi_analytics_etl",
+      "name": "BI Analytics ETL Refresh",
+      "description": "Refreshes analytics.fact_* (Postgres BI schema) from live operational data for all active buildings. Daily 02:15 AEST.",
+      "category": "analytics",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Daily 02:15 AEST — per building (all non-archived buildings)",
+      "schedule": "15 16 * * *",
+      "stakeholders": [
+        "strata_manager",
+        "ec_member",
+        "super_admin"
+      ],
+      "required_artefacts": [
+        "analytics_fact_tables_updated",
+        "audit_log_entry"
+      ],
+      "sla_hours": 4,
+      "failure_mode": "BI Analytics/Financial Intelligence panels keep serving the previous day's analytics.fact_* rows (or fall back to live MongoDB where implemented); alert super_admin on repeated failure",
+      "test_coverage": "test_bi_etl_service",
+      "implemented": true,
+      "last_verified": null,
+      "module": "workers.scheduler",
+      "function": "run_bi_analytics_etl"
+    },
+    {
+      "id": "delete_expired_guest_tokens",
+      "name": "Guest Account Expiry",
+      "description": "Deactivates guest accounts whose stay end_date has passed. Daily 03:00 AEST.",
+      "category": "security",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Daily 03:00 AEST — deactivate expired guest accounts",
+      "schedule": "0 17 * * *",
+      "stakeholders": [
+        "strata_manager",
+        "owner"
+      ],
+      "required_artefacts": [
+        "user_deactivated",
+        "audit_log_entry"
+      ],
+      "sla_hours": 24,
+      "failure_mode": "Log and retry",
+      "test_coverage": "test_delete_expired_guest_tokens",
+      "implemented": true,
+      "last_verified": null,
+      "module": "workers.scheduler",
+      "function": "delete_expired_guest_tokens"
+    },
+    {
+      "id": "parcel_arrival_notification",
+      "name": "Parcel Arrival Notification",
+      "description": "Notifies residents when a parcel is logged at reception. Event-triggered.",
+      "category": "operations",
+      "trigger": "event",
+      "trigger_type": "event",
+      "trigger_description": "parcels.insert — status = received",
+      "schedule": null,
+      "stakeholders": [
+        "owner",
+        "tenant"
+      ],
+      "required_artefacts": [
+        "in_app_notification",
+        "email_to_resident"
+      ],
+      "sla_hours": 0.25,
+      "failure_mode": "Log; resident notified on next manual check",
+      "test_coverage": "test_parcel_arrival_notification",
+      "implemented": true,
+      "last_verified": null,
+      "module": "routers.parcels",
+      "function": "notify_parcel_arrival"
+    },
+    {
+      "id": "comms_intake_classifier",
+      "name": "Comms Intake Classification",
+      "description": "Classifies inbound portal messages and emails into workflow categories. Sets SLA clock. Sends acknowledgement.",
+      "category": "operations",
+      "trigger": "event",
+      "trigger_type": "event",
+      "trigger_description": "request.submitted — portal form or inbound email",
+      "schedule": null,
+      "stakeholders": [
+        "strata_manager",
+        "owner",
+        "tenant"
+      ],
+      "required_artefacts": [
+        "workflow_request_record",
+        "acknowledgement_notification",
+        "audit_log_entry"
+      ],
+      "sla_hours": 0,
+      "failure_mode": "Log error; request queued as general_enquiry for manual triage",
+      "test_coverage": "test_comms_intake_classifier",
+      "implemented": true,
+      "last_verified": null,
+      "module": "services.comms_intake_service",
+      "function": "run_comms_intake"
+    },
+    {
+      "id": "levy_arrears_notifier",
+      "name": "Levy Arrears Notifier",
+      "description": "Sends automated levy arrears reminders to owners with outstanding balances. Configurable schedule.",
+      "category": "financial",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Weekly Sunday — owners with balance_owing > 0",
+      "schedule": "0 22 * * 0",
+      "stakeholders": [
+        "strata_manager",
+        "owner"
+      ],
+      "required_artefacts": [
+        "reminder_email",
+        "audit_log_entry"
+      ],
+      "sla_hours": 48,
+      "failure_mode": "Log and retry next week",
+      "test_coverage": "test_levy_arrears_notifier",
+      "implemented": true,
+      "last_verified": null,
+      "module": "cron.cron_levy_reminders",
+      "function": "run_levy_reminders"
+    },
+    {
+      "id": "nsw_strata_hub_reminder",
+      "name": "NSW Strata Hub Annual Report Reminder",
+      "description": "Sends reminders at 60/30/7 days before NSW Strata Hub annual report deadline.",
+      "category": "compliance",
+      "trigger": "event",
+      "trigger_type": "event",
+      "trigger_description": "agm.status = completed AND jurisdiction = NSW — triggers 3-month countdown",
+      "schedule": null,
+      "stakeholders": [
+        "strata_manager"
+      ],
+      "required_artefacts": [
+        "notification_at_60_30_7_days",
+        "reporting_readiness_dataset"
+      ],
+      "sla_hours": 8760,
+      "jurisdiction_notes": "NSW only: annual report due within 3 months of AGM. Penalty for non-compliance.",
+      "failure_mode": "Escalate to chairman if not completed 7 days before deadline",
+      "test_coverage": "test_nsw_strata_hub_reminder",
+      "implemented": false,
+      "last_verified": null,
+      "module": "cron.cron_nsw_compliance",
+      "function": "run_nsw_hub_reminders"
+    },
+    {
+      "id": "insurance_renewal_reminder",
+      "name": "Insurance Renewal Reminder",
+      "description": "Sends reminders when insurance policies are expiring within 90/60/30 days.",
+      "category": "compliance",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Weekly Monday — insurance_policies expiring within 90/60/30 days",
+      "schedule": "0 22 * * 1",
+      "stakeholders": [
+        "strata_manager",
+        "chairman"
+      ],
+      "required_artefacts": [
+        "notification_to_manager",
+        "email_with_renewal_checklist"
+      ],
+      "sla_hours": 168,
+      "failure_mode": "Log and retry next week",
+      "test_coverage": "test_insurance_renewal_reminder",
+      "implemented": false,
+      "last_verified": null,
+      "module": "cron.cron_insurance",
+      "function": "run_insurance_reminders"
+    },
+    {
+      "id": "notification_digest",
+      "name": "Weekly Notification Digest",
+      "description": "Sends a weekly summary digest email to residents with unread notifications. Sunday 18:00 AEST.",
+      "category": "communications",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Sunday 18:00 AEST — residents with unread notifications",
+      "schedule": "0 8 * * 0",
+      "stakeholders": [
+        "owner",
+        "tenant"
+      ],
+      "required_artefacts": [
+        "digest_email",
+        "audit_log_entry"
+      ],
+      "sla_hours": 168,
+      "failure_mode": "Log and retry next week",
+      "test_coverage": "test_notification_digest",
+      "implemented": false,
+      "last_verified": null,
+      "module": "cron.cron_notification_digest",
+      "function": "send_weekly_digests"
+    },
+    {
+      "id": "suburb_radar_digest",
+      "name": "Suburb Radar Digest",
+      "description": "Sunday evening local intelligence digest: property sales, planning applications, safety events.",
+      "category": "community",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Sunday 17:00 AEST — local property and planning intelligence",
+      "schedule": "0 7 * * 0",
+      "stakeholders": [
+        "owner",
+        "ec_member"
+      ],
+      "required_artefacts": [
+        "suburb_digest_email",
+        "audit_log_entry"
+      ],
+      "sla_hours": 168,
+      "failure_mode": "Log and skip week",
+      "test_coverage": "test_suburb_radar_digest",
+      "implemented": false,
+      "last_verified": null,
+      "module": "cron.cron_suburb_radar",
+      "function": "send_suburb_radar"
+    },
+    {
+      "id": "morning_card_generator",
+      "name": "Morning Card Generator",
+      "description": "Generates personalised morning summary card for each resident dashboard. Daily 06:00 AEST.",
+      "category": "community",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Daily 06:00 AEST — per resident",
+      "schedule": "0 20 * * *",
+      "stakeholders": [
+        "owner",
+        "tenant"
+      ],
+      "required_artefacts": [
+        "morning_card_record",
+        "audit_log_entry"
+      ],
+      "sla_hours": 24,
+      "failure_mode": "Skip day; stale card shown with generated_at timestamp",
+      "test_coverage": "test_morning_card_generator",
+      "implemented": false,
+      "last_verified": null,
+      "module": "services.morning_card_service",
+      "function": "generate_morning_cards"
+    },
+    {
+      "id": "workflow_heartbeat_monitor",
+      "name": "Workflow Heartbeat Monitor",
+      "description": "Checks that scheduled workflows are running within expected intervals. Flags stale workflows.",
+      "category": "operations",
+      "trigger": "cron",
+      "trigger_type": "scheduled",
+      "trigger_description": "Every 10 minutes — checks last run time against expected interval for all scheduled workflows",
+      "schedule": "*/10 * * * *",
+      "stakeholders": [
+        "strata_manager",
+        "super_admin"
+      ],
+      "required_artefacts": [
+        "health_flag_updated"
+      ],
+      "sla_hours": 0.17,
+      "failure_mode": "Log scheduler failure; workflows flagged stale on dashboard",
+      "test_coverage": "test_workflow_heartbeat_monitor",
+      "implemented": true,
+      "last_verified": null,
+      "module": "workers.scheduler",
+      "function": "check_workflow_heartbeats"
+    }
+  ],
+  "categories": [
+    "operations",
+    "governance",
+    "analytics",
+    "compliance",
+    "security",
+    "tenancy",
+    "financial",
+    "communications",
+    "community",
+    "maintenance",
+    "residency"
+  ]
+}

@@ -1,0 +1,501 @@
+@import "tailwindcss";
+
+@plugin "@tailwindcss/typography";
+
+@theme {
+    --color-background: hsl(var(--background));
+    --color-foreground: hsl(var(--foreground));
+    --color-card: hsl(var(--card));
+    --color-card-foreground: hsl(var(--card-foreground));
+    --color-popover: hsl(var(--popover));
+    --color-popover-foreground: hsl(var(--popover-foreground));
+    --color-primary: hsl(var(--primary));
+    --color-primary-foreground: hsl(var(--primary-foreground));
+    --color-secondary: hsl(var(--secondary));
+    --color-secondary-foreground: hsl(var(--secondary-foreground));
+    --color-muted: hsl(var(--muted));
+    --color-muted-foreground: hsl(var(--muted-foreground));
+    --color-accent: hsl(var(--accent));
+    --color-accent-foreground: hsl(var(--accent-foreground));
+    --color-destructive: hsl(var(--destructive));
+    --color-destructive-foreground: hsl(var(--destructive-foreground));
+    --color-border: hsl(var(--border));
+    --color-input: hsl(var(--input));
+    --color-ring: hsl(var(--ring));
+}
+@layer base {
+    :root {
+        --background: 45 25% 98%;
+        --foreground: 0 0% 10%;
+        --card: 0 0% 100%;
+        --card-foreground: 0 0% 10%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 0 0% 10%;
+        --primary: 180 25% 31%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 14 68% 63%;
+        --secondary-foreground: 0 0% 100%;
+        --muted: 60 10% 95%;
+        --muted-foreground: 215 16% 47%;
+        --accent: 41 75% 75%;
+        --accent-foreground: 180 25% 31%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 60 10% 90%;
+        --input: 60 10% 90%;
+        --ring: 180 25% 31%;
+        --radius: 0.75rem;
+    }
+
+    * {
+        border-color: hsl(var(--border));
+    }
+
+    html {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    /* Horizontal clipping lives on <html> ONLY. Setting overflow-x on <body>
+       as well makes <body> a scroll container (html's value is the one that
+       propagates to the viewport), which silently breaks every
+       position:sticky element in the app — .glass-header, Header.tsx,
+       ImpersonationBanner, the emergency banner and the About sub-nav.
+       Verified in Chromium: sticky top goes to -592px at scrollY 600. */
+    body {
+        width: 100%;
+        max-width: 100%;
+        background-color: hsl(var(--background));
+        color: hsl(var(--foreground));
+        font-family: var(--font-inter, 'Inter', sans-serif);
+    }
+
+    body > * {
+        min-width: 0;
+    }
+
+    img,
+    video,
+    canvas,
+    svg {
+        max-width: 100%;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+        max-width: 100%;
+    }
+
+    p,
+    li,
+    dd,
+    dt,
+    figcaption,
+    blockquote {
+        overflow-wrap: anywhere;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        font-family: var(--font-manrope, 'Manrope', sans-serif);
+    }
+
+    code, pre {
+        font-family: var(--font-jetbrains-mono, 'JetBrains Mono', monospace);
+    }
+
+    *:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+    }
+}
+
+/* ── Component classes (ported from index.css / App.css) ── */
+@layer components {
+    .btn-primary {
+        @apply max-w-full whitespace-normal bg-primary text-primary-foreground hover:bg-primary/90 min-h-11 px-4 sm:px-8 rounded-full font-medium text-center transition-transform active:scale-95;
+    }
+
+    .btn-secondary {
+        @apply max-w-full whitespace-normal bg-secondary text-secondary-foreground hover:bg-secondary/90 min-h-11 px-4 sm:px-8 rounded-full font-medium text-center;
+    }
+
+    .btn-outline {
+        @apply max-w-full whitespace-normal border-2 border-primary text-primary hover:bg-primary/5 min-h-11 px-4 sm:px-8 rounded-full font-medium text-center;
+    }
+
+    .card-marketing {
+        @apply bg-card border-none shadow-xl shadow-black/5 rounded-2xl overflow-hidden hover:-translate-y-1 transition-transform duration-300;
+    }
+
+    .card-dashboard {
+        @apply min-w-0 overflow-hidden bg-card border border-border shadow-sm rounded-xl p-4 sm:p-6 transition-all duration-300;
+    }
+
+    .card-depth {
+        @apply shadow-[0_20px_50px_rgba(0,0,0,0.08),0_1px_1px_rgba(255,255,255,0.8)_inset] border-white/50 backdrop-blur-xl bg-white/70;
+    }
+
+    .card-3d {
+        @apply relative transition-all duration-500 border border-slate-200/50 bg-white shadow-[0_10px_20px_rgba(0,0,0,0.02),0_2px_4px_rgba(0,0,0,0.02)] hover:shadow-[0_30px_60px_rgba(0,0,0,0.12),0_10px_20px_rgba(0,0,0,0.05)] hover:-translate-y-2;
+    }
+
+    .glass-card {
+        @apply bg-white/40 backdrop-blur-md border border-white/20 shadow-xl;
+    }
+
+    .glow-primary {
+        @apply shadow-[0_0_20px_rgba(180,25,31,0.2)];
+    }
+
+    .input-default {
+        @apply h-11 bg-muted/50 border-transparent focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg transition-all;
+    }
+
+    .glass-header {
+        @apply bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50;
+    }
+
+    .glass-overlay {
+        @apply bg-black/20 backdrop-blur-sm;
+    }
+
+    /* Pill navigation */
+    .pill-nav {
+        @apply inline-flex bg-muted rounded-full p-1;
+    }
+
+    .pill-nav-item {
+        @apply px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer;
+    }
+
+    .pill-nav-item.active {
+        @apply bg-card shadow-sm text-foreground;
+    }
+
+    .pill-nav-item:not(.active) {
+        @apply text-muted-foreground hover:text-foreground;
+    }
+
+    /* Sidebar nav */
+    .nav-item {
+        @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors;
+    }
+
+    .nav-item.active {
+        @apply bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground;
+    }
+
+    /* Mobile menu */
+    .mobile-menu-overlay {
+        @apply fixed inset-0 bg-black/50 z-40 lg:hidden;
+    }
+
+    /* Skeleton */
+    .skeleton {
+        @apply animate-pulse bg-muted/50 rounded;
+    }
+
+    /* Empty state */
+    .empty-state {
+        @apply flex flex-col items-center justify-center py-16 text-center;
+    }
+
+    .empty-state-icon {
+        @apply w-16 h-16 text-muted-foreground/50 mb-4;
+    }
+
+    .empty-state-title {
+        @apply text-lg font-medium text-foreground mb-2;
+    }
+
+    .empty-state-description {
+        @apply text-muted-foreground;
+    }
+
+    /* Notification badge */
+    .notification-badge {
+        @apply absolute -top-1 -right-1 w-5 h-5 bg-secondary text-secondary-foreground text-xs font-medium rounded-full flex items-center justify-center;
+    }
+
+    /* Chat bubbles */
+    .chat-bubble {
+        @apply rounded-2xl px-4 py-2 max-w-[80%];
+    }
+
+    .chat-bubble-sent {
+        @apply bg-primary text-primary-foreground rounded-br-sm;
+    }
+
+    .chat-bubble-received {
+        @apply bg-muted text-foreground rounded-bl-sm;
+    }
+
+    /* Status badges */
+    .badge-active {
+        @apply bg-green-100 text-green-800;
+    }
+
+    .badge-pending {
+        @apply bg-yellow-100 text-yellow-800;
+    }
+
+    .badge-closed {
+        @apply bg-gray-100 text-gray-800;
+    }
+
+    .badge-urgent {
+        @apply bg-red-100 text-red-800;
+    }
+
+    /* Priority indicators */
+    .priority-low {
+        @apply border-l-4 border-gray-300;
+    }
+
+    .priority-normal {
+        @apply border-l-4 border-blue-400;
+    }
+
+    .priority-high {
+        @apply border-l-4 border-orange-400;
+    }
+
+    .priority-urgent {
+        @apply border-l-4 border-red-500;
+    }
+
+    /* Listing type badges */
+    .listing-for-sale {
+        @apply bg-green-100 text-green-800;
+    }
+
+    .listing-for-rent {
+        @apply bg-blue-100 text-blue-800;
+    }
+
+    .listing-service {
+        @apply bg-purple-100 text-purple-800;
+    }
+
+    .listing-item-sale {
+        @apply bg-orange-100 text-orange-800;
+    }
+
+    /* Card hover */
+    .card-hover {
+        @apply transition-all duration-300;
+    }
+
+    .card-hover:hover {
+        @apply shadow-[0_20px_40px_rgba(0,0,0,0.08)] -translate-y-1.5;
+    }
+
+    /* Gradient text */
+    .gradient-text {
+        @apply bg-gradient-to-br from-primary via-primary/90 to-secondary bg-clip-text text-transparent;
+    }
+
+    .gradient-brand {
+        @apply bg-gradient-to-br from-slate-800 to-slate-900 text-white;
+    }
+
+    /* Section divider */
+    .section-divider {
+        @apply my-12 border-t border-border;
+    }
+
+    /* Premium Dashboard classes */
+    .premium-card {
+        @apply min-w-0 overflow-hidden bg-white/60 backdrop-blur-md border border-white/20 shadow-xl rounded-2xl transition-all duration-300;
+    }
+
+    .premium-card-hover {
+        @apply hover:shadow-2xl hover:-translate-y-1 transition-all duration-300;
+    }
+
+    .text-financial {
+        @apply text-slate-900 font-black tracking-tight tabular-nums break-words;
+    }
+}
+
+@layer utilities {
+    .mobile-scroll-x {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .mobile-safe {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+}
+
+/* ── Hero gradient (not easily done with @apply) ── */
+.hero-gradient {
+    background: linear-gradient(to right, rgba(47, 79, 79, 0.85), rgba(47, 79, 79, 0.4));
+}
+
+/* ── Animations ── */
+@layer utilities {
+    .text-balance {
+        text-wrap: balance;
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    .animate-slide-up {
+        animation: slideUp 0.5s ease-out;
+    }
+
+    .animate-scale-in {
+        animation: scaleIn 0.3s ease-out;
+    }
+
+    .stagger-1 {
+        animation-delay: 0.1s;
+    }
+
+    .stagger-2 {
+        animation-delay: 0.2s;
+    }
+
+    .stagger-3 {
+        animation-delay: 0.3s;
+    }
+
+    .stagger-4 {
+        animation-delay: 0.4s;
+    }
+
+    .stagger-5 {
+        animation-delay: 0.5s;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
+}
+
+/* ── Selection ── */
+::selection {
+    background: hsl(var(--primary) / 0.2);
+    color: hsl(var(--foreground));
+}
+
+/* ── Table hover ── */
+.table-hover tr:hover {
+    background: hsl(var(--muted) / 0.5);
+}
+
+/* ── Form sections ── */
+.form-section {
+    padding: clamp(1rem, 3vw, 1.5rem);
+    background: hsl(var(--card));
+    border-radius: 0.75rem;
+    border: 1px solid hsl(var(--border));
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.form-section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+/* ── Debug wrapper ── */
+@layer base {
+    [data-debug-wrapper="true"] {
+        display: contents !important;
+    }
+}
+
+@media (max-width: 640px) {
+    [data-testid="dashboard-content"] {
+        max-width: 100vw;
+        overflow-x: clip;
+    }
+
+    [data-testid="dashboard-content"] > * {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    [data-testid="dashboard-content"] .grid {
+        min-width: 0;
+    }
+
+    [data-testid="dashboard-content"] .flex {
+        min-width: 0;
+    }
+
+    [data-testid="dashboard-content"] .whitespace-nowrap {
+        white-space: normal;
+    }
+
+    [data-testid="dashboard-content"] .text-4xl,
+    [data-testid="dashboard-content"] .text-5xl,
+    [data-testid="dashboard-content"] .text-6xl,
+    [data-testid="dashboard-content"] .text-7xl,
+    [data-testid="dashboard-content"] .text-8xl {
+        line-height: 1.05;
+        overflow-wrap: anywhere;
+    }
+}

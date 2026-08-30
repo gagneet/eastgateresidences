@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Backend – Eastgate Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad: true, theme: 'dark', securityLevel: 'strict'});</script>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">East Gate Residences</div>
+            <div class="sub">Technical Documentation · Backend</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a class="active" data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#entry">Entry Point</a>
+            <a href="#routers">Router Architecture</a>
+            <a href="#models">Pydantic Models</a>
+            <a href="#utils">Utility Layer</a>
+            <a href="#services">Services Layer</a>
+            <a href="#add-endpoint">Adding an Endpoint</a>
+            <a href="#next-payment-algo">Next Payment Algorithm</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <h1>Backend Architecture</h1>
+        <p>The backend is a <strong>FastAPI</strong> application with an async MongoDB driver (Motor). Originally a
+            single-file monolith, it has been modularised into 23 feature-specific routers. <strong>Auth is fully
+                consolidated into <code>routers/auth.py</code></strong> — the single source of truth for all
+            authentication logic.</p>
+
+        <section id="entry">
+            <h2>Entry Point — server.py</h2>
+            <p><code>backend/server.py</code> (~11,370 lines) is the main application file. It:</p>
+            <ul>
+                <li>Creates the <code>FastAPI</code> app instance with CORS and slowapi rate-limiting middleware</li>
+                <li>Connects to MongoDB via <code>Motor AsyncIOMotorClient</code></li>
+                <li>Registers all 23 sub-routers under the <code>/api</code> prefix (including <code>auth_router</code>)
+                </li>
+                <li>Contains inline endpoints not yet extracted to routers</li>
+                <li>Exposes utility functions shared by routers (<code>get_current_user</code>,
+                    <code>send_email_async</code>, <code>hash_password</code>, <code>verify_password</code>, <code>create_token</code>)
+                </li>
+            </ul>
+            <pre><code># server.py — simplified structure
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
+from utils.rate_limit import limiter, SLOWAPI_AVAILABLE
+
+app = FastAPI(title="East Gate Residences Strata Management")
+app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, ...)
+
+# Rate limiting middleware (slowapi)
+# Set DISABLE_RATE_LIMIT=1 in .env to bypass all slowapi enforcement (dev/test only).
+if SLOWAPI_AVAILABLE:
+    from slowapi import _rate_limit_exceeded_handler
+    from slowapi.errors import RateLimitExceeded
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# MongoDB connection
+client = AsyncIOMotorClient(MONGO_URL)
+db = client[DB_NAME]
+
+# Include all routers
+api_router = APIRouter(prefix="/api")
+from routers.auth import router as auth_router
+api_router.include_router(auth_router, tags=["Auth"])
+# ... 40+ more routers (see api_router.include_router calls)
+
+app.include_router(api_router)</code></pre>
+
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    graph LR
+                    APP["FastAPI App<br/>server.py"] --> MW["Middleware<br/>CORS + Rate Limit"]
+                    MW --> AR["APIRouter<br/>prefix=/api"]
+                    subgraph Core["Core Routers (routers/)"]
+                    AR --> R1["auth.py"]
+                    AR --> R2["finance.py"]
+                    AR --> R3["maintenance.py"]
+                    AR --> R4["communication.py"]
+                    AR --> R5["chat.py"]
+                    AR --> R7["notifications.py"]
+                    AR --> R8["feature_toggles.py"]
+                    AR --> R11["analytics.py"]
+                    AR --> R14["council_rates.py"]
+                    AR --> R15["water_bills.py"]
+                    AR --> R16["utilities.py"]
+                    AR --> R18["settings.py"]
+                    AR --> R19["finance_intelligence.py"]
+                    AR --> R20["market.py"]
+                    AR --> R21["integrations.py"]
+                    end
+                    subgraph Phase2["Phase 2 Routers (routers/)"]
+                    AR --> P1["trust_accounting.py"]
+                    AR --> P2["work_orders.py"]
+                    AR --> P3["bank_feeds.py"]
+                    AR --> P4["intelligence.py"]
+                    AR --> P5["investor_intelligence.py"]
+                    AR --> P6["risk_index.py"]
+                    AR --> P7["digital_twin.py"]
+                    AR --> P8["reconciliation.py"]
+                    AR --> P9["building.py"]
+                    AR --> P10["...20+ more routers"]
+                    end
+                    subgraph Inline["Inline Routes (server.py)"]
+                    AR --> I1["users CRUD"]
+                    AR --> I2["documents CRUD"]
+                    AR --> I3["listings CRUD"]
+                    AR --> I4["meetings/todos"]
+                    AR --> I5["blog/schedule"]
+                    AR --> I6["owners-units<br/>levy-calculator<br/>stripe payments"]
+                    end
+                </div>
+                <div class="diagram-caption">server.py router registration tree — 40+ routers total across dedicated
+                    files and inline routes
+                </div>
+            </div>
+        </section>
+
+        <section id="routers">
+            <h2>Router Architecture</h2>
+            <p>Each router is a separate Python file in <code>backend/routers/</code>. Routers follow a consistent
+                pattern:</p>
+            <pre><code># Example router pattern (routers/finance.py)
+from fastapi import APIRouter, Depends, HTTPException
+from database import db
+from utils.auth import get_current_user
+from utils.permissions import check_permission
+
+router = APIRouter(tags=["Finance"])
+
+@router.get("/finance/summary")
+async def get_finance_summary(
+    year: str = Query("2026"),
+    current_user = Depends(get_current_user)
+):
+    check_permission(current_user, "can_view_finances")
+    # ... query MongoDB
+    return {...}</code></pre>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Router File</th>
+                        <th>Domain</th>
+                        <th>Key Endpoints</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>auth.py</code></td>
+                        <td>Authentication</td>
+                        <td>register, login, me, forgot-password</td>
+                        <td>5 routes, public</td>
+                    </tr>
+                    <tr>
+                        <td><code>users.py</code></td>
+                        <td>User management</td>
+                        <td>list, update, delete, archive</td>
+                        <td>8 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>finance.py</code></td>
+                        <td>Levy &amp; budget</td>
+                        <td>annual-levies, levy-calculator, payments</td>
+                        <td>28 routes — largest router</td>
+                    </tr>
+                    <tr>
+                        <td><code>finance_intelligence.py</code></td>
+                        <td>Analytics</td>
+                        <td>health, cashflow, forecasts, anomalies</td>
+                        <td>15 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>maintenance.py</code></td>
+                        <td>Maintenance</td>
+                        <td>requests, contractors, POs, invoices</td>
+                        <td>18 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>communication.py</code></td>
+                        <td>Comms</td>
+                        <td>announcements, notices, messages</td>
+                        <td>22 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>chat.py</code></td>
+                        <td>Chat</td>
+                        <td>chat-groups, group messages</td>
+                        <td>10 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>notifications.py</code></td>
+                        <td>Notifications</td>
+                        <td>list, read, send, audit-logs</td>
+                        <td>11 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>feature_toggles.py</code></td>
+                        <td>Feature flags</td>
+                        <td>CRUD toggles, user overrides</td>
+                        <td>11 routes, prefix /feature-toggles</td>
+                    </tr>
+                    <tr>
+                        <td><code>documents.py</code></td>
+                        <td>Documents</td>
+                        <td>upload, list, permissions</td>
+                        <td>6 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>listings.py</code></td>
+                        <td>Marketplace</td>
+                        <td>CRUD listings</td>
+                        <td>5 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>meetings.py</code></td>
+                        <td>Governance</td>
+                        <td>meetings, AGM, motions, votes, todos</td>
+                        <td>13 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>analytics.py</code></td>
+                        <td>Dashboard</td>
+                        <td>stats, sinking fund, compliance</td>
+                        <td>17 routes, prefix /analytics</td>
+                    </tr>
+                    <tr>
+                        <td><code>community.py</code></td>
+                        <td>Community</td>
+                        <td>blog, EC members, events, directory</td>
+                        <td>18 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>bookings.py</code></td>
+                        <td>Facilities</td>
+                        <td>amenity bookings, parcels, defects, moves</td>
+                        <td>12 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>council_rates.py</code></td>
+                        <td>Utilities</td>
+                        <td>council rate tracking &amp; payments</td>
+                        <td>5 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>water_bills.py</code></td>
+                        <td>Water bills</td>
+                        <td>bill CRUD, mark paid</td>
+                        <td>7 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>utilities.py</code></td>
+                        <td>General</td>
+                        <td>utility info per unit</td>
+                        <td>1 route</td>
+                    </tr>
+                    <tr>
+                        <td><code>settings.py</code></td>
+                        <td>Config</td>
+                        <td>site settings, email settings, schedule</td>
+                        <td>11 routes</td>
+                    </tr>
+                    <tr>
+                        <td><code>market.py</code></td>
+                        <td>Market data</td>
+                        <td>market pulse trends</td>
+                        <td>1 route, prefix /market</td>
+                    </tr>
+                    <tr>
+                        <td><code>integrations.py</code></td>
+                        <td>External APIs</td>
+                        <td>ABN lookup validation</td>
+                        <td>1 route</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="models">
+            <h2>Pydantic Models</h2>
+            <p>All request/response shapes are defined as Pydantic models in <code>backend/models/</code>. FastAPI
+                automatically validates incoming JSON and serialises responses.</p>
+            <div class="callout">
+                <strong>No migrations needed.</strong> MongoDB is schema-flexible. Pydantic validates at runtime. To add
+                a field: add it to the model and restart the backend.
+            </div>
+            <pre><code># Example model pattern (models/finance.py)
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+
+class AnnualLevy(BaseModel):
+    id: str
+    year: str
+    plan_id: str
+    total_uoe: int
+    status: str  # "proposed" | "actual"
+    admin_fund: FundData
+    sinking_fund: FundData
+    created_at: str  # ISO 8601
+    updated_at: str
+
+class AnnualLevyResponse(AnnualLevy):
+    # Extra computed fields returned in API responses
+    admin_levy_per_uoe_annual: float
+    sinking_levy_per_uoe_quarterly: float</code></pre>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Model File</th>
+                        <th>Key Models</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>models/user.py</code></td>
+                        <td>UserRole (enum), UserStatus, Permission, UserCreate, UserLogin, UserResponse, AuthResponse
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>models/finance.py</code></td>
+                        <td>AnnualLevy, FundData, LevyCategory, UnitLevyLedger, LevyPayment, FinancialProjection</td>
+                    </tr>
+                    <tr>
+                        <td><code>models/maintenance.py</code></td>
+                        <td>MaintenanceRequest, Contractor, PurchaseOrder, Invoice</td>
+                    </tr>
+                    <tr>
+                        <td><code>models/communication.py</code></td>
+                        <td>Message, Announcement, Conversation, PrivateMessage, Notice</td>
+                    </tr>
+                    <tr>
+                        <td><code>models/community.py</code></td>
+                        <td>Meeting, AGMMotion, Vote, Todo, BlogPost, Event, ECMember</td>
+                    </tr>
+                    <tr>
+                        <td><code>models/booking.py</code></td>
+                        <td>AmenityBooking, MoveBooking, Parcel, Defect</td>
+                    </tr>
+                    <tr>
+                        <td><code>models/document.py</code></td>
+                        <td>Document, DocumentFolder, DocumentPermissions</td>
+                    </tr>
+                    <tr>
+                        <td><code>models/listing.py</code></td>
+                        <td>Listing, ListingCategory</td>
+                    </tr>
+                    <tr>
+                        <td><code>models/financial_models.py</code></td>
+                        <td>FinanceEntry, BudgetEntry, FinanceSummary</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="utils">
+            <h2>Utility Layer</h2>
+            <div class="two-col">
+                <div class="card">
+                    <h3>utils/auth.py</h3>
+                    <ul>
+                        <li><code>hash_password(pwd)</code> — bcrypt hash</li>
+                        <li><code>verify_password(plain, hashed)</code> — bcrypt verify</li>
+                        <li><code>create_access_token(data)</code> — HS256 JWT, 24h expiry</li>
+                        <li><code>decode_token(token)</code> — JWT decode + validate</li>
+                        <li><code>get_current_user(token)</code> — FastAPI Depends() helper</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>utils/permissions.py</h3>
+                    <ul>
+                        <li><code>check_permission(user, perm)</code> — raises 403 if denied</li>
+                        <li><code>is_admin(user)</code> — super_admin or building_admin</li>
+                        <li><code>is_manager(user)</code> — admin, building_admin, strata_manager</li>
+                        <li><code>transform_user_response(user)</code> — clean sensitive fields</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>utils/email.py</h3>
+                    <ul>
+                        <li>Multi-provider: Resend → SMTP → SendGrid fallback</li>
+                        <li><code>send_email_async(to, subject, html)</code></li>
+                        <li>Port 465 → SMTP_SSL (implicit TLS)</li>
+                        <li>Port 587 → SMTP + STARTTLS</li>
+                        <li>Logs sent/failed counts</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>utils/pdf_generator.py</h3>
+                    <ul>
+                        <li>Uses ReportLab to build PDFs in memory</li>
+                        <li>Returns <code>BytesIO</code> stream for FastAPI <code>StreamingResponse</code></li>
+                        <li>Templates for: Purchase Orders, Invoices, Financial Reports</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>utils/finance_helpers.py</h3>
+                    <ul>
+                        <li>Levy calculation per unit (UOE-weighted)</li>
+                        <li>Budget vs actual variance</li>
+                        <li><code>compute_period_due_dates()</code> — generates period due-date list from site settings
+                        </li>
+                        <li><code>get_arrears_unit_count()</code> — units in arrears for a given year</li>
+                        <li><code>get_arrears_total_amount()</code> — total outstanding arrears (grace-period-aware)
+                        </li>
+                        <li><code>get_arrears_metrics()</code> — <strong>canonical</strong> per-unit, grace-aware
+                            arrears; delegates to <code>domain/finance/formulas/arrears.py::unit_arrears_and_credit()</code>.
+                            Arrears is per-unit; a credit on one unit never nets against another unit's arrears.</li>
+                        <li><code>get_collection_rate_metrics()</code> — <strong>canonical</strong> Due-date Collection
+                            Rate; delegates to <code>domain/finance/formulas/collection.py::due_date_collection_rate()</code>.
+                            Distinct from full-year levy coverage / fund health; also returns Collected-in-Advance.</li>
+                        <li><code>sum_ledger_collected_outstanding()</code> — building rollup with <strong>no</strong>
+                            cross-unit netting.</li>
+                        <li><code>get_latest_levy_year()</code> / <code>get_latest_ledger_year()</code> — resolves
+                            current FY
+                        </li>
+                    </ul>
+                    <div class="callout">
+                        <strong>Calculation singularity (GAP-FIN-040):</strong> exactly one backend implementation per
+                        financial concept; every router/page calls these helpers. Enforced by
+                        <code>tests/backend/test_finance_calculation_singularity_guardrail.py</code>, which fails the
+                        build if arrears is derived from a raw <code>net_balance &gt; 0</code> aggregate, or if
+                        <code>balance_owing</code>/<code>total_closing</code>/<code>strata_web_balance</code> are read
+                        for arrears outside the canonical helpers. Due-date Collection Rate, Full-Year Levy Coverage /
+                        Fund Health, and Collected in Advance are three distinct, never-conflated metrics.
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>utils/helpers.py</h3>
+                    <ul>
+                        <li>Notification creation helper</li>
+                        <li>Activity log writer</li>
+                        <li>UUID generation</li>
+                        <li>Date/time utilities</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="services">
+            <h2>Services Layer</h2>
+            <p>Business logic that spans multiple collections or requires complex computation lives in <code>backend/services/</code>:
+            </p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Purpose</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>financial_service.py</code></td>
+                        <td>Levy calculation engine, admin/sinking fund summaries, cashflow computation</td>
+                    </tr>
+                    <tr>
+                        <td><code>forecast_service.py</code></td>
+                        <td>Multi-year financial forecasting models, trend analysis</td>
+                    </tr>
+                    <tr>
+                        <td><code>anomaly_service.py</code></td>
+                        <td>Statistical anomaly detection in expense patterns</td>
+                    </tr>
+                    <tr>
+                        <td><code>report_service.py</code></td>
+                        <td>Annual financial report PDF assembly</td>
+                    </tr>
+                    <tr>
+                        <td><code>maintenance_intelligence_service.py</code></td>
+                        <td>Asset health scoring, maintenance forecasts, capital replacement schedule, intelligence
+                            summary
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>levy_fairness_service.py</code></td>
+                        <td>LBFI engine — Gini-style gap D=0.5×Σ|p_i−b_i|, LBFI=100×(1−D); per-lot payment vs benefit
+                            shares; subsidy map (flow matrix, facility drivers, sanity checks); stores two scenarios in
+                            <code>levy_simulations</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>capital_shock_service.py</code></td>
+                        <td>Reserve shortfall detection using 15-year sinking fund plan data; projects reserves against
+                            capital schedule; risk levels LOW/MEDIUM/HIGH/CRITICAL; levy adjustment recommendations
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>scripts/db/seed_sinking_fund_plan.py</code></td>
+                        <td>Idempotent seeder for 15-year capital works plan (2021–2035); 27 line items, 74 schedule
+                            entries, 12 facilities, 14 assets; populates <code>sinking_fund_plan</code> + <code>capital_replacement_schedule</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>notice_service.py</code></td>
+                        <td>Advanced Financial Enhancements — Section 83 PDF notice generator using ReportLab; produces
+                            ACT-compliant statutory debt notices
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>health_service.py</code></td>
+                        <td>Advanced Financial Enhancements — Financial Health Score engine: 7-component, 100-point
+                            scoring model (reserve adequacy, collection rate, budget variance, arrears ratio, expense
+                            volatility, sinking fund trend, levy coverage)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>lot_finance_service.py</code></td>
+                        <td>Advanced Financial Enhancements — True Cost of Ownership calculator; distributes building
+                            expenses and levies per unit by UOE weighting; handles DEFT/BPAY external payers with zero
+                            levy_payments records
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>cron/cron_finance_recompute.py</code></td>
+                        <td>Advanced Financial Enhancements — Nightly cron: checks all arrears units; promotes to Tier 3
+                            (DCA Eligible) when balance exceeds $1,500 AND 14+ days have elapsed since Section 83 notice
+                            was sent
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="add-endpoint">
+            <h2>How to Add a New Endpoint</h2>
+            <ol>
+                <li><strong>Create/update a Pydantic model</strong> in <code>backend/models/</code> for request/response
+                    shapes.
+                </li>
+                <li><strong>Add the route function</strong> to the appropriate router in <code>backend/routers/</code>.
+                    Use <code>Depends(get_current_user)</code> for auth.
+                </li>
+                <li><strong>Add permission check</strong> with <code>check_permission(current_user, "can_...")</code> if
+                    needed.
+                </li>
+                <li><strong>Query MongoDB</strong> via <code>db.collection_name.find_one()</code> or <code>find()</code>
+                    (all async with <code>await</code>).
+                </li>
+                <li><strong>Verify the router</strong> is imported in <code>server.py</code> — most routers are already
+                    registered.
+                </li>
+                <li><strong>Restart the backend</strong>: <code>sudo systemctl restart eastgate-backend</code></li>
+            </ol>
+            <pre><code># Step-by-step example
+# 1. Model in backend/models/example.py
+class ExampleCreate(BaseModel):
+    name: str
+    value: float
+
+class ExampleResponse(BaseModel):
+    id: str
+    name: str
+    value: float
+    created_at: str
+
+# 2. Route in backend/routers/example.py (or add to existing router)
+@router.post("/examples", response_model=ExampleResponse)
+async def create_example(
+    data: ExampleCreate,
+    current_user = Depends(get_current_user)
+):
+    check_permission(current_user, "can_manage_finances")  # or appropriate perm
+    doc = {
+        "id": str(uuid.uuid4()),
+        "name": data.name,
+        "value": data.value,
+        "created_at": datetime.utcnow().isoformat()
+    }
+    await db.examples.insert_one(doc)
+    return doc</code></pre>
+        </section>
+
+        <section id="next-payment-algo">
+            <h2>Next Estimated Payment Algorithm</h2>
+            <p>
+                The <code>next_payment_adjusted</code> field on <code>OwnerUnitResponse</code> is computed in
+                <code>server.py</code> for both <code>GET /owners-units</code> (list) and
+                <code>GET /owners-units/{unit_number}</code> (single). It uses a unified formula that handles all
+                carry-forward scenarios without special-casing.
+            </p>
+
+            <h3>Inputs</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Source</th>
+                        <th>Semantics</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>effective_total_paid</code></td>
+                        <td><code>max(ledger.total_paid, direct_payments_sum)</code></td>
+                        <td>All confirmed in-year payments</td>
+                    </tr>
+                    <tr>
+                        <td><code>opening_arrears</code></td>
+                        <td><code>ledger.admin_opening + ledger.sinking_opening</code></td>
+                        <td><strong>Negative</strong> = prior-year credit; <strong>Positive</strong> = prior-year debt
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>period_levy</code></td>
+                        <td><code>annual_levy / payments_per_year</code></td>
+                        <td>Levy amount per instalment period</td>
+                    </tr>
+                    <tr>
+                        <td><code>due_dates</code></td>
+                        <td><code>compute_period_due_dates()</code> from site settings</td>
+                        <td>List of ISO date strings for each period</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Formula</h3>
+            <pre><code>net_credit     = effective_total_paid − opening_arrears
+periods_funded = floor(max(0, net_credit) / period_levy)
+outstanding    = (periods_funded + 1) × period_levy − net_credit</code></pre>
+            <p>
+                <code>net_credit</code> is a single signed number that absorbs both credits (negative
+                <code>opening_arrears</code>) and arrears (positive <code>opening_arrears</code>) from the prior year,
+                together with all confirmed in-year payments.
+            </p>
+
+            <h3>Decision Logic</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Condition</th>
+                        <th>next_payment_adjusted</th>
+                        <th>next_due_date</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>periods_funded ≥ len(due_dates)</code></td>
+                        <td><code>0.00</code> — fully paid</td>
+                        <td><code>null</code></td>
+                    </tr>
+                    <tr>
+                        <td>Current period due date + 14 days <strong>≥ today</strong> (within grace)</td>
+                        <td><code>outstanding</code></td>
+                        <td><code>due_dates[periods_funded]</code></td>
+                    </tr>
+                    <tr>
+                        <td>Current period due date + 14 days <strong>&lt; today</strong> (overdue)</td>
+                        <td><code>period_levy + outstanding</code> — arrears roll into next period</td>
+                        <td><code>due_dates[periods_funded + 1]</code></td>
+                    </tr>
+                    <tr>
+                        <td>Overdue AND this is the last period</td>
+                        <td><code>outstanding</code> (just the arrears)</td>
+                        <td><code>null</code></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Examples (period_levy = $1,400, Q1 due 31 Mar, grace expires 14 Apr)</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>opening_arrears</th>
+                        <th>paid</th>
+                        <th>net_credit</th>
+                        <th>outstanding</th>
+                        <th>Before grace</th>
+                        <th>After Q1 grace</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>−$200 (credit)</td>
+                        <td>$1,000</td>
+                        <td>$1,200</td>
+                        <td>$200</td>
+                        <td>$200 / Mar 31</td>
+                        <td>$1,600 / Jun 1</td>
+                    </tr>
+                    <tr>
+                        <td>+$200 (arrears)</td>
+                        <td>$600</td>
+                        <td>$400</td>
+                        <td>$1,000</td>
+                        <td>$1,000 / Mar 31</td>
+                        <td>$2,400 / Jun 1</td>
+                    </tr>
+                    <tr>
+                        <td>$0</td>
+                        <td>$1,800</td>
+                        <td>$1,800</td>
+                        <td>$1,000 (Q2)</td>
+                        <td>$1,000 / Jun 1</td>
+                        <td>$2,400 / Sep 30</td>
+                    </tr>
+                    <tr>
+                        <td>$0</td>
+                        <td>$5,600</td>
+                        <td>$5,600</td>
+                        <td>—</td>
+                        <td>$0 (fully paid)</td>
+                        <td>$0 (fully paid)</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Frontend Display</h3>
+            <p>
+                <code>FinancialSummaryCard.jsx</code> shows a contextual sub-label beneath the payment amount:
+            </p>
+            <ul>
+                <li><strong style="color:#e11d48">Red</strong> — "Includes overdue amount from previous period" when
+                    <code>period_status.any_overdue</code> is true.
+                </li>
+                <li><strong style="color:#16a34a">Green</strong> — "$X prior-year credit applied" when <code>opening_arrears
+                    &lt; 0</code>.
+                </li>
+                <li>No label — clean state (no overdue, no prior credit).</li>
+            </ul>
+
+            <h3>Tests</h3>
+            <p>
+                Full test coverage in <code>tests/backend/test_next_estimated_payment.py</code>
+                (14 classes, 40+ assertions). The test file contains a pure-Python reimplementation of the
+                formula (<code>compute_next_payment()</code>) that can be exercised without any database mocks.
+            </p>
+        </section>
+
+        <section id="critical-fixes-2026-03-12">
+            <h2>Critical Fixes — 2026-03-12</h2>
+
+            <h3>MongoDB Upsert Double-Field Error (Code 54)</h3>
+            <p>
+                MongoDB 6.0 raises <code>WriteError: cannot infer query fields to set, path 'X' is matched twice</code>
+                when the same field appears in both the upsert filter <em>and</em> the <code>$set</code> document.
+                This caused <strong>500 errors</strong> on <code>GET /api/intelligence/levy-fairness</code> and
+                <code>GET /api/intelligence/capital-shock</code>.
+            </p>
+            <p><strong>Fix pattern:</strong> Exclude filter-key fields from <code>$set</code>:</p>
+            <pre><code>update_doc = {k: v for k, v in result.items() if k != "building_id"}
+await db.foo.update_one({"building_id": bid}, {"$set": update_doc}, upsert=True)</code></pre>
+            <p><strong>Files fixed:</strong>
+                <code>services/capital_shock_service.py</code>, <code>services/levy_fairness_service.py</code> (3x),
+                <code>services/building_stress_service.py</code>, <code>routers/intelligence.py</code>,
+                <code>routers/council_rates.py</code>, <code>routers/finance.py</code>,
+                <code>routers/analytics.py</code>, <code>routers/notifications.py</code>,
+                <code>routers/security.py</code>, <code>routers/market.py</code>.
+            </p>
+
+            <h3>ZeroDivisionError in Levy Fairness Engine</h3>
+            <p>
+                <code>simulate_levy_fairness_v2</code> divided by <code>actual_total=0</code> when levy ledger is empty.
+                Fixed: divisor defaults to <code>1.0</code> when <code>actual_total &lt; 0.01</code>.
+            </p>
+
+            <h3>Security: File Upload Path Traversal &amp; Type Spoofing</h3>
+            <p><code>POST /tenant/maintenance/upload-photo</code> had two vulnerabilities:</p>
+            <ol>
+                <li><strong>Path traversal:</strong> <code>request_id</code> used unsanitised in directory path.
+                    Fixed: stripped to 24 lowercase hex chars; directory resolved and validated within
+                    <code>UPLOAD_BASE</code>.
+                </li>
+                <li><strong>Content-type spoofing:</strong> Only <code>startswith("image/")</code> checked.
+                    Fixed: exact allowlist <code>{image/jpeg, image/png, image/gif, image/webp, image/heic}</code> +
+                    extension validation.
+                </li>
+            </ol>
+
+            <h3>Date Calculation Bug (OwnerHub 6-Month Lookback)</h3>
+            <p>
+                <code>now_dt.replace(month=…)</code> raised <code>ValueError</code> for end-of-month dates (e.g. Mar 31
+                → Sep 31).
+                Fixed: always use <code>day=1</code> when replacing month.
+            </p>
+
+            <h3>API Prefix Double-Slash Fix</h3>
+            <p>
+                OwnerHub and related pages used <code>api.get('/api/owner-hub/…')</code> but Axios already has
+                <code>baseURL=/api</code> → requests hit <code>/api/api/…</code> (404). Fixed in 8 files.
+            </p>
+
+            <h3>Tests</h3>
+            <p><code>tests/backend/test_security_fixes_pr_review.py</code> — 24 tests across 4 classes covering all
+                fixes above.</p>
+        </section>
+    </main>
+</div>
+<footer>East Gate Residences · Technical Documentation · Backend · Super Admin Only · 2026 · A vision by: Silverfox
+    Technologies, Australia · Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+</body>
+</html>

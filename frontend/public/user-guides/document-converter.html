@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Document Converter – User Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+    <style>
+        .format-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .fmt-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .fmt-pdf {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .fmt-word {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .fmt-excel {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .fmt-other {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .step {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            margin: 18px 0;
+        }
+
+        .step-num {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary, #2F4F4F);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em">Strata Management Platform</div>
+                <div style="color:var(--muted);font-size:12px">Document Converter — User Guide</div>
+            </div>
+        </div>
+        <div class="badge">All Buildings</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Contents</h3>
+        <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#who">Who Can Use It</a></li>
+            <li><a href="#upload">Convert a File</a></li>
+            <li><a href="#url">Convert from URL</a></li>
+            <li><a href="#output">Using the Output</a></li>
+            <li><a href="#formats">Supported Formats</a></li>
+            <li><a href="#limits">Limits &amp; Notes</a></li>
+            <li><a href="#faq">FAQ</a></li>
+        </ul>
+    </nav>
+
+    <article class="content">
+        <h1>Document Converter</h1>
+        <p>The <strong>Document Converter</strong> turns PDF, Word, Excel, PowerPoint and other files into clean
+            <strong>Markdown text</strong> — a plain-text format that is easy to copy, edit, search, and paste into
+            announcements, meeting minutes, notices, or any other platform content.</p>
+        <p>Powered by <a href="https://github.com/microsoft/markitdown" rel="noopener" target="_blank">Microsoft
+            MarkItDown</a>, an open-source library used for document intelligence workflows.</p>
+
+        <!-- ── Who ───────────────────────────────────────────────────── -->
+        <h2 id="who">Who Can Use It</h2>
+        <div class="card callout info">
+            <strong>Available to:</strong> all approved residents, owners, EC members, strata managers,
+            and administrators of <em>any</em> building on the platform.<br/>
+            You must be logged in. Guests (pending approval) cannot access this feature.
+        </div>
+
+        <!-- ── Upload ────────────────────────────────────────────────── -->
+        <h2 id="upload">Convert a File (Upload)</h2>
+        <div class="step">
+            <div class="step-num">1</div>
+            <div>Navigate to <strong>Dashboard → Document Converter</strong> in the left sidebar.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <div>The <strong>Upload File</strong> tab is selected by default.
+                <strong>Drag and drop</strong> your file onto the drop zone, or click anywhere in the zone
+                to browse for a file.
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <div>Once a file is selected, its name and size appear below the drop zone.
+                Click <strong>Convert to Markdown</strong>.
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">4</div>
+            <div>The converted Markdown appears in a scrollable preview panel. Use the buttons to:
+                <ul>
+                    <li><strong>Copy</strong> — copies the full text to your clipboard</li>
+                    <li><strong>Download .md</strong> — saves a <code>.md</code> file to your device</li>
+                    <li><strong>New</strong> — clears the result so you can convert another file</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ── URL ──────────────────────────────────────────────────── -->
+        <h2 id="url">Convert from URL</h2>
+        <div class="step">
+            <div class="step-num">1</div>
+            <div>Click the <strong>From URL</strong> tab.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <div>Paste a publicly accessible URL into the field. This can be a web page, a PDF hosted online,
+                or any other supported document type.
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <div>Click <strong>Convert</strong> (or press <kbd>Enter</kbd>). The result appears below.</div>
+        </div>
+        <div class="card callout warn">
+            <strong>Note:</strong> The URL must be publicly reachable — it cannot be a private intranet address,
+            a file behind a login, or a <code>file://</code> path.
+        </div>
+
+        <!-- ── Output ───────────────────────────────────────────────── -->
+        <h2 id="output">Using the Output</h2>
+        <p>The Markdown output is plain text with lightweight formatting markers:</p>
+        <ul>
+            <li><code>#</code> / <code>##</code> — headings from the original document</li>
+            <li><code>**bold**</code> — bold text</li>
+            <li><code>| col | col |</code> — tables (from Excel sheets or Word tables)</li>
+            <li><code>-</code> / <code>*</code> — list items</li>
+        </ul>
+        <p>You can paste this output directly into:</p>
+        <ul>
+            <li>Announcement body fields</li>
+            <li>Meeting agenda / minutes text boxes</li>
+            <li>Any other rich-text area in the platform that renders Markdown</li>
+            <li>External tools (Confluence, Notion, GitHub, email)</li>
+        </ul>
+
+        <!-- ── Formats ──────────────────────────────────────────────── -->
+        <h2 id="formats">Supported File Formats</h2>
+        <div class="format-grid">
+            <span class="fmt-badge fmt-pdf">PDF</span>
+            <span class="fmt-badge fmt-word">DOCX</span>
+            <span class="fmt-badge fmt-word">DOC</span>
+            <span class="fmt-badge fmt-excel">XLSX</span>
+            <span class="fmt-badge fmt-excel">XLS</span>
+            <span class="fmt-badge fmt-other">PPTX</span>
+            <span class="fmt-badge fmt-other">HTML</span>
+            <span class="fmt-badge fmt-other">CSV</span>
+            <span class="fmt-badge fmt-other">TXT</span>
+            <span class="fmt-badge fmt-other">MD</span>
+        </div>
+        <p>Files in other formats (e.g., <code>.zip</code>, <code>.exe</code>, images) are not accepted.</p>
+
+        <!-- ── Limits ───────────────────────────────────────────────── -->
+        <h2 id="limits">Limits &amp; Notes</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Item</th>
+                <th>Limit</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Maximum file size</td>
+                <td>20 MB</td>
+            </tr>
+            <tr>
+                <td>File formats accepted</td>
+                <td>PDF, DOCX, DOC, XLSX, XLS, PPTX, HTML, CSV, TXT, MD</td>
+            </tr>
+            <tr>
+                <td>URL schemes accepted</td>
+                <td><code>http://</code> and <code>https://</code> only</td>
+            </tr>
+            <tr>
+                <td>Converted files stored</td>
+                <td>No — conversion is ephemeral; nothing is saved to the database</td>
+            </tr>
+            </tbody>
+        </table>
+        <div class="card callout info">
+            <strong>Privacy:</strong> Uploaded files are processed in memory on the server and immediately deleted.
+            No copy of your file or its content is stored by the platform.
+        </div>
+
+        <!-- ── FAQ ──────────────────────────────────────────────────── -->
+        <h2 id="faq">Frequently Asked Questions</h2>
+        <h3>The formatting looks messy — is that normal?</h3>
+        <p>Complex layouts (multi-column PDFs, heavily formatted Word docs) may not convert perfectly.
+            Markdown is a linear format, so columns and decorative elements are flattened. You can edit the
+            output after copying it.</p>
+
+        <h3>Can I convert a scanned PDF?</h3>
+        <p>Scanned PDFs contain images of text, not real text. MarkItDown does not perform OCR (optical
+            character recognition), so a scanned PDF may produce little or no text output. Use a PDF with
+            embedded text for best results.</p>
+
+        <h3>My Excel file has multiple sheets — will they all be converted?</h3>
+        <p>Yes. MarkItDown converts all sheets and presents them sequentially in the Markdown output,
+            labelled by sheet name.</p>
+
+        <h3>Can I use this for large strata reports?</h3>
+        <p>Yes, up to 20 MB. For very large documents the conversion may take a few seconds.</p>
+
+        <h3>Is there an API I can call directly?</h3>
+        <p>Yes — see the <a href="/tech-docs/document-converter.html">Technical Documentation</a>
+            for API endpoint details.</p>
+    </article>
+</main>
+
+<footer>
+    <p>Strata Management Platform — Multi-Building Edition · Document Converter User Guide · 2026</p>
+</footer>
+</body>
+</html>

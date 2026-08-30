@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Finance Feature Updates — April 2026 | <span data-bldg="name">your building</span></title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: #1e293b;
+        }
+
+        h1 {
+            color: #1e293b;
+            border-bottom: 3px solid #6366f1;
+            padding-bottom: 0.5rem;
+        }
+
+        h2 {
+            color: #6366f1;
+            margin-top: 2rem;
+        }
+
+        h3 {
+            color: #334155;
+        }
+
+        .callout {
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .warning {
+            background: #fff7ed;
+            border-left: 4px solid #f59e0b;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .fix-badge {
+            display: inline-block;
+            background: #dcfce7;
+            color: #166534;
+            border-radius: 9999px;
+            padding: 0.2rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th {
+            background: #f1f5f9;
+            text-align: left;
+            padding: 0.75rem;
+        }
+
+        td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        code {
+            background: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Finance Feature Updates — April 2026</h1>
+<p>This guide covers all finance-related improvements made to the Strata Management platform in April 2026, addressing 9
+    reported issues. These changes affect the Collection Rate page, Financial Transactions tab, Finance Intelligence
+    page, Financial Projections, and Investor Intelligence.</p>
+
+<hr/>
+
+<h2>1. Collection Rate vs Fund Health — Consistency Fix</h2>
+<span class="fix-badge">Fixed</span>
+
+<p>Previously, the <strong>Collection Rate</strong> percentage and <strong>Fund Health</strong> percentage on the
+    finance dashboard showed different values (e.g., 63.09% vs 64.2%). This caused confusion about the building's actual
+    levy collection performance.</p>
+
+<div class="callout" style="border-left:4px solid #E07A5F;">
+    <strong>⚠️ Superseded (Aug 2026 — GAP-FIN-040):</strong> The April-2026 change described in this
+    section made <strong>Fund Health</strong> reuse the <strong>Collection Rate</strong> calculation.
+    That equivalence has since been reversed. Fund Health / Full-Year Levy Coverage (measured against
+    the <em>full</em> year's levy, including instalments not yet due) and the due-date Collection Rate
+    (measured only against levies <em>due so far</em>) are now two <em>distinct</em> metrics that are
+    never equated or labelled interchangeably — alongside a third, "Collected in Advance". The account
+    below is retained as historical context; for current definitions see the finance tech-docs and the
+    repository changelog.
+</div>
+
+<h3>What Changed</h3>
+<p>The <strong>Fund Health</strong> metric was changed (April 2026) to use the same calculation as Collection Rate — the weighted average of
+    all levies collected across the entire building. Previously it used an unweighted average of the admin fund rate and
+    sinking fund rate separately, which diverges when the two funds have different sizes. <em>(This equivalence was
+    later reversed — see the superseded note above.)</em></p>
+
+<table>
+    <tr>
+        <th>Metric</th>
+        <th>Before</th>
+        <th>After</th>
+    </tr>
+    <tr>
+        <td>Collection Rate</td>
+        <td>total_paid / total_levied</td>
+        <td>total_paid / total_levied (unchanged)</td>
+    </tr>
+    <tr>
+        <td>Fund Health</td>
+        <td>(admin_rate + sinking_rate) / 2 (unweighted)</td>
+        <td>total_paid / total_levied (weighted, same as Collection Rate)</td>
+    </tr>
+</table>
+
+<div class="callout">
+    <strong>Individual fund rates</strong> (admin and sinking separately) are still shown in the detailed breakdown
+    panels for transparency.
+</div>
+
+<h2>2. Collection Rate Page — Numbers Now Add to 100%</h2>
+<span class="fix-badge">Fixed</span>
+
+<p>The Collection Rate analysis page previously showed 4 metrics (Overall Rate, Total Collected, Total Outstanding, Not
+    Paid Due Date) that did not add up to 100% of the total levied amount. The missing portion (~24-25%) was future
+    quarterly instalments not yet due.</p>
+
+<div class="callout" style="border-left:4px solid #E07A5F;">
+    <strong>Clarification (GAP-FIN-040):</strong> a breakdown bar that adds to 100% of the
+    <em>full-year</em> levy — with "Not Yet Due" as one of its segments — is the <strong>Full-Year
+    Levy Coverage</strong> view, which is distinct from the due-date <strong>Collection Rate</strong>.
+    The Collection Rate excludes not-yet-due instalments from <em>both</em> its numerator and
+    denominator, so it is not the same number as the 100% coverage bar and is never labelled the same.
+</div>
+
+<h3>New Breakdown Bar</h3>
+<p>The page now shows a colour-coded progress bar with all four components that always add to 100%:</p>
+
+<table>
+    <tr>
+        <th>Segment</th>
+        <th>Colour</th>
+        <th>Meaning</th>
+    </tr>
+    <tr>
+        <td>Collected</td>
+        <td>Green</td>
+        <td>Confirmed payments received</td>
+    </tr>
+    <tr>
+        <td>In Grace Period</td>
+        <td>Amber</td>
+        <td>Past due date but within 14-day processing window — may still arrive</td>
+    </tr>
+    <tr>
+        <td>True Arrears</td>
+        <td>Red</td>
+        <td>Genuinely overdue with no grace window remaining</td>
+    </tr>
+    <tr>
+        <td>Not Yet Due</td>
+        <td>Grey</td>
+        <td>Future quarterly instalments not yet at their due date</td>
+    </tr>
+</table>
+
+<div class="callout">
+    <strong>Example:</strong> If the building raises $109,000 in annual levies and only Q1 and Q2 have fallen due by
+    March, approximately 50% of the levy is "Not Yet Due" (Q3 and Q4). This is normal and expected.
+</div>
+
+<h2>3. Finance Transactions Tab — Now Shows Real Transactions</h2>
+<span class="fix-badge">Fixed</span>
+
+<p>The <strong>Transactions</strong> tab on the main Finance page previously showed the same Unit Levy Ledger data as
+    the Levy Status tab. It now displays actual <strong>income and expense transactions</strong> recorded in the system.
+</p>
+
+<h3>What You'll See</h3>
+<ul>
+    <li><strong>Income transactions</strong> — interest earned, grants, other income (shown in green)</li>
+    <li><strong>Expense transactions</strong> — insurance, utilities, management fees, maintenance (shown in red)</li>
+    <li>Each transaction shows: Date, Type, Description, Category, Fund (Admin/Sinking), Amount</li>
+    <li>Sorted by most recent first</li>
+</ul>
+
+<div class="callout">
+    This is where you can track exactly where the building's levy money is being spent and what income the building is
+    generating.
+</div>
+
+<h2>4. Financial Projections — Fixed 404 Error</h2>
+<span class="fix-badge">Fixed</span>
+
+<p>The Financial Projections page previously returned a 404 error when trying to create a new projection. This was
+    because the base year was stored as a financial year range (e.g., "2024-2025") but the system requires a single
+    calendar year (e.g., "2026").</p>
+
+<h3>What Changed</h3>
+<ul>
+    <li>The "Base Year" dropdown now shows years from the building's actual financial data (e.g., 2024, 2025, 2026)</li>
+    <li>The year is loaded dynamically from available financial records</li>
+    <li>Creating projections now works correctly</li>
+</ul>
+
+<h2>5. Finance Intelligence Page — Chart & Data Fixes</h2>
+<span class="fix-badge">Fixed</span>
+
+<h3>Risk &amp; Audit Tab — Chart Rendering</h3>
+<p>The Y-axis labels on charts (Levy Distribution, Shock Timeline, Reserve Trajectory) were being hidden or overlapping.
+    The charts now have proper margins so all axis labels are fully visible.</p>
+
+<h3>Unit Impacts Tab — Empty State</h3>
+<p>The <strong>Cost Distribution</strong> chart (showing true cost of ownership per unit) previously showed no data when
+    the per-unit summaries hadn't been computed. It now shows an empty state with a <strong>"Compute Unit Cost
+        Distribution"</strong> button for admin users.</p>
+
+<h3>Levy Modeling Tab — Run What-If Results</h3>
+<p>When you click <strong>Run What-If</strong> on the Levy Modeling tab, the simulation results are now shown <strong>directly
+    below the button</strong> on the same tab. Previously, results only updated the Risk &amp; Audit tab which was not
+    visible from Levy Modeling.</p>
+
+<p>The results panel shows:</p>
+<ul>
+    <li><strong>Special Levy Risk %</strong> — probability of requiring a special levy under the simulated scenario</li>
+    <li><strong>Median Special Levy</strong> — estimated amount if a special levy is required</li>
+    <li><strong>Reserve Score</strong> — updated reserve adequacy score under the new assumptions</li>
+    <li><strong>Explanation</strong> — plain-English interpretation of the results</li>
+</ul>
+
+<h2>6. Investor Intelligence Page — Improved for All Roles</h2>
+<span class="fix-badge">Fixed</span>
+
+<p>The Investor Intelligence page previously appeared empty for EC Chairman and EC Member users with no clear action to
+    take.</p>
+
+<h3>What Changed</h3>
+<ul>
+    <li><strong>EC Members</strong> (including Chairman) now see the unit selector dropdown to view any unit in the
+        building
+    </li>
+    <li>When intelligence data is not yet generated, a clear <strong>error state</strong> is shown with an explanation
+        and a <strong>Retry</strong> button
+    </li>
+    <li>Admin users (Chairman, Strata Manager) see a <strong>"Building Report"</strong> button to download a
+        comprehensive PDF health report
+    </li>
+    <li>If your unit is not linked to your profile, a helpful message guides you to contact the strata manager</li>
+</ul>
+
+<div class="callout">
+    <strong>Note:</strong> Intelligence data (grade, stress score, reserve adequacy) requires building financial data to
+    be seeded. If the page shows "data not yet available", ask your System Administrator to run the intelligence data
+    generation.
+</div>
+
+<h2>7. Feature Toggles — Administration Fixed</h2>
+<span class="fix-badge">Fixed</span>
+
+<p>The Feature Toggles admin page was failing to load the building selector, preventing Super Admins from managing
+    per-building feature overrides. This has been corrected — the building list now loads correctly.</p>
+
+<hr/>
+<h2>Who This Affects</h2>
+
+<table>
+    <tr>
+        <th>Role</th>
+        <th>Changes Visible</th>
+    </tr>
+    <tr>
+        <td>Super Admin</td>
+        <td>All — Feature Toggles building selector, all finance fixes</td>
+    </tr>
+    <tr>
+        <td>Chairman / EC Member</td>
+        <td>Finance Transactions tab, Investor Intelligence, What-If results, Collection Rate breakdown</td>
+    </tr>
+    <tr>
+        <td>Strata Manager</td>
+        <td>Finance Transactions tab, Financial Projections, Collection Rate breakdown</td>
+    </tr>
+    <tr>
+        <td>Owner</td>
+        <td>Collection Rate breakdown (read-only), Finance Transactions tab</td>
+    </tr>
+    <tr>
+        <td>Tenant</td>
+        <td>No direct finance access — no change</td>
+    </tr>
+</table>
+
+<hr style="margin-top:2rem"/>
+<h2>Finance Page Fixes — April 2026 (Update 2)</h2>
+
+<h3>1. Clickable Overview Cards</h3>
+<p>All cards on the <strong>Overview</strong> tab are now clickable and navigate to relevant detail pages:</p>
+<ul>
+    <li><strong>Admin Fund Income / Expenses / Sinking Fund Income</strong> → Charts tab (expense/income breakdown)</li>
+    <li><strong>Outstanding Levies</strong> → Levy Status tab filtered to "Arrears"</li>
+    <li><strong>Total Levied</strong> → Levy Calculator tab</li>
+    <li><strong>Total Collected</strong> → Collection Rate analysis page</li>
+    <li><strong>Units Paid Up</strong> → Levy Status tab filtered to "On Track"</li>
+</ul>
+
+<h3>2. Quarterly Budget View (Charts Tab)</h3>
+<p>The <strong>Charts</strong> tab now shows a Quarterly Budget section at the top, displaying for each quarter:</p>
+<ul>
+    <li>Budgeted income (annual levy ÷ 4)</li>
+    <li>Collected amount (from authoritative ledger)</li>
+    <li>Pending payments</li>
+    <li>Estimated expenses (annual budget ÷ 4)</li>
+    <li>Due date for each quarter</li>
+</ul>
+<p>Annual totals are also shown below the quarterly breakdown.</p>
+
+<h3>3. Transactions Tab — Search, Sort &amp; Category Grouping</h3>
+<p>The <strong>Transactions</strong> tab now has:</p>
+<ul>
+    <li><strong>Search bar</strong> — filter by description, category, or supplier</li>
+    <li><strong>Category grouping</strong> — transactions are grouped by category with a collapsible header showing the
+        category total
+    </li>
+    <li><strong>Sort arrows</strong> — click any column header (Date, Type, Description, Fund, Amount) to sort ASC/DESC
+    </li>
+</ul>
+
+<h3>4. Levy Status Tab — Search &amp; Sort</h3>
+<p>The <strong>Levy Status</strong> tab now has:</p>
+<ul>
+    <li><strong>Search bar</strong> — filter by unit number or owner name</li>
+    <li><strong>Sort arrows</strong> on all columns (Unit, Owner, Total Levied, Total Paid, Balance, Status)</li>
+    <li>Result count shown below the table</li>
+</ul>
+
+<h3>5. Unit Detail Page Fixes</h3>
+<p>The unit detail page (<code>/dashboard/finance/unit/TH071</code> etc.) has been fixed:</p>
+<ul>
+    <li><strong>Total Paid</strong> — Now correctly shows the authoritative ledger amount (includes DEFT/bank payments,
+        not only portal payments)
+    </li>
+    <li><strong>Parking</strong> — Now correctly shows the number of parking spaces for the unit</li>
+    <li><strong>Owner names</strong> — All owners are displayed when a unit has multiple owners (e.g. "John Smith &amp;
+        Jane Smith")
+    </li>
+    <li><strong>Levy History (FY 2026)</strong> — A "Show Quarters" button expands a per-quarter breakdown showing
+        levied, paid, pending and due date for each quarter
+    </li>
+</ul>
+
+<h2>Financial Year Model — How It Works</h2>
+
+<h3>What Is the Building Financial Year?</h3>
+<p>The building has its own financial year, independent of the ATO tax year (July–June).
+    <span data-bldg="name">your building</span> uses a <strong>calendar year</strong>: FY 2026 runs from <strong>1
+        January 2026</strong>
+    to <strong>31 December 2026</strong>.</p>
+<p>The financial year start month is configured in <strong>Site Settings → Financials</strong>.
+    If your building's FY starts in January, the label is simply "FY 2026".
+    If it starts in any other month (e.g. July), the label spans two years: "FY 2025-26".</p>
+
+<h3>Levy Due Dates</h3>
+<p>Levy instalments for FY 2026 at your building are due on:</p>
+<table>
+    <thead>
+    <tr>
+        <th>Quarter</th>
+        <th>Due Date</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>Q1</td>
+        <td>31 March 2026</td>
+    </tr>
+    <tr>
+        <td>Q2</td>
+        <td>1 June 2026</td>
+    </tr>
+    <tr>
+        <td>Q3</td>
+        <td>1 September 2026</td>
+    </tr>
+    <tr>
+        <td>Q4</td>
+        <td>1 December 2026</td>
+    </tr>
+    </tbody>
+</table>
+<p>These dates are set in <strong>Site Settings → Financials → Levy Due Custom Dates</strong>.</p>
+
+<h3>GST on Levies</h3>
+<p><span data-bldg="name">your building</span> is GST-registered (annual turnover exceeds the $75,000 ATO threshold).
+    Levies include GST. The figures work as follows:</p>
+<ul>
+    <li><strong>Administrative Fund budget (ex-GST):</strong> $309,882.00</li>
+    <li><strong>Sinking Fund budget (ex-GST):</strong> $90,459.00</li>
+    <li><strong>Total budget (ex-GST):</strong> $400,341.00</li>
+    <li><strong>GST (10%):</strong> $40,034.10</li>
+    <li><strong>Total levy collection (inc-GST):</strong> $440,375.10</li>
+</ul>
+<p>Each unit's quarterly levy already includes the GST component. The unit levy amount shown on
+    statements is the <strong>GST-inclusive</strong> amount. GST is reported to the ATO via quarterly BAS
+    by your strata manager.</p>
+
+<h3>Administrative Fund vs Sinking Fund</h3>
+<ul>
+    <li><strong>Administrative Fund</strong>: Covers day-to-day operating expenses (cleaning, insurance, electricity,
+        management fees, etc.). The levy collected approximately matches the annual budget.
+    </li>
+    <li><strong>Sinking Fund</strong>: Long-term capital reserve. Funds accumulate year-on-year to cover large future
+        expenses (e.g. painting, lift overhaul, major repairs). The sinking fund levy is <em>not</em> intended to equal
+        current-year expenses — it builds up over time.
+    </li>
+</ul>
+<p><strong>Note:</strong> Your building may use different fund terminology — the correct term here is <strong>Sinking
+    Fund</strong>,
+    which is consistent with ACT Unit Titles legislation.</p>
+
+<hr>
+<h2 id="year-linkage-fixes">Finance Year-Linkage Fixes (April 2026 — Update 2)</h2>
+
+<p>The following bugs were identified and fixed as part of the April 2026 second update:</p>
+
+<h3>1. Overview Tab — Historical Years Showing $0.00</h3>
+<div class="callout">
+    <strong>Bug:</strong> The Overview tab was displaying $0.00 for all financial metrics when selecting any year from
+    2021 to 2025. Only the current year (2026) was showing correct figures.
+</div>
+<p><strong>Root cause:</strong> The backend model (<code>UnitLevyLedgerResponse</code>) required four fields
+    (<code>id</code>, <code>lot_number</code>, <code>uoe</code>, <code>property_type</code>) that were absent from
+    historical database records (seeded before these fields were introduced). The API returned HTTP 500, causing the
+    frontend to silently zero all cards.</p>
+<p><strong>What was fixed:</strong></p>
+<ul>
+    <li>Fields made optional in the response model — historical records no longer cause a 500 error.</li>
+    <li>All historical records (2021–2025, 435 documents) backfilled with correct values:
+        <ul>
+            <li><code>uoe</code> (Unit of Entitlement) sourced from the <code>units</code> collection</li>
+            <li><code>property_type</code> sourced from <code>units.unit_type</code> (TH* = townhouse, UA* = apartment)
+            </li>
+        </ul>
+    </li>
+    <li>Frontend data-fetching updated to be resilient — a single endpoint failure no longer zeroes all tabs.</li>
+</ul>
+
+<h3>2. Quarterly Trend Chart — Static / Identical Lines</h3>
+<div class="callout">
+    <strong>Bug:</strong> The "Monthly Trend" chart on the Overview tab showed two overlapping lines (Income and Levies
+    were always identical).
+</div>
+<p><strong>What was fixed:</strong></p>
+<ul>
+    <li>The <strong>Levies</strong> line now shows the <em>budgeted quarterly levy</em> (annual budget ÷ 4).</li>
+    <li>The <strong>Income</strong> line now shows <em>actual levy payments collected</em> per quarter from the payment
+        records database.
+    </li>
+    <li>The chart is now renamed "Quarterly Trend" for accuracy.</li>
+    <li>Selecting a different Financial Year updates the chart to show that year's data.</li>
+</ul>
+<p><strong>How to read it:</strong> When the Income line is below the Levies line, some levies are outstanding for that
+    quarter. When they match, collection is on track. Future quarters will show a flat Income line until payments are
+    recorded.</p>
+
+<h3>3. Levy Status Tab — Not Responding to Year Change</h3>
+<div class="callout">
+    <strong>Bug:</strong> The Levy Status tab was showing the same unit list regardless of which Financial Year was
+    selected in the dropdown.
+</div>
+<p><strong>What was fixed:</strong></p>
+<ul>
+    <li>The Levy Status tab now sources its data directly from the year-filtered levy ledger records.</li>
+    <li>Amounts for <em>Total Levied</em>, <em>Total Paid</em>, and <em>Balance</em> now reflect the selected Financial
+        Year.
+    </li>
+    <li>Owner names are still shown (enriched from unit records), while financial figures come from the year-specific
+        ledger.
+    </li>
+</ul>
+
+<h3>4. Levy Calculator — Top Cards Not Updating on Year Change</h3>
+<div class="callout">
+    <strong>Bug:</strong> The "Total Annual Budget", "Admin Fund", and "Sinking Fund" cards on the Levy Calculator tab
+    always showed the 2026 figures, regardless of the selected year.
+</div>
+<p><strong>What was fixed:</strong></p>
+<ul>
+    <li>The backend now returns year-specific budget figures for every year.</li>
+    <li>The trust account override (which stores the current year's exact budget) is only applied for the current
+        financial year (2026). Historical years use the recorded annual levy data.
+    </li>
+    <li>The cards now display the Financial Year label (e.g. "FY 2021") so it's clear which year is shown.</li>
+    <li>A loading indicator is shown while data is fetching after a year change.</li>
+</ul>
+
+<h3>5. Transactions — 2021–2024 Showing Empty State</h3>
+<div class="warning">
+    <strong>Note:</strong> Digital transaction records are available from FY 2025 onwards. Years 2021–2024 do not have
+    transaction records entered in the system yet.
+</div>
+<p>The empty state message has been improved to explain this clearly. If historical transaction data is imported in the
+    future, it will appear automatically for those years.</p>
+
+<h3>Property Type Correction (TH071–TH087)</h3>
+<p>All townhouse units (TH001–TH087) were confirmed to have <code>property_type = 'townhouse'</code>. An earlier data
+    migration had incorrectly set TH071–TH087 to 'apartment'. This has been corrected across all historical records.</p>
+
+<hr>
+
+<h2>Civium Portal Data Integration (April 2026 — Update 3)</h2>
+<p>The Civium strata portal scraper now feeds live data directly into the finance dashboard pages.
+    All portal data is displayed alongside (not replacing) the levy management system — you now have a single view
+    combining both sources.</p>
+
+<h3>What's New</h3>
+<ul>
+    <li><strong>Finance Overview → Bank Account Balances card</strong> — Shows the live admin fund and sinking fund bank
+        balances as reported by the Civium portal, including the last sync time.
+    </li>
+    <li><strong>Collection Rate page → Civium Portal Snapshot</strong> — Displays arrears and credit totals (with unit
+        counts),
+        the portal's own collection rate, and a risk level indicator (Green / Amber / Red).
+    </li>
+    <li><strong>Unit Finance Detail → Portal Cross-Check</strong> — For each unit, shows the portal's recorded balance
+        and
+        status alongside the levy system balance so discrepancies are immediately visible.
+    </li>
+    <li><strong>Spending Categories → Portal Actual column</strong> — The budget table now includes a "Portal Actual"
+        column
+        showing the real expenditure as reported by Civium, making it easy to compare budget against actuals.
+    </li>
+</ul>
+
+<h3>Important: Two Systems, One View</h3>
+<p>The portal data (Civium) and the levy management system are kept as separate sources of truth:</p>
+<ul>
+    <li>The <strong>levy system</strong> (unit_levy_ledger, annual_levies) is the authoritative source for billing, levy
+        notices, and payment history.
+    </li>
+    <li>The <strong>portal snapshot</strong> (strata_owners, bank_accounts) is the authoritative source for bank
+        balances,
+        portal-reported arrears, and actuals from Civium.
+    </li>
+    <li>Neither overwrites the other — data is <em>joined</em> at display time, never copied between systems.</li>
+</ul>
+
+<h3>When Portal Data Is Not Available</h3>
+<p>If the portal scraper has not yet run for a building, the portal cards and columns simply do not appear.
+    All existing financial data and functionality is unaffected. Portal sections are visible only once the scraper has
+    completed at least one successful sync.</p>
+
+<hr>
+
+<footer>
+    <span data-bldg="name">your building</span> | Executive Committee | Strata Manager<br>
+    E: <a data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC
+    email</a><br>
+    P: <span data-bldg="contact_phone">(contact number)</span>
+</footer>
+
+<script src="building-config.js"></script>
+</body>
+</html>

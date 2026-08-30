@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Owner Finance API — Tech Docs | East Gate Residences</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        th {
+            background: #2F4F4F;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+
+        tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-get {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .section-title {
+            border-bottom: 2px solid #2F4F4F;
+            padding-bottom: 6px;
+            margin-top: 32px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← Back to Tech Docs</a>
+        <h1>Owner Finance API</h1>
+        <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role lists on this page naming "chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+        <p>Levy breakdown, building health, and savings summary endpoints for property owners.</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2 class="section-title">Overview</h2>
+        <p>All owner finance endpoints are under <code>/api/owner-finance/</code>. They require an authenticated user
+            with <strong>owner or higher</strong> role. Tenants receive <code>403 Forbidden</code>.</p>
+        <p>All responses are scoped to the authenticated user's <code>building_id</code>. Owners only see data for their
+            own building.</p>
+        <h3>Allowed roles</h3>
+        <p>owner, strata_admin, ec_member, strata_manager, super_admin</p>
+        <p class="callout"><strong>Corrected 2026-08-28:</strong> this list previously read
+            <code>chairman</code>, which is not a top-level role — chairman is an
+            <code>ECPosition.CHAIRMAN</code> value on a user whose role is <code>ec_member</code>
+            (migration 0025). <code>strata_admin</code> was missing and is in the router's
+            <code>OWNER_ROLES</code> set.</p>
+        <h3>Denied roles</h3>
+        <p>tenant, guest</p>
+    </section>
+
+    <section>
+        <h2 class="section-title"><span class="badge badge-get">GET</span> /api/owner-finance/levy-breakdown</h2>
+        <p>Returns the authenticated owner's quarterly levy amount broken down by budget category for the requested
+            financial year.</p>
+        <h3>Query Parameters</h3>
+        <table>
+            <tr>
+                <th>Param</th>
+                <th>Type</th>
+                <th>Default</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td>unit_number</td>
+                <td>string</td>
+                <td>the account's own unit</td>
+                <td>Unit to report on. Owner-facing pages pass the unit currently active in the
+                    sidebar unit switcher, so a multi-unit owner sees the unit they are looking at.
+                    Must be a unit the caller is actively linked to — otherwise
+                    <code>403 Forbidden</code>, never a silent fallback to the default unit.
+                    A present-but-blank value is <code>400 Bad Request</code>, not a fallback.
+                    Display variants resolve against the building's configured
+                    <code>unit_display</code> rules (<code>87</code> → <code>TH087</code> for East
+                    Gate). Added 2026-08-28 (GAP-IDENTITY-UNIT-SWITCH-001).</td>
+            </tr>
+        </table>
+        <p class="callout"><strong>Corrected 2026-08-28:</strong> this table previously documented a
+            <code>year</code> parameter. The endpoint has never accepted one — the financial year is
+            resolved server-side and returned as <code>data_year</code>.</p>
+        <h3>Response (200)</h3>
+        <pre>{
+  "unit_number": "TH017",
+  "your_uoe": 85,
+  "total_uoe": 3847,
+  "uoe_share_pct": 2.21,
+  "quarterly_levy": 1761.50,
+  "data_year": "2026-2027",
+  "balance_owing": 0.0,
+  "balance_credit": 0.0,
+  "categories": [
+    {
+      "name": "Strata Management",
+      "fund_type": "admin",
+      "your_quarterly": 220.0,
+      "pct": 12.5,
+      "annual_amount": 28000
+    },
+    {
+      "name": "Sinking Fund Contribution",
+      "fund_type": "sinking",
+      "your_quarterly": 550.0,
+      "pct": 31.2,
+      "annual_amount": 70000
+    }
+  ]
+}</pre>
+        <h3>Field descriptions</h3>
+        <table>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Notes</th>
+            </tr>
+            <tr>
+                <td>your_uoe</td>
+                <td>int</td>
+                <td>Unit's Unit of Entitlement from units collection</td>
+            </tr>
+            <tr>
+                <td>total_uoe</td>
+                <td>int</td>
+                <td>Sum of all UOE for the building</td>
+            </tr>
+            <tr>
+                <td>uoe_share_pct</td>
+                <td>float</td>
+                <td>your_uoe / total_uoe × 100. Should be in range (0, 100).</td>
+            </tr>
+            <tr>
+                <td>quarterly_levy</td>
+                <td>float</td>
+                <td>Annual budget × uoe_share_pct / 4</td>
+            </tr>
+            <tr>
+                <td>balance_owing</td>
+                <td>float</td>
+                <td>Outstanding levy amount if positive balance</td>
+            </tr>
+            <tr>
+                <td>balance_credit</td>
+                <td>float</td>
+                <td>Credit amount if negative balance (overpaid)</td>
+            </tr>
+            <tr>
+                <td>categories[].fund_type</td>
+                <td>string</td>
+                <td>One of: "admin", "sinking", "insurance"</td>
+            </tr>
+            <tr>
+                <td>categories[].pct</td>
+                <td>float</td>
+                <td>This category as % of quarterly_levy</td>
+            </tr>
+        </table>
+        <h3>Error responses</h3>
+        <table>
+            <tr>
+                <th>HTTP</th>
+                <th>Cause</th>
+            </tr>
+            <tr>
+                <td>400</td>
+                <td>No unit associated with this account, or no budget data for the requested year</td>
+            </tr>
+            <tr>
+                <td>401</td>
+                <td>No JWT provided</td>
+            </tr>
+            <tr>
+                <td>403</td>
+                <td>Tenant or guest role</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2 class="section-title"><span class="badge badge-get">GET</span> /api/owner-finance/health-explanation</h2>
+        <p>Returns the building's current health score with a detailed breakdown of each component.</p>
+        <h3>Response (200)</h3>
+        <pre>{
+  "building_id": "13195",
+  "health_score": 74,
+  "grade": "B",
+  "components": [
+    {
+      "key": "sinking_fund",
+      "label": "Sinking fund",
+      "score_pct": 68,
+      "status": "warning",
+      "plain_english": "68% of forecast reserve needs funded — below target"
+    },
+    {
+      "key": "arrears",
+      "label": "Arrears rate",
+      "score_pct": 92,
+      "status": "good",
+      "plain_english": "Only 0.8% of lots have unpaid levies"
+    },
+    {
+      "key": "maintenance",
+      "label": "Maintenance",
+      "score_pct": 75,
+      "status": "warning",
+      "plain_english": "5 open work orders"
+    },
+    {
+      "key": "compliance",
+      "label": "Compliance",
+      "score_pct": 100,
+      "status": "good",
+      "plain_english": "All compliance items current"
+    }
+  ],
+  "last_computed_at": "2026-04-01T02:00:00Z",
+  "health_score_history": []
+}</pre>
+        <h3>Grade thresholds</h3>
+        <table>
+            <tr>
+                <th>Grade</th>
+                <th>Condition</th>
+            </tr>
+            <tr>
+                <td>A</td>
+                <td>score ≥ 85</td>
+            </tr>
+            <tr>
+                <td>B</td>
+                <td>score ≥ 70</td>
+            </tr>
+            <tr>
+                <td>C</td>
+                <td>score ≥ 55</td>
+            </tr>
+            <tr>
+                <td>D</td>
+                <td>score &lt; 55</td>
+            </tr>
+            <tr>
+                <td>N/A</td>
+                <td>No building_summaries record exists</td>
+            </tr>
+        </table>
+        <h3>Component status values</h3>
+        <table>
+            <tr>
+                <th>Status</th>
+                <th>Meaning</th>
+            </tr>
+            <tr>
+                <td>good</td>
+                <td>score_pct ≥ 80</td>
+            </tr>
+            <tr>
+                <td>warning</td>
+                <td>score_pct ≥ 50</td>
+            </tr>
+            <tr>
+                <td>poor</td>
+                <td>score_pct &lt; 50</td>
+            </tr>
+        </table>
+        <h3>Data source</h3>
+        <p>Data comes from the <code>building_summaries</code> collection. If no summary exists,
+            <code>health_score</code> is null and <code>grade</code> is "N/A". Run <code>POST
+                /community-dashboard/recompute</code> to populate.</p>
+        <p class="callout">This endpoint takes <strong>no</strong> <code>unit_number</code> parameter,
+            unlike its two siblings: the figure is building-wide, so switching units must not change
+            it. A null <code>health_score</code> means <em>unmeasured</em> and must render as "N/A" —
+            never as <code>0</code>, which would grade a building "D" on data nobody has.</p>
+    </section>
+
+    <section>
+        <h2 class="section-title"><span class="badge badge-get">GET</span> /api/owner-finance/savings-summary</h2>
+        <p>Returns the owner's share of building-wide savings for the current financial year.</p>
+        <h3>Query Parameters</h3>
+        <table>
+            <tr>
+                <th>Param</th>
+                <th>Type</th>
+                <th>Default</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td>unit_number</td>
+                <td>string</td>
+                <td>the account's own unit</td>
+                <td>Same contract and same authorisation gate as
+                    <code>/levy-breakdown</code> above.</td>
+            </tr>
+        </table>
+        <h3>Response (200)</h3>
+        <pre>{
+  "your_share_cents": 4200,
+  "total_saved_ytd_cents": 185000,
+  "levy_reduction_equivalent_cents": 1050,
+  "your_uoe": 85,
+  "total_uoe": 3847
+}</pre>
+        <h3>Field descriptions</h3>
+        <table>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Notes</th>
+            </tr>
+            <tr>
+                <td>your_share_cents</td>
+                <td>int</td>
+                <td>Owner's UOE-proportional share of total savings, in cents</td>
+            </tr>
+            <tr>
+                <td>total_saved_ytd_cents</td>
+                <td>int</td>
+                <td>Total savings achieved building-wide this financial year</td>
+            </tr>
+            <tr>
+                <td>levy_reduction_equivalent_cents</td>
+                <td>int</td>
+                <td>What the savings equate to as a quarterly levy reduction</td>
+            </tr>
+        </table>
+        <p>Invariant: <code>your_share_cents ≤ total_saved_ytd_cents</code></p>
+    </section>
+
+    <section>
+        <h2 class="section-title">Multi-Tenant Isolation</h2>
+        <p>All owner-finance endpoints derive <code>building_id</code> from the authenticated user's JWT. Users cannot
+            query data from other buildings — there are no <code>building_id</code> query parameters on these endpoints.
+        </p>
+        <p>The <code>unit_number</code> parameter narrows <em>within</em> the caller's own units; it is
+            not a cross-tenant or cross-owner lever. It is authorised by
+            <code>authorise_owner_unit()</code> in <code>backend/utils/unit_number.py</code> against the
+            session's <code>owned_units</code> or an active <code>user_units</code> link, both of which are
+            building-scoped. An elevated role is <strong>not</strong> a bypass — manager views of another
+            owner's ledger have their own endpoints and their own guards.</p>
+        <p>The service layer reads:</p>
+        <ul>
+            <li><code>units</code> (tenant-scoped) — for UOE and unit_number</li>
+            <li><code>budgets</code> (tenant-scoped) — for annual budget categories</li>
+            <li><code>building_summaries</code> (tenant-scoped) — for health score and components</li>
+        </ul>
+    </section>
+
+</main>
+
+<footer>
+    <p>East Gate Residences Platform — Tech Docs</p>
+</footer>
+</body>
+</html>

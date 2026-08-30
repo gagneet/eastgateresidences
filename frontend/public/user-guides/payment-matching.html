@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Payment Matching – Manager Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .score-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .score-auto {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .score-review {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        .score-low {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        table.layers {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        table.layers th, table.layers td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        table.layers th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em">Your Building</div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform</div>
+            </div>
+        </div>
+        <div class="badge">Manager Guide</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Navigation</h3>
+        <a href="index.html">Home</a>
+        <a href="full_guide.html">Full Guide</a>
+        <a aria-current="page" href="payment-matching.html">Payment Matching</a>
+    </nav>
+
+    <article>
+        <h1>Payment Matching Queue</h1>
+        <p>The Payment Matching Queue lets strata managers review and confirm incoming bank payments that the system was
+            unable to automatically allocate to a lot. The matching engine compares each bank transaction against all
+            open levies and scores the best candidate — you only see items that scored below the auto-allocate threshold
+            or that require human judgement.</p>
+
+        <div class="card callout info">
+            <strong>Who can access this?</strong> Only Strata Admins, Strata Managers, EC Members (including the EC
+            Chairperson — chairperson is an EC Member position, not a separate role), and Super Admins can view and
+            action the matching queue. Owners and tenants do not have access.
+        </div>
+
+        <h2>Getting there</h2>
+        <p>Dashboard → <strong>Financial</strong> → <strong>Payment Matching</strong>. The page is only visible when the
+            <em>Financial Integration Layer v2</em> feature toggle is enabled for your building.</p>
+
+        <h2>Where queue items come from</h2>
+        <p>Queue items are created when bank-feed transactions are passed through the MatchingEngine. For Demo Bank
+            backfills, the platform first syncs staged bank transactions into the canonical PostgreSQL bank transaction
+            table, then scores each transaction against the building's candidate lots and open levy data.</p>
+        <p>Older transactions can also be replayed through a rematch operation. Rematch does not create duplicate review
+            items; if an item already exists for the same canonical bank transaction, it is skipped.</p>
+
+        <div class="card callout info">
+            <strong>High queue volume is expected after a historical backfill.</strong> A backfill may create many
+            unidentified items when legacy payment descriptions do not include a CRN, lot number, or payer name. Treat
+            those as review workload, not as confirmed allocations.
+        </div>
+
+        <h2>How the matching engine works</h2>
+        <p>When a bank transaction arrives, the engine runs up to eight detection layers in order from highest to lowest
+            confidence. It stops as soon as a layer returns a score at or above the auto-allocate threshold (default:
+            90%).</p>
+
+        <table class="layers">
+            <thead>
+            <tr>
+                <th>Layer</th>
+                <th>Method</th>
+                <th>Score</th>
+                <th>Outcome</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>L1 – Exact CRN</td>
+                <td>BPAY Reference Number (MOD10V05 checksum)</td>
+                <td>100%</td>
+                <td><span class="score-badge score-auto">Auto-allocated</span></td>
+            </tr>
+            <tr>
+                <td>L2 – NPP E2E ID</td>
+                <td>PayID / OSKO End-to-End Reference</td>
+                <td>95%</td>
+                <td><span class="score-badge score-auto">Auto-allocated</span></td>
+            </tr>
+            <tr>
+                <td>L3 – Partial CRN</td>
+                <td>CRN prefix found in payment description</td>
+                <td>90%</td>
+                <td><span class="score-badge score-review">Review queue</span></td>
+            </tr>
+            <tr>
+                <td>L4 – Unit Ref + Amount</td>
+                <td>Unit number in description + matching levy amount + within 30 days of due date</td>
+                <td>85%</td>
+                <td><span class="score-badge score-review">Review queue</span></td>
+            </tr>
+            <tr>
+                <td>L5 – Owner Name (fuzzy)</td>
+                <td>Jaro-Winkler name similarity ≥ 88% + exact levy amount</td>
+                <td>80%</td>
+                <td><span class="score-badge score-review">Review queue</span></td>
+            </tr>
+            <tr>
+                <td>L6 – Surname fuzzy</td>
+                <td>Surname token-ratio ≥ 80% (amount ignored)</td>
+                <td>60%</td>
+                <td><span class="score-badge score-review">Review queue</span></td>
+            </tr>
+            <tr>
+                <td>L7 – Unique amount</td>
+                <td>Exact amount matches exactly one open levy (no other lot has the same amount)</td>
+                <td>50%</td>
+                <td><span class="score-badge score-review">Review queue</span></td>
+            </tr>
+            <tr>
+                <td>L8 – Unidentified</td>
+                <td>No layer matched</td>
+                <td>0%</td>
+                <td><span class="score-badge score-low">Unidentified</span></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2>Agency sweeps</h2>
+        <p>If the payment amount is larger than the highest individual open levy, and the payer name matches a known
+            real-estate agency in the system, the engine flags it as an <strong>Agency Sweep</strong> rather than
+            running the normal layers. These require manual splitting across lots.</p>
+
+        <h2>Stats bar</h2>
+        <p>At the top of the page you will see four live metrics:</p>
+        <ul>
+            <li><strong>Queue depth</strong> — number of items currently awaiting a decision</li>
+            <li><strong>SLA breaches</strong> — items that have exceeded the 24-hour decision window</li>
+            <li><strong>Auto-match rate</strong> — percentage of payments in the last 7 days that were allocated
+                automatically without human review
+            </li>
+            <li><strong>Total / Auto (7 days)</strong> — raw counts behind the rate</li>
+        </ul>
+
+        <h2>Taking action on a queue item</h2>
+        <p>Each queue item shows the bank transaction details (description, amount) and the engine's best candidate lot.
+            Expand the item to see all candidate scores. You have three actions:</p>
+
+        <h3>Allocate</h3>
+        <ol>
+            <li>Click <strong>Allocate</strong> on the item.</li>
+            <li>The dialog pre-fills the best candidate lot and the transaction amount.</li>
+            <li>Confirm the <strong>Lot ID</strong> (or change it if the engine picked the wrong lot).</li>
+            <li>Verify the <strong>Amount (AUD)</strong> — edit the dollar amount (for example, <code>123.45</code>) if
+                you are applying a partial payment.
+            </li>
+            <li>Add optional notes, then click <strong>Confirm Allocation</strong>.</li>
+        </ol>
+        <p>The system records a <code>MatchDecisionRecorded</code> event with a frozen snapshot of all candidates at the
+            time of decision. This event is immutable and forms part of the trust ledger audit trail.</p>
+
+        <h3>Mark as Unidentified</h3>
+        <p>Click <strong>Unidentified</strong> if the payment cannot be linked to any lot. The item is closed and the
+            event is logged. You may need to follow up with the payer separately.</p>
+
+        <h3>Reject</h3>
+        <p>Click <strong>Reject</strong> to dismiss the item (for example, a refund or a payment to the wrong account).
+            The decision is logged with any notes you add.</p>
+
+        <div class="card callout warn">
+            <strong>Decisions are final.</strong> Once an item has been allocated, rejected, or marked unidentified, it
+            moves to a closed status and cannot be re-opened. The audit event is immutable.
+        </div>
+
+        <h2>Filtering and searching</h2>
+        <ul>
+            <li>Use the <strong>Status</strong> buttons (Pending / Allocated / Rejected / Unidentified / All) to filter
+                the list.
+            </li>
+            <li>Use the <strong>Search</strong> box to filter by payment description, best lot ID, or item ID.</li>
+        </ul>
+
+        <h2>SLA — decision within 24 hours</h2>
+        <p>Every item in the review queue carries an SLA deadline of 24 hours from when it was created (48 hours for
+            agency sweeps). Items that breach the SLA are highlighted in the queue and counted in the stats bar. Keeping
+            the SLA breach count at zero is important for the building's compliance health score.</p>
+
+        <h2>Building isolation</h2>
+        <p>The queue is strictly scoped to your building. Managers with access to multiple buildings will only see queue
+            items for the building they are currently logged into. No data from another building is ever visible.</p>
+    </article>
+</main>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "_comment": "Authoritative inputs for the per-building financial cutover. Loaded by backend/scripts/rollout_east_gate_financial_cutover.py via --seed-inputs. The file is upserted into core.building_settings (key: financial.cutover.authoritative_inputs) and never read again from disk after seeding. Real values must NEVER be committed to source control — copy this template, fill it in, run --seed-inputs, then delete the populated file (or store it in your secrets manager).",
+
+  "as_at_date": "YYYY-MM-DD",
+  "account_name": "The Proprietors Of Units Plan <NNNNN>",
+  "bsb": "<BSB e.g. 123-456>",
+  "account_number": "<account number>",
+
+  "evidence_source": "authoritative_cutover:<building_id>:YYYY-MM-DD",
+  "bank_provider": "mock",
+  "bank_mode": "mock",
+
+  "annual_admin_total_ex_gst": 0.0,
+  "annual_sinking_total_ex_gst": 0.0,
+
+  "funds": [
+    {
+      "fund_type": "admin",
+      "opening_balance_cents": 0,
+      "annual_total_ex_gst": 0.0,
+      "notes": "Annual admin total ex GST: <amount>"
+    },
+    {
+      "fund_type": "sinking",
+      "opening_balance_cents": 0,
+      "annual_total_ex_gst": 0.0,
+      "notes": "Annual sinking total ex GST: <amount>"
+    }
+  ]
+}

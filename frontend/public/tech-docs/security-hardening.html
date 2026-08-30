@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Security Hardening — Tech Docs | East Gate Residences</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .fix {
+            border-left: 4px solid #10b981;
+            padding: 10px 16px;
+            margin: 12px 0;
+            background: #ecfdf5;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .vuln {
+            border-left: 4px solid #ef4444;
+            padding: 10px 16px;
+            margin: 12px 0;
+            background: #fef2f2;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← Back to Tech Docs</a>
+        <h1>Security Hardening</h1>
+        <p>P0-01: Mail Password Encryption, P0-03: BOLA Fix, B2-01/02/03/04 Features</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2>P0-01: Mail Password Encryption</h2>
+
+        <div class="vuln">
+            <strong>Before (Gap):</strong> <code>mail_password</code> stored in plain text in MongoDB users collection.
+        </div>
+        <div class="fix">
+            <strong>After (Fixed):</strong> <code>mail_password</code> encrypted with Fernet symmetric encryption on
+            write; decrypted on read. Migration script for existing records provided.
+        </div>
+
+        <h3>How It Works</h3>
+        <ul>
+            <li><code>backend/utils/crypto.py</code> — thin wrapper around <code>utils/encryption.py</code></li>
+            <li><code>encrypt_sensitive(plain_text)</code> — uses existing <code>ENCRYPTION_KEY</code> from config.py
+            </li>
+            <li><code>decrypt_sensitive(cipher_text)</code> — backward-compatible (returns plain text if not encrypted)
+            </li>
+            <li><code>is_encrypted(value)</code> — detects <code>enc:</code> prefix to avoid double-encryption</li>
+        </ul>
+
+        <h3>Migration</h3>
+        <pre><code>python3 scripts/db/migrate_encrypt_mail_passwords.py</code></pre>
+        <p>Idempotent — safe to run multiple times. Skips already-encrypted values.</p>
+
+        <h3>Affected Endpoints</h3>
+        <ul>
+            <li><code>GET /api/mail/access</code> — decrypts on read</li>
+            <li><code>PUT /api/mail/update-password</code> — encrypts on write</li>
+            <li><code>PUT /api/mail/admin-update-password</code> — encrypts on write</li>
+            <li><code>POST /api/admin/reset-user-passwords</code> — encrypts on write (reset_mail branch)</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>P0-03: Bulk Document Move BOLA Fix</h2>
+
+        <div class="vuln">
+            <strong>Before (Bug):</strong> <code>POST /api/documents/bulk-move</code> referenced an undefined <code>building_id</code>
+            variable, causing a <code>NameError</code> at runtime. Query was also not scoped by uploader for non-admins.
+        </div>
+        <div class="fix">
+            <strong>After (Fixed):</strong> <code>building_id</code> variable removed from query (was never in function
+            scope); non-admin users are now correctly limited to their own documents via <code>uploaded_by</code>
+            filter.
+        </div>
+    </section>
+
+    <section>
+        <h2>GAP-001: send_email_async Signature Fix</h2>
+
+        <div class="vuln">
+            <strong>Before (Critical Bug):</strong> <code>_notify_parcel_residents()</code> called <code>send_email_async(body=...)</code>.
+            The function signature is <code>html_content=</code>. This caused the function to receive the email content
+            as an unexpected kwarg, silently fall through to "no email provider configured", and return <code>{success:
+            False}</code> — no email ever sent.
+        </div>
+        <div class="fix">
+            <strong>After (Fixed):</strong> All calls use <code>html_content=</code>. Also added <code>context="parcel_notification"</code>
+            so parcel notifications are visible in the email audit log.
+        </div>
+    </section>
+
+    <section>
+        <h2>GAP-001: create_user_notification db= Parameter Fix</h2>
+
+        <div class="vuln">
+            <strong>Before (Critical Bug):</strong> Previous version passed <code>db=</code> to <code>create_user_notification()</code>.
+            The function imports <code>db</code> internally — passing it as a kwarg causes <code>TypeError: unexpected
+            keyword argument 'db'</code>, silently killing every in-app notification.
+        </div>
+        <div class="fix">
+            <strong>After (Fixed):</strong> The new implementation uses <code>create_notifications_batch(notifications,
+            building_id=building_id)</code> — batch operation, correct signature.
+        </div>
+    </section>
+
+    <section>
+        <h2>GAP-001: TenantScopedDatabase Awareness</h2>
+
+        <div class="vuln">
+            <strong>Before (Potential Bug):</strong> <code>user_units.find({"building_id": building_id, ...})</code> —
+            manually injecting building_id into queries on a TenantScopedDatabase that already adds building_id, causing
+            "duplicate building_id in $and" MongoDB error (documented in database.py).
+        </div>
+        <div class="fix">
+            <strong>After (Fixed):</strong> Query uses only <code>unit_number + is_active + role_at_unit</code> — trusts
+            the wrapper to scope by building.
+        </div>
+    </section>
+
+    <section>
+        <h2>ENCRYPTION_KEY Usage</h2>
+        <p>The codebase already has <code>ENCRYPTION_KEY</code> in <code>config.py</code>, used by the Asset Register.
+            This key is now also used for mail password encryption via <code>utils/crypto.py</code>. No new environment
+            variables or key derivation schemes are needed.</p>
+    </section>
+
+</main>
+
+<footer>
+    <p>East Gate Residences Platform — Tech Docs</p>
+    <p><a href="index.html">Back to Tech Docs</a></p>
+</footer>
+</body>
+</html>

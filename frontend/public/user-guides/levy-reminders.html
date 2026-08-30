@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Levy Reminder Settings — User Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-yellow {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-gray {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .role-table td, .role-table th {
+            padding: 8px 14px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .role-table th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        .step {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #2F4F4F;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .tip-box {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+
+        .warn-box {
+            background: #fefce8;
+            border-left: 4px solid #f59e0b;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+
+        .channel-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .chip-email {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .chip-inapp {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .chip-sms {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        dl dt {
+            font-weight: 700;
+            margin-top: 16px;
+        }
+
+        dl dd {
+            margin-left: 0;
+            margin-top: 4px;
+            color: #555;
+        }
+
+        .audience-pill {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .audience-manager {
+            background: #fae8ff;
+            color: #7e22ce;
+        }
+
+        .timeline {
+            border-left: 3px solid #2F4F4F;
+            padding-left: 20px;
+            margin: 16px 0;
+        }
+
+        .timeline-item {
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: #2F4F4F;
+            border-radius: 50%;
+            position: absolute;
+            left: -27px;
+            top: 4px;
+        }
+
+        .timeline-label {
+            font-weight: 700;
+            color: #2F4F4F;
+        }
+
+        .timeline-sub {
+            font-size: 13px;
+            color: #555;
+        }
+
+        code {
+            background: #f1f5f9;
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+<div class="guide-container">
+    <header class="guide-header">
+        <h1>Levy Reminder Settings</h1>
+        <p class="guide-subtitle">Configure when and how your building sends overdue levy notices to owners</p>
+        <p style="margin-top:8px;">
+            <span class="audience-pill audience-manager">Strata Managers</span>
+            <span class="audience-pill audience-manager">EC Members</span>
+            <span class="audience-pill audience-manager">Chairman</span>
+        </p>
+    </header>
+
+    <section class="guide-section">
+        <h2>What are levy reminders?</h2>
+        <p>
+            Levy reminders are automated notices sent to owners who have an upcoming or overdue levy payment.
+            Rather than manually emailing individual owners, the system can automatically notify owners
+            at configurable intervals — before the due date as a courtesy, and after as an escalating
+            overdue notice.
+        </p>
+        <p>
+            Strata managers can fully configure the reminder cadence for your building: which days to
+            send notices, the minimum overdue amount before sending, which channels to use, and how
+            many escalation tiers to send before stopping.
+        </p>
+    </section>
+
+    <section class="guide-section">
+        <h2>Who can configure reminders?</h2>
+        <table class="role-table" style="width:100%; border-collapse:collapse; margin-top:12px;">
+            <thead>
+            <tr>
+                <th>Role</th>
+                <th>View settings</th>
+                <th>Update settings</th>
+                <th>Run dry-run</th>
+                <th>Dispatch live</th>
+                <th>View history log</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Owner / Tenant</td>
+                <td>&#10007; No</td>
+                <td>&#10007; No</td>
+                <td>&#10007; No</td>
+                <td>&#10007; No</td>
+                <td>&#10007; No</td>
+            </tr>
+            <tr>
+                <td>EC Member</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+            </tr>
+            <tr>
+                <td>Chairman / Strata Manager</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+                <td>&#10003; Yes</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="guide-section">
+        <h2>Default reminder cadence</h2>
+        <p>
+            When levy reminders are first enabled for your building, the following defaults apply.
+            All settings are adjustable.
+        </p>
+
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-label">14 days before due date</div>
+                <div class="timeline-sub">First courtesy reminder — "Your levy is due in 14 days"</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-label">7 days before due date</div>
+                <div class="timeline-sub">Second courtesy reminder</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-label">3 days before due date</div>
+                <div class="timeline-sub">Final courtesy reminder</div>
+            </div>
+            <div class="timeline-item" style="border-left:none; padding-left:0;">
+                <div class="timeline-label" style="color:#E07A5F;">Due date</div>
+            </div>
+        </div>
+        <div class="timeline" style="border-left-color: #E07A5F;">
+            <div class="timeline-item">
+                <div class="timeline-label" style="color:#E07A5F;">1 day overdue — Tier 1</div>
+                <div class="timeline-sub">First overdue notice — gentle reminder that payment is past due</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-label" style="color:#E07A5F;">7 days overdue — Tier 2</div>
+                <div class="timeline-sub">Second overdue notice</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-label" style="color:#E07A5F;">14 days overdue — Tier 3</div>
+                <div class="timeline-sub">Third overdue notice — more formal tone</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-label" style="color:#E07A5F;">30 days overdue — Tier 4</div>
+                <div class="timeline-sub">Final notice — maximum escalation tier (default)</div>
+            </div>
+        </div>
+        <p>
+            After Tier 4 (or whichever tier you set as the maximum), the system stops sending automated
+            reminders. At that point, manual action such as a formal demand letter or legal referral is
+            appropriate.
+        </p>
+    </section>
+
+    <section class="guide-section">
+        <h2>How to view and update reminder settings</h2>
+
+        <div class="step">
+            <div class="step-num">1</div>
+            <div>Go to <strong>Dashboard &rarr; Finance &rarr; Levy Reminders</strong>.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <div>The <strong>Settings</strong> tab shows your current configuration (or defaults if never
+                configured).
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <div>
+                Adjust any of the following settings:
+                <ul style="margin-top:8px;">
+                    <li><strong>Enabled</strong> — toggle reminders on or off for your building</li>
+                    <li><strong>Pre-due days</strong> — comma-separated list of days before the due date
+                        (e.g. <code>14, 7, 3</code>)
+                    </li>
+                    <li><strong>Overdue days</strong> — days after the due date for each escalation tier
+                        (e.g. <code>1, 7, 14, 30</code>)
+                    </li>
+                    <li><strong>Minimum overdue amount</strong> — owners with less than this amount
+                        outstanding will not receive overdue notices (default: $1.00). Useful to avoid
+                        notifying owners with trivial rounding differences.
+                    </li>
+                    <li><strong>Channels</strong> — which delivery channels to use (see below)</li>
+                    <li><strong>Maximum escalation tier</strong> — stop sending after this many overdue tiers
+                        (default: 4; maximum: 10)
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">4</div>
+            <div>Click <strong>Save Settings</strong>. Changes take effect on the next scheduled
+                reminder run.
+            </div>
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <h2>Delivery channels</h2>
+
+        <table class="role-table" style="width:100%; border-collapse:collapse; margin-top:12px;">
+            <thead>
+            <tr>
+                <th>Channel</th>
+                <th>Status</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><span class="channel-chip chip-email">Email</span></td>
+                <td><span class="badge badge-green">Available</span></td>
+                <td>Sends a formatted levy reminder email to the owner's registered address.
+                    Requires an email provider to be configured in building settings.
+                </td>
+            </tr>
+            <tr>
+                <td><span class="channel-chip chip-inapp">In-App</span></td>
+                <td><span class="badge badge-green">Available</span></td>
+                <td>Sends a bell notification visible in the owner's dashboard notification centre.
+                    Available to owners who log in to the portal.
+                </td>
+            </tr>
+            <tr>
+                <td><span class="channel-chip chip-sms">SMS</span></td>
+                <td><span class="badge badge-yellow">Coming soon</span></td>
+                <td>SMS delivery is not yet wired. Enabling the SMS toggle has no effect at this
+                    time. It is available in settings to configure ahead of the release.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="tip-box">
+            It is recommended to enable both <strong>Email</strong> and <strong>In-App</strong> channels.
+            Owners who do not use the portal still receive email notices; portal users see the notification
+            in their bell tray.
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <h2>Using the dry-run feature</h2>
+        <p>
+            Before dispatching live reminders, you can run a <strong>dry run</strong> to see exactly
+            which units would receive a notice — without actually sending anything.
+        </p>
+
+        <div class="step">
+            <div class="step-num">1</div>
+            <div>Go to the <strong>Trigger</strong> tab on the Levy Reminders page.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <div>Ensure the <strong>Dry Run</strong> toggle is ON (it is on by default).</div>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <div>Click <strong>Run Preview</strong>. The page shows a list of units with outstanding
+                balances that meet the reminder threshold, along with their overdue amounts.
+            </div>
+        </div>
+        <div class="step">
+            <div class="step-num">4</div>
+            <div>Review the list. If you are satisfied with the scope, turn off Dry Run and click
+                <strong>Dispatch Live Reminders</strong>.
+            </div>
+        </div>
+
+        <div class="warn-box">
+            <strong>Dry run is always the default.</strong> You must explicitly disable it to send
+            live reminders. This prevents accidental bulk sends.
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <h2>Viewing reminder history</h2>
+        <p>
+            The <strong>History</strong> tab (or <em>View Log</em> button) shows a paginated list of all
+            reminder runs — both dry runs and live dispatches. Each entry records:
+        </p>
+        <ul>
+            <li>When the run was triggered</li>
+            <li>Whether it was a dry run or live</li>
+            <li>How many units were targeted</li>
+            <li>The total outstanding amount across targeted units</li>
+            <li>Who triggered the run</li>
+        </ul>
+        <p>
+            Automatically scheduled runs by the cron job also appear in this log with the action
+            <code>levy_reminder_sent</code>.
+        </p>
+    </section>
+
+    <section class="guide-section">
+        <h2>How reminders interact with the cron job</h2>
+        <p>
+            The settings you configure are read by the background <strong>levy reminders cron job</strong>
+            on each scheduled run. The cron job:
+        </p>
+        <ol>
+            <li>Reads your building's reminder settings (or defaults if not configured)</li>
+            <li>Checks the levy ledger for units with outstanding balances above the threshold</li>
+            <li>Determines which reminder tier each unit is in based on how many days overdue</li>
+            <li>Sends notifications via the enabled channels</li>
+            <li>Logs the outcome to the reminder history</li>
+        </ol>
+        <p>
+            The manual <em>Trigger</em> function fires a Tier 1 reminder run for your building immediately,
+            which is useful for ad-hoc situations or for testing new settings.
+        </p>
+    </section>
+
+    <section class="guide-section">
+        <h2>Multi-building support</h2>
+        <p>
+            Levy reminder settings are configured per building. Each building can have completely different
+            cadences, channels, and thresholds. Changes to one building's settings have no effect on others.
+        </p>
+    </section>
+
+    <section class="guide-section">
+        <h2>Frequently asked questions</h2>
+        <dl>
+            <dt>Will owners receive duplicate reminders if I trigger manually and the cron also runs?</dt>
+            <dd>It is possible. Use the manual trigger sparingly and check the history log to see when
+                the last automated run occurred before triggering manually.
+            </dd>
+
+            <dt>Can I turn off reminders entirely for my building?</dt>
+            <dd>Yes. Set the <strong>Enabled</strong> toggle to OFF in settings. The cron job will
+                skip your building while disabled. Live triggers also check this flag (dry runs still work
+                while disabled, so you can still preview).
+            </dd>
+
+            <dt>What counts as "overdue"?</dt>
+            <dd>The trigger logic looks at the unit levy ledger for the current year and identifies
+                units whose combined admin and sinking fund balance is at or above the minimum threshold.
+                It does not distinguish between specific quarters — it works on the running balance.
+            </dd>
+
+            <dt>What is the minimum overdue amount for?</dt>
+            <dd>Some buildings have small rounding differences or credit adjustments that produce
+                tiny apparent balances. Setting a minimum (e.g. $1.00) prevents reminder emails going
+                to owners who are essentially current.
+            </dd>
+
+            <dt>How do I know if reminders are working?</dt>
+            <dd>Check the <strong>History</strong> log. Every scheduled run appears there. If you
+                expect reminders to have been sent but see nothing in the log, verify that the cron job
+                is running and that the enabled toggle is on.
+            </dd>
+        </dl>
+    </section>
+
+    <footer class="guide-footer">
+        <p>Your strata portal &nbsp;|&nbsp; Levy Reminder Settings &nbsp;|&nbsp; For help contact your strata
+            manager</p>
+    </footer>
+</div>
+</body>
+</html>

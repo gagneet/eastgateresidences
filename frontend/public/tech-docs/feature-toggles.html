@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Feature Toggles – Eastgate Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">East Gate Residences</div>
+            <div class="sub">Technical Documentation · Feature Toggles</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Feature Domains</div>
+            <a data-page="trust-accounting.html" href="trust-accounting.html"><span class="icon">🏦</span> Trust
+                Accounting</a>
+            <a class="active" data-page="feature-toggles.html" href="feature-toggles.html"><span class="icon">🎛️</span>
+                Feature Toggles</a>
+            <a data-page="compliance.html" href="compliance.html"><span class="icon">✅</span> Compliance</a>
+            <a data-page="seed-reference.html" href="seed-reference.html"><span class="icon">🌱</span> Seed Reference</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#overview">Overview</a>
+            <a href="#resolution">Resolution Algorithm</a>
+            <a href="#schema">Collection Schema</a>
+            <a href="#api-endpoints">API Endpoints</a>
+            <a href="#categories">Toggle Categories</a>
+            <a href="#frontend-usage">Frontend Usage</a>
+            <a href="#adding-toggle">How to Add a Toggle</a>
+            <a href="#three-tier-example">Three-Tier Example</a>
+            <a href="#gap-closure-toggles">Group 1 (2026-04)</a>
+            <a href="#may-2026-toggles">Group 2 (2026-05)</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <h1>Feature Toggles</h1>
+        <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role lists on this page naming "chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+        <p>
+            Feature toggles control the visibility of features, navigation items and UI sections across the platform.
+            The system uses a <strong>three-tier resolution model</strong>: a global default (shared across all
+            buildings)
+            that can be overridden at building level or per individual user. This allows buildings and admins to enable
+            or disable features independently without affecting other tenants.
+        </p>
+        <div class="callout">
+            <strong>Default enabled.</strong> If no toggle record exists for a given key (neither global nor
+            per-building),
+            the feature defaults to <code>enabled = true</code>. This ensures new deployments do not silently hide
+            features
+            before the seed script is run.
+        </div>
+        <div class="callout info">
+            <strong>Phase E clean-break:</strong> <code>DEFAULT_BUILDING_ID = ""</code> — there is no implicit
+            fallback to a hardcoded building ID. Every buildings (<code>13195</code>, <code>16244</code>,
+            <code>18932</code>, and any future building) resolves toggles through the same 3-tier logic with equal
+            treatment.
+        </div>
+
+        <section id="overview">
+            <h2>Overview</h2>
+            <div class="two-col">
+                <div class="card">
+                    <h3>Three-Tier System</h3>
+                    <ul>
+                        <li><strong>Tier 1 — User-level override</strong> — <code>user_feature_access</code>
+                            collection. Checked first; applies only to non-elevated users. Grants or denies a
+                            feature for one specific user regardless of building or global toggle.
+                        </li>
+                        <li><strong>Tier 2 — Building-level override</strong> — <code>building_id = "13195"</code>
+                            (or any other). Wins over the global default for all users of that building when no
+                            user-level override exists (or when elevation is active).
+                        </li>
+                        <li><strong>Tier 3 — Global default</strong> — <code>building_id = null</code>. Set once
+                            via the seed script. Applies to all buildings unless a building override exists.
+                        </li>
+                        <li>Temporarily-elevated users bypass Tier 1 — only Tiers 2 and 3 apply to them.</li>
+                        <li>Deleting a per-building override reverts the building to the global default.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Where Toggles Gate Behaviour</h3>
+                    <ul>
+                        <li><strong>Nav items</strong> — <code>DashboardLayout.tsx</code> checks each toggle before
+                            rendering sidebar links.
+                        </li>
+                        <li><strong>Page access</strong> — route-level guards redirect to 404 or dashboard if disabled.
+                        </li>
+                        <li><strong>API endpoints</strong> — some endpoints check the toggle server-side and return 403
+                            if disabled.
+                        </li>
+                        <li><strong>UI sections</strong> — individual widgets or tabs within a page can be toggle-gated.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="resolution">
+            <h2>Resolution Algorithm</h2>
+            <p>
+                When the frontend or backend needs to know if a feature is enabled, the following resolution order
+                applies (first match wins).
+                The algorithm runs for a specific <code>(feature_key, building_id, user_id)</code> triple.
+            </p>
+
+            <pre><code>def resolve_toggle(feature_key: str, building_id: str, user: dict) -> bool:
+    """
+    Three-tier feature toggle resolution. First match wins.
+    super_admin always bypasses. Elevation bypasses user-level override.
+    """
+    # super_admin hard bypass
+    if user["role"] == "super_admin":
+        return True
+
+    # Tier 1: User-level override (skipped for elevated users)
+    if not user.get("elevation_active"):
+        user_override = db.user_feature_access.find_one({
+            "user_id": user["_id"],
+            "feature_key": feature_key
+        })
+        if user_override is not None:
+            return user_override["is_enabled"]
+
+    # Tier 2: Building-level override
+    per_building = db.feature_toggles.find_one({
+        "feature_key": feature_key,
+        "building_id": building_id
+    })
+    if per_building is not None:
+        return per_building["is_enabled"]
+
+    # Tier 3: Global default
+    global_default = db.feature_toggles.find_one({
+        "feature_key": feature_key,
+        "building_id": None
+    })
+    if global_default is not None:
+        return global_default["is_enabled"]
+
+    # Neither exists — default to enabled
+    return True</code></pre>
+
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart TD
+                    A(["Request: isEnabled<br/>feature_key + building_id + user"]) --> SA{"super_admin?"}
+                    SA -->|"Yes"| BYPASS["Always enabled<br/>(hard bypass)"]
+                    SA -->|"No"| ELEV{"Elevation<br/>active?"}
+                    ELEV -->|"No"| UO{"User-level override<br/>exists?"}
+                    UO -->|"Yes"| UOV["Use user_override<br/>is_enabled value"]
+                    UO -->|"No"| PB{"Building-level record<br/>exists?"}
+                    ELEV -->|"Yes"| PB
+                    PB -->|"Yes"| PBV["Use building override<br/>is_enabled value"]
+                    PB -->|"No"| GD{"Global record<br/>exists?"}
+                    GD -->|"Yes"| GDV["Use global default<br/>is_enabled value"]
+                    GD -->|"No"| DEF["Default: enabled = true"]
+                    BYPASS --> Z(["Return result to caller"])
+                    UOV --> Z
+                    PBV --> Z
+                    GDV --> Z
+                    DEF --> Z
+                </div>
+                <div class="diagram-caption">Feature toggle resolution — user-level override (Tier 1, non-elevated
+                    only) → building override (Tier 2) → global default (Tier 3) → implicit enabled.
+                    Elevated users skip Tier 1.
+                </div>
+            </div>
+        </section>
+
+        <section id="schema">
+            <h2>Collection Schema</h2>
+            <p>
+                Toggles are stored in the <code>feature_toggles</code> MongoDB collection. Each document represents
+                one toggle at one scope level (global or per-building).
+            </p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>feature_key</code></td>
+                        <td>string</td>
+                        <td>Unique slug for this feature, e.g. <code>"rental_certificates"</code>. Unique per <code>building_id</code>.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>feature_name</code></td>
+                        <td>string</td>
+                        <td>Human-readable display name shown in the Feature Toggles admin page.</td>
+                    </tr>
+                    <tr>
+                        <td><code>building_id</code></td>
+                        <td>string | null</td>
+                        <td><code>null</code> = global default. A building_id string = per-building override. Compound
+                            unique index: <code>(feature_key, building_id)</code>.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>is_enabled</code></td>
+                        <td>boolean</td>
+                        <td>Whether the feature is enabled at this scope level.</td>
+                    </tr>
+                    <tr>
+                        <td><code>category</code></td>
+                        <td>string</td>
+                        <td>Grouping category for the admin UI. See category list below.</td>
+                    </tr>
+                    <tr>
+                        <td><code>description</code></td>
+                        <td>string</td>
+                        <td>Plain-English description of what this toggle controls.</td>
+                    </tr>
+                    <tr>
+                        <td><code>icon</code></td>
+                        <td>string</td>
+                        <td>Lucide icon name used in the Feature Toggles admin page (e.g. <code>"FileText"</code>).</td>
+                    </tr>
+                    <tr>
+                        <td><code>routes</code></td>
+                        <td>string[]</td>
+                        <td>Frontend routes gated by this toggle. Informational — used to build the admin UI
+                            breadcrumb.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>depends_on</code></td>
+                        <td>string[]</td>
+                        <td>Feature keys that must also be enabled for this feature to function. Informational — not
+                            auto-enforced.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>roles</code></td>
+                        <td>string[]</td>
+                        <td>Optional role restriction — if set, only these roles can see the feature even when it is
+                            enabled.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>created_at</code></td>
+                        <td>datetime</td>
+                        <td>ISO timestamp of first creation.</td>
+                    </tr>
+                    <tr>
+                        <td><code>updated_at</code></td>
+                        <td>datetime</td>
+                        <td>ISO timestamp of last update.</td>
+                    </tr>
+                    <tr>
+                        <td><code>updated_by</code></td>
+                        <td>string | null</td>
+                        <td>User ID of the last operator to change this toggle. <code>null</code> for system-seeded
+                            records.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <pre><code># Example document — global default for rental_certificates
+{
+    "feature_key": "rental_certificates",
+    "feature_name": "Rental Certificates",
+    "building_id": null,          # &lt;-- global default
+    "is_enabled": true,
+    "category": "governance",
+    "description": "Request and issue ACT Section 119A Unit Title Rental Certificates",
+    "icon": "FileText",
+    "routes": ["/requests/rental-certificates"],
+    "depends_on": ["compliance", "owner_units_management"],
+    "created_at": "2026-02-27T00:00:00Z",
+    "updated_at": "2026-02-27T00:00:00Z",
+    "updated_by": null
+}</code></pre>
+
+            <h3>User-Level Override Schema (<code>user_feature_access</code>)</h3>
+            <p>Tier 1 overrides are stored in the <code>user_feature_access</code> collection (one document per
+                user/feature pair). These are <em>not</em> applied to elevated users.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>user_id</code></td>
+                        <td>string</td>
+                        <td>References <code>users._id</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>feature_key</code></td>
+                        <td>string</td>
+                        <td>References <code>feature_toggles.feature_key</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>is_enabled</code></td>
+                        <td>boolean</td>
+                        <td><code>true</code> = grant; <code>false</code> = deny</td>
+                    </tr>
+                    <tr>
+                        <td><code>created_at / updated_at</code></td>
+                        <td>datetime</td>
+                        <td>ISO 8601 UTC</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="api-endpoints">
+            <h2>API Endpoints</h2>
+            <p>
+                All endpoints are in <code>backend/routers/feature_toggles.py</code> under the prefix
+                <code>/feature-toggles</code>. Reads require any authenticated user; writes require
+                <code>super_admin</code> role.
+            </p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Role</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/feature-toggles</code></td>
+                        <td>any authenticated</td>
+                        <td>List all toggles with resolved values for the current building. Returns a map of <code>feature_key
+                            → {enabled, category, description}</code>. Per-building overrides are merged with global
+                            defaults.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/feature-toggles</code></td>
+                        <td>super_admin</td>
+                        <td>Create a new toggle. Body: <code>{feature_key, feature_name, building_id, is_enabled,
+                            category, description}</code>. Returns 409 if <code>(feature_key, building_id)</code>
+                            already exists.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>PUT</code></td>
+                        <td><code>/feature-toggles/{key}</code></td>
+                        <td>super_admin</td>
+                        <td>Update a toggle's <code>is_enabled</code> value (and optionally description, icon, routes).
+                            Scope (building_id) is specified in the request body. Creates a per-building override if one
+                            does not yet exist.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>DELETE</code></td>
+                        <td><code>/feature-toggles/{key}/override/{building_id}</code></td>
+                        <td>super_admin</td>
+                        <td>Remove the per-building override for this key. After deletion the building reverts to the
+                            global default. Cannot delete global records (<code>building_id=null</code>) via this
+                            endpoint.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/feature-toggles/{key}</code></td>
+                        <td>any authenticated</td>
+                        <td>Get the resolved value for a single toggle key for the current building.</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/feature-toggles/admin/all</code></td>
+                        <td>super_admin</td>
+                        <td>List all raw toggle documents (global + all per-building overrides) without resolution. Used
+                            by the Feature Toggles admin page.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="categories">
+            <h2>Toggle Categories</h2>
+            <p>
+                Toggles are grouped into categories for display in the Feature Toggles admin page
+                (<code>/admin/feature-toggles</code>). The category field is a free string —
+                new categories can be added without schema changes.
+            </p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Key Toggles</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><strong>core</strong></td>
+                        <td><code>documents</code>, <code>sidebar</code>, <code>user_guide</code></td>
+                        <td>Foundational features present in every deployment. Disabling these affects all residents.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>financial</strong></td>
+                        <td><code>finance</code>, <code>levy_payments</code>, <code>trust_accounting</code>, <code>levy_fairness</code>,
+                            <code>my_finances</code>, <code>owner_hub</code>, <code>financial_projections</code>, <code>arrears_recovery</code>,
+                            <code>finance_intelligence</code>, <code>investor_dashboard</code>,
+                            <code>payment_plans</code>, <code>levy_reminders</code>, <code>arrears_risk</code></td>
+                        <td>Financial dashboards, levy collection, trust accounting, budget analysis, investor tools,
+                            NSW payment plans, levy reminder cadence, and predictive arrears risk scoring.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>governance</strong></td>
+                        <td><code>meetings</code>, <code>compliance</code>, <code>rental_certificates</code>, <code>owner_units_management</code>,
+                            <code>strata_roll</code>, <code>user_management</code>, <code>owner_name_verification</code>,
+                            <code>quick_polls</code>, <code>conflict_of_interest</code>,
+                            <code>nsw_commission_disclosures</code>, <code>nsw_strata_hub_returns</code></td>
+                        <td>EC governance, compliance, strata roll management, owner/tenant workflows, the
+                            conflict-of-interest register for EC committee declarations, and NSW-specific statutory
+                            obligations (insurance commission disclosure, Strata Hub annual returns).
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>safety</strong></td>
+                        <td><code>essential_services</code></td>
+                        <td>Essential services log for recording compliance service events (cooling tower, HVAC, lift,
+                            fire pump, emergency lighting, backflow prevention).
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>communication</strong></td>
+                        <td><code>announcements</code>, <code>chat</code>, <code>private_messages</code>,
+                            <code>notices</code>, <code>email</code>, <code>webmail</code>,
+                            <code>email_preferences</code>, <code>manual_email</code>,
+                            <code>notifications_management</code>, <code>news</code></td>
+                        <td>Resident communication channels including announcements, chat, email and notice board.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>community</strong></td>
+                        <td><code>marketplace</code>, <code>events</code>, <code>directory</code>,
+                            <code>pet_register</code>, <code>volunteer</code>, <code>group_buying</code>, <code>tenancy_passport</code>,
+                            <code>building_health_score</code></td>
+                        <td>Community-building features: marketplace, events calendar, resident directory and group
+                            buying.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>safety</strong></td>
+                        <td><code>emergency</code>, <code>safety_feed</code></td>
+                        <td>Emergency contacts and building safety event feed.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>facilities</strong></td>
+                        <td><code>maintenance</code>, <code>work_orders</code>, <code>ppm_schedule</code>,
+                            <code>defects</code>, <code>bookings</code>, <code>parcels</code>, <code>schedule</code>
+                        </td>
+                        <td>Maintenance requests, work orders, PPM schedule, facility bookings and parcel management.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>maintenance</strong></td>
+                        <td><code>asset_register</code>, <code>maintenance_intelligence</code></td>
+                        <td>Asset register and predictive maintenance intelligence engine.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>intelligence</strong></td>
+                        <td><code>strata_market_intelligence</code>, <code>building_risk_index</code>, <code>suburb_radar</code>
+                        </td>
+                        <td>Market intelligence, global risk index, and suburb radar digest.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>operations</strong></td>
+                        <td><code>smart_requests</code>, <code>request_status_tracking</code></td>
+                        <td>Smart request intake triage and real-time request status tracking for residents.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>landlord</strong></td>
+                        <td><code>owner_hub</code>, <code>property_health_score</code>, <code>true_cost_ownership</code>,
+                            <code>tenant_maintenance_portal</code>, <code>real_estate_agent_portal</code></td>
+                        <td>Self-managed landlord platform for investors, real estate agents, and tenants.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>engagement</strong></td>
+                        <td><code>morning_card</code>, <code>building_pulse</code></td>
+                        <td>Resident engagement surfaces: morning action card and live activity feed.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>system</strong></td>
+                        <td><code>audit_logs</code>, <code>site_settings</code>, <code>email_settings</code>, <code>external_api</code>,
+                            <code>rate_limiting</code>, <code>impersonation</code>, <code>scraper_settings</code>,
+                            <code>digital_twin</code>, <code>workflow_governance</code>,
+                            <code>portfolio_dashboard</code>, <code>user_permissions</code>, <code>user_feature_permissions</code>
+                        </td>
+                        <td>System administration, audit trails, API keys, rate limiting, impersonation, and
+                            configuration.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="frontend-usage">
+            <h2>Frontend Usage</h2>
+            <p>
+                Toggles gate navigation items in <code>DashboardLayout.tsx</code> and individual UI sections in page
+                components.
+                The <code>useFeatureToggles()</code> hook fetches the resolved toggle map for the current user's
+                building
+                on mount and caches it for the session.
+            </p>
+
+            <pre><code>// Pattern in DashboardLayout.tsx
+import { useFeatureToggles } from '@/hooks/useFeatureToggles';
+
+const { data: toggles, isLoading } = useFeatureToggles();
+
+// Helper — defaults to true if toggle is absent
+const isEnabled = (key: string): boolean =&gt; toggles?.[key]?.enabled ?? true;
+
+// Nav item gated by a single toggle
+{isEnabled('rental_certificates') &amp;&amp; (
+  &lt;NavItem
+    href="/requests/rental-certificates"
+    icon={FileCheck}
+    label="Rental Certificates"
+  /&gt;
+)}
+
+// Nav item gated by multiple toggles (ALL must be enabled)
+{isEnabled('finance') &amp;&amp; isEnabled('trust_accounting') &amp;&amp; (
+  &lt;NavItem
+    href="/financials/trust"
+    icon={Landmark}
+    label="Trust Accounting"
+  /&gt;
+)}
+
+// Toggle-gated section within a page
+{isEnabled('levy_fairness_explain') &amp;&amp; (
+  &lt;Button onClick={openExplainDrawer}&gt;Explain This Result&lt;/Button&gt;
+)}</code></pre>
+
+            <div class="callout">
+                <strong>Default-open principle.</strong> The <code>isEnabled</code> helper returns <code>true</code>
+                when
+                <code>toggles?.[key]</code> is undefined (toggle not yet seeded). This prevents accidental feature
+                hiding during deployments where the seed script has not yet run.
+            </div>
+
+            <h3>Backend Toggle Check (Server-side)</h3>
+            <pre><code># Pattern in FastAPI router when a feature is premium/gated
+from routers.feature_toggles import resolve_toggle_for_building
+
+@router.get("/trust/ledger-accounts")
+async def list_accounts(current_user = Depends(get_current_user)):
+    building_id = current_user["building_id"]
+    if not await resolve_toggle_for_building("trust_accounting", building_id):
+        raise HTTPException(status_code=403, detail="Trust Accounting is not enabled for this building")
+    # ... proceed with query</code></pre>
+        </section>
+
+        <section id="adding-toggle">
+            <h2>How to Add a New Toggle</h2>
+            <ol>
+                <li>
+                    <strong>Add the definition to <code>backend/seeds/feature_toggles.py</code></strong> — append an
+                    entry to the
+                    <code>DEFAULT_FEATURES</code> list with at minimum: <code>feature_key</code>,
+                    <code>feature_name</code>,
+                    <code>description</code>, <code>is_enabled</code>, <code>category</code>, <code>icon</code>,
+                    <code>routes</code>, and <code>depends_on</code>.
+                    <pre><code>{
+    "feature_key": "my_new_feature",
+    "feature_name": "My New Feature",
+    "description": "A brief description of what this enables",
+    "is_enabled": True,          # default state for all buildings
+    "category": "governance",    # choose an existing category
+    "icon": "Star",              # Lucide icon name
+    "routes": ["/dashboard/my-new-feature"],
+    "depends_on": []             # feature_keys this depends on
+}</code></pre>
+                </li>
+                <li>
+                    <strong>Run the seed script</strong> to create the global default document:
+                    <pre><code>cd backend && venv/bin/python3 seeds/feature_toggles.py</code></pre>
+                    The script is idempotent — existing toggles are patched (only <code>depends_on</code> is updated,
+                    never <code>is_enabled</code>). New toggles are created.
+                </li>
+                <li>
+                    <strong>Gate the frontend nav item</strong> in <code>DashboardLayout.tsx</code>:
+                    <pre><code>{isEnabled('my_new_feature') &amp;&amp; (
+  &lt;NavItem href="/dashboard/my-new-feature" icon={Star} label="My New Feature" /&gt;
+)}</code></pre>
+                </li>
+                <li>
+                    <strong>Gate the backend endpoint</strong> (if the feature warrants server-side protection):
+                    <pre><code>if not await resolve_toggle_for_building("my_new_feature", building_id):
+    raise HTTPException(status_code=403, detail="Feature not enabled")</code></pre>
+                </li>
+                <li>
+                    <strong>Update the snapshot</strong> so CI has a current reference:
+                    <pre><code>cd backend && venv/bin/python3 scripts/db/snapshot_all.py --collection feature_toggles</code></pre>
+                </li>
+            </ol>
+            <div class="callout">
+                <strong>Do not add tests that assert toggle state.</strong> Tests should test feature behaviour, not
+                whether a toggle is on or off. Toggle-gated tests should parametrize over both enabled and disabled
+                states to ensure the gating itself is correct.
+            </div>
+        </section>
+
+        <section id="three-tier-example">
+            <h2>Three-Tier Example</h2>
+            <p>
+                The following example shows how the three-tier system enables a feature globally, disables it for
+                one specific building, and grants it to one individual user even within that building.
+                This is the recommended pattern for rolling out new features to demo buildings before production.
+            </p>
+
+            <h3>Step 1 — Global Default (seeded)</h3>
+            <pre><code># Global default document in feature_toggles collection
+{
+    "feature_key": "rental_certificates",
+    "building_id": null,         # &lt;-- null means "global default" (Tier 3)
+    "is_enabled": true,          # enabled for all buildings by default
+    "category": "governance",
+    "description": "Request and issue ACT Section 119A Rental Certificates"
+}</code></pre>
+
+            <h3>Step 2 — Building-Level Override for East Gate (Tier 2)</h3>
+            <pre><code># East Gate override document — created via PUT /feature-toggles/rental_certificates
+{
+    "feature_key": "rental_certificates",
+    "building_id": "13195",      # &lt;-- East Gate specific (Tier 2)
+    "is_enabled": false,         # disabled for all East Gate users by default
+    "updated_at": "2026-03-01T00:00:00Z",
+    "updated_by": "user_abc123"
+}</code></pre>
+
+            <h3>Step 3 — User-Level Override for One East Gate Admin (Tier 1)</h3>
+            <pre><code># Grant access to one specific user despite building toggle being off
+# Created via PUT /feature-toggles/user-overrides/rental_certificates
+{
+    "user_id": "user_xyz789",
+    "feature_key": "rental_certificates",
+    "is_enabled": true,          # &lt;-- Tier 1: grants access for this user only
+    "updated_at": "2026-03-15T00:00:00Z"
+}</code></pre>
+
+            <h3>Resolution Result</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Building</th>
+                        <th>building_id</th>
+                        <th>User</th>
+                        <th>Result</th>
+                        <th>Tier Applied</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>East Gate Residences</td>
+                        <td><code>"13195"</code></td>
+                        <td>user_xyz789 (admin)</td>
+                        <td style="color: var(--brand2);">Enabled</td>
+                        <td>Tier 1 — user-level override grants access</td>
+                    </tr>
+                    <tr>
+                        <td>East Gate Residences</td>
+                        <td><code>"13195"</code></td>
+                        <td>any other user</td>
+                        <td style="color: var(--danger);">Disabled</td>
+                        <td>Tier 2 — building override: <code>is_enabled: false</code></td>
+                    </tr>
+                    <tr>
+                        <td>Sierra, Gungahlin</td>
+                        <td><code>"16244"</code></td>
+                        <td>any user</td>
+                        <td style="color: var(--brand2);">Enabled</td>
+                        <td>Tier 3 — global default: <code>is_enabled: true</code></td>
+                    </tr>
+                    <tr>
+                        <td>Harbourview Residences</td>
+                        <td><code>"18932"</code></td>
+                        <td>any user</td>
+                        <td style="color: var(--brand2);">Enabled</td>
+                        <td>Tier 3 — global default: <code>is_enabled: true</code></td>
+                    </tr>
+                    <tr>
+                        <td>Any new building</td>
+                        <td>any</td>
+                        <td>any user</td>
+                        <td style="color: var(--brand2);">Enabled</td>
+                        <td>Tier 3 — global default</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>To Revert East Gate to Global Default</h3>
+            <pre><code># Remove the per-building override — East Gate now uses global default
+DELETE /api/feature-toggles/rental_certificates/override/13195
+
+# After this call, East Gate's resolved value = global default = true (enabled)</code></pre>
+
+            <div class="callout">
+                <strong>Seed script is safe to re-run.</strong> The seed script (<code>seeds/feature_toggles.py</code>)
+                only
+                creates or patches <strong>global default</strong> records (<code>building_id=null</code>). It never
+                touches
+                per-building overrides. Re-running the seed script after production configuration is safe.
+            </div>
+        </section>
+
+        <section id="gap-closure-toggles">
+            <h2>Group 1 Gap-Closure Toggles (2026-04-23)</h2>
+            <p>
+                The following five toggles were added as part of the Group 1 gap-closure sprint.
+                Add them to <code>backend/seeds/feature_toggles.py</code> and run the seed script.
+            </p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Feature Key</th>
+                        <th>Category</th>
+                        <th>Default</th>
+                        <th>Allowed Roles</th>
+                        <th>Router</th>
+                        <th>Gap ID</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>payment_plans</code></td>
+                        <td>financial</td>
+                        <td>enabled</td>
+                        <td>all (submit); managers (approve/decline)</td>
+                        <td><code>routers/payment_plans.py</code></td>
+                        <td>GAP-JUR-NSW-002</td>
+                    </tr>
+                    <tr>
+                        <td><code>conflict_of_interest</code></td>
+                        <td>governance</td>
+                        <td>enabled</td>
+                        <td>ec_member, chairman, strata_manager, super_admin</td>
+                        <td><code>routers/conflict_of_interest.py</code></td>
+                        <td>GAP-GOV-007</td>
+                    </tr>
+                    <tr>
+                        <td><code>essential_services</code></td>
+                        <td>safety</td>
+                        <td>enabled</td>
+                        <td>managers (write); owner, tenant (read)</td>
+                        <td><code>routers/essential_services.py</code></td>
+                        <td>GAP-COM-008</td>
+                    </tr>
+                    <tr>
+                        <td><code>levy_reminders</code></td>
+                        <td>financial</td>
+                        <td>enabled</td>
+                        <td>ec_member, chairman, strata_manager, super_admin</td>
+                        <td><code>routers/levy_reminders.py</code></td>
+                        <td>GAP-FIN-012</td>
+                    </tr>
+                    <tr>
+                        <td><code>arrears_risk</code></td>
+                        <td>financial</td>
+                        <td>enabled</td>
+                        <td>ec_member, chairman, strata_manager, super_admin (no owners)</td>
+                        <td><code>routers/arrears_risk.py</code></td>
+                        <td>GAP-FIN-006</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <pre><code># Seed entries for all five gap-closure toggles (add to DEFAULT_FEATURES list)
+{
+    "feature_key": "payment_plans",
+    "feature_name": "Payment Plans",
+    "description": "NSW Form 1 payment plans for owners in levy arrears (SSMA 2015 ss.83A-83C)",
+    "is_enabled": True,
+    "category": "financial",
+    "icon": "ReceiptText",
+    "routes": ["/financials/payment-plans"],
+    "depends_on": ["finance"]
+},
+{
+    "feature_key": "conflict_of_interest",
+    "feature_name": "Conflict of Interest Register",
+    "description": "EC committee conflict-of-interest declarations register",
+    "is_enabled": True,
+    "category": "governance",
+    "icon": "Scale",
+    "routes": ["/dashboard/governance/conflict-of-interest"],
+    "depends_on": []
+},
+{
+    "feature_key": "essential_services",
+    "feature_name": "Essential Services Log",
+    "description": "Compliance service log for cooling towers, HVAC, lifts, fire pumps, emergency lighting",
+    "is_enabled": True,
+    "category": "compliance",
+    "icon": "ShieldCheck",
+    "routes": ["/compliance/essential-services"],
+    "depends_on": []
+},
+{
+    "feature_key": "levy_reminders",
+    "feature_name": "Levy Reminder Settings",
+    "description": "Admin-configurable reminder cadence for overdue levy notices",
+    "is_enabled": True,
+    "category": "financial",
+    "icon": "Bell",
+    "routes": ["/financials/levy-reminders"],
+    "depends_on": ["finance"]
+},
+{
+    "feature_key": "arrears_risk",
+    "feature_name": "Arrears Risk Scoring",
+    "description": "Predictive risk scoring for units with outstanding levies (CRITICAL/HIGH/MODERATE/LOW bands)",
+    "is_enabled": True,
+    "category": "financial",
+    "icon": "TrendingDown",
+    "routes": ["/financials/arrears-risk"],
+    "depends_on": ["finance"]
+}</code></pre>
+        </section>
+
+        <section id="may-2026-toggles">
+            <h2>Group 2 Gap-Closure Toggles (2026-05-23)</h2>
+            <p>
+                Three new API-enforced feature toggles shipped in PR #421 / PR #422 (GAP-JUR-NSW-007,
+                GAP-JUR-NSW-008, GAP-MNT-001). All three are <strong>server-side enforced</strong> via
+                <code>Depends(require_feature(...))</code> on every endpoint in the router — a 403 is returned if the
+                toggle is disabled for the building, regardless of frontend state.
+            </p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Feature Key</th>
+                        <th>Category</th>
+                        <th>Default</th>
+                        <th>Allowed Roles</th>
+                        <th>Router</th>
+                        <th>Gap ID</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>nsw_commission_disclosures</code></td>
+                        <td>governance</td>
+                        <td>enabled</td>
+                        <td>super_admin, strata_manager, strata_admin, ec_member</td>
+                        <td><code>routers/nsw_compliance.py</code></td>
+                        <td>GAP-JUR-NSW-007</td>
+                    </tr>
+                    <tr>
+                        <td><code>nsw_strata_hub_returns</code></td>
+                        <td>governance</td>
+                        <td>enabled</td>
+                        <td>super_admin, strata_manager, strata_admin, ec_member, admin_staff</td>
+                        <td><code>routers/nsw_compliance.py</code></td>
+                        <td>GAP-JUR-NSW-008</td>
+                    </tr>
+                    <tr>
+                        <td><code>defects</code></td>
+                        <td>facilities</td>
+                        <td>enabled</td>
+                        <td>all authenticated (owner+); managers for write operations</td>
+                        <td><code>routers/defects_register.py</code></td>
+                        <td>GAP-MNT-001</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout">
+                <strong>Statutory penalty stakes.</strong>
+                <code>nsw_commission_disclosures</code> guards SSMA 2015 s.264 — strata managers who receive
+                insurance commissions without disclosing them face penalties up to <strong>$110,000</strong>.
+                <code>nsw_strata_hub_returns</code> guards SSMA 2015 s.182 — failure to lodge the annual return
+                attracts a fine of <strong>$3 per lot per day</strong> plus up to $5,500. Disabling these toggles
+                for an NSW building without legal advice is inadvisable.
+            </div>
+
+            <pre><code># Seed entries added to DEFAULT_FEATURES in backend/seeds/feature_toggles.py
+{
+    "feature_key": "nsw_commission_disclosures",
+    "feature_name": "NSW Insurance Commission Disclosures",
+    "description": "SSMA 2015 s.264 — mandatory disclosure of insurance commissions/referral fees received by strata managers. Penalty up to $110,000.",
+    "is_enabled": True,
+    "category": "governance",
+    "icon": "FileCheck",
+    "roles": ["super_admin", "strata_manager", "strata_admin", "ec_member"],
+    "routes": ["/compliance/nsw-commissions"],
+    "depends_on": ["compliance"]
+},
+{
+    "feature_key": "nsw_strata_hub_returns",
+    "feature_name": "NSW Strata Hub Annual Returns",
+    "description": "SSMA 2015 s.182 — annual return submission to NSW Strata Hub. Penalty $3/lot/day plus up to $5,500.",
+    "is_enabled": True,
+    "category": "governance",
+    "icon": "Send",
+    "roles": ["super_admin", "strata_manager", "strata_admin", "ec_member", "admin_staff"],
+    "routes": ["/compliance/nsw-strata-hub"],
+    "depends_on": ["compliance"]
+},
+{
+    "feature_key": "defects",
+    "feature_name": "Defect Reports",
+    "description": "Report and track building defects with statutory warranty clocks per jurisdiction.",
+    "is_enabled": True,
+    "category": "facilities",
+    "icon": "AlertCircle",
+    "routes": ["/maintenance/defects"],
+    "depends_on": ["maintenance"]
+}</code></pre>
+
+            <h3>API-Level Enforcement Pattern</h3>
+            <p>
+                Unlike older toggles that only gate the frontend nav, these three toggles use
+                <code>Depends(require_feature(...))</code> directly in the router function signature,
+                so a disabled toggle returns HTTP 403 even if a client bypasses the UI:
+            </p>
+            <pre><code># Example from routers/nsw_compliance.py
+from utils.permissions import require_feature
+
+@router.post("/nsw/commission-disclosures")
+async def create_commission_disclosure(
+    payload: CommissionDisclosureCreate,
+    current_user: dict = Depends(get_current_user),
+    building_id: str = Depends(get_current_building),
+    _toggle: dict = Depends(require_feature("nsw_commission_disclosures")),
+):
+    ...</code></pre>
+        </section>
+    </main>
+</div>
+<footer>East Gate Residences · Technical Documentation · Feature Toggles · Super Admin Only · 2026 · A vision by:
+    Silverfox Technologies, Australia · Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad: true, theme: 'dark'});</script>
+</body>
+</html>

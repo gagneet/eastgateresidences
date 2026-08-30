@@ -1,0 +1,1995 @@
+{
+  "id": "strataos-demo-environment",
+  "name": "StrataOS Demo Building Environment",
+  "values": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8003",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "super_admin_token",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "demo_email",
+      "value": "demo.manager@example.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "demo_password",
+      "value": "change-me",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "building_id",
+      "value": "UPDEMO5",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "demo_building_id",
+      "value": "UPDEMO5",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "eastgate_building_id",
+      "value": "13195",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "eastgate_unit_number",
+      "value": "TH071",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "api_key",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "_is_test_data",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "abn",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "account_code",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "account_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "account_ref",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "action",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "action_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "active_only",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "agency_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "agm_date",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "agm_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "alleged_unit",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "allocation_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "alteration_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "amenity_key",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "amenity_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "ann_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "annual_budget_aud",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "anomaly_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "answer",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "api_prefix",
+      "value": "api",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "arrears_only",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "as_of",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "assessment_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "asset_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "assigned_to",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "assigned_to_me",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "assignment_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "bank_account_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "base_year",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "batch_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "batch_status",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "before",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "bg_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "bill_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "booking_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "breach_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "broker_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "bsb",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "building_id_param",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "by_laws_version",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "campaign_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "case_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "category",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "category_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "cert_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "change_limit",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "channel",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "claim_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "class_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "comment",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "communication",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "completed",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "conditions",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "conflict_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "connection_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "consent_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "consent_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "contract_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "contractor_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "conv_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "country",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "cursor",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "date",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "date_from",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "date_to",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "date_window_days",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "days",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "days_ahead",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "decision_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "declaration_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "defect_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "demo_user_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "device_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "device_type_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "direction",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "directory_visible",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "disclosure_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "district",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "document_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "document_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "domain",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "draft_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "dry_run",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "eastgate_financial_year",
+      "value": "2026",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "email_visible",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "end_date",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "enquiry_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "enrich",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "entity_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "entry_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "entry_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "estimated_cost",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "event_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "event_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "facility_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "feature_key",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "financial_year",
+      "value": "2026",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "fob_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "folder_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "format",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "frequency",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "from",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "from_date",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "from_year",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "fund_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "fund_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "gb_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "given",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "group_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "growth_pressure",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "handover_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "high_risk_only",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "host",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "ims_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "inbox_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "incident_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "include_archived",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "include_cancelled",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "include_drafts",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "include_expired",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "include_inactive",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "include_retracted",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "include_self_managed",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "include_test_data",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "increase_pct",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "induction_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "induction_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "inflation",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "inflation_rate",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "inspection_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "instance_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "intake_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "inv_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "inv_status",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "investigation_status",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "invitation_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "invoice_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "ip",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "is_active",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "is_compliance",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "is_published",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "is_reconciled",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "is_tenanted",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "is_test_data",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "issue_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "item_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "item_index",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "job_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "key_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "key_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "limit",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "listing_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "listing_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "lock_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "lot_count",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "lot_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "lot_number",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "maintenance_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "maintenance_request_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "management_entity_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "manager_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "match_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "matched",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "matched_status",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "matched_to_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "meeting_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "meeting_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "member_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "message_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "min_days_overdue",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "min_score",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "min_strata_pct",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "mine",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "minutes",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "month",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "months",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "motion_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "move_in_date",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "name",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "newsletter_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "note",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "notes",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "notice_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "notif_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "offset",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "option_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "order",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "org_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "owner_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "page",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "page_size",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "parcel_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "parent_folder_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "participant_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "payment_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "payment_reference",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "per_page",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "period_end",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "period_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "period_start",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "pet_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "phone_visible",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "plan_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "po_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "po_status",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "policy_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "policy_status",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "policy_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "poll_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "pool_name",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "post_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "posted_only",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "prefix",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "priority",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "project_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "projection_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "property_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "proposal_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "q",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "quality",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "quarter",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "query",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "quote_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "reason",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "recipient_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "recommendation_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "recommendation_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "recon_run_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "reconstruction_batch_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "record_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "register_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "register_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "reimbursement_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "renewal_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "report_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "report_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "req_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "request_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "reserve_target",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "resolution_notes",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "resolution_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "resolved",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "resource_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "resource_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "result",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "return_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "review_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "review_status",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "risk_only",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "role",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "route",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "run_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "scenario_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "schedule_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "schedule_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "scheme_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "scope",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "scraper",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "search",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "section",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "service_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "service_request_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "service_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "session_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "severity",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "since",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "skip",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "slug",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "snapshot_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "sort_by",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "source",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "source_channel",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "source_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "special_levy_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "start_date",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "status",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "step_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "strata_manager_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "suburb",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "swms_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "sync_status",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "tags",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "target_year",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "template_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "template_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "tenancy_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "tenant_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "thread_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "timeliness",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "to",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "to_date",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "to_email",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "to_year",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "todo_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "tolerance_aud",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "top_n",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "transfer_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "trust_account_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "tuple_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "tx_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "unit_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "unit_number",
+      "value": "A1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "until",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "urgency",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "usage_kl",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "user_id",
+      "value": "{{demo_user_id}}",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "utility_type",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "vacancy_weeks",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "value",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "vendor_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "warranty_expiring_days",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "watcher_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "webhook_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "work_order_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "workflow_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "year",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "years",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "zone_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2026-08-29T08:31:50.926146+00:00",
+  "_postman_exported_using": "scripts/docs/generate_api_artifacts.py"
+}

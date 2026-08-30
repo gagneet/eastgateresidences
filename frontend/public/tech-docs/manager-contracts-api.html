@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Manager Contracts API – StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">StrataOS</div>
+            <div class="sub">Technical Documentation · Manager Contracts API</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Feature Domains</div>
+            <a data-page="management-hierarchy.html" href="management-hierarchy.html"><span class="icon">🏢</span> Management Hierarchy</a>
+            <a data-page="management-hierarchy-api.html" href="management-hierarchy-api.html"><span class="icon">🔌</span> Hierarchy API</a>
+            <a data-page="sm-organisations-api.html" href="sm-organisations-api.html"><span class="icon">🏛️</span> SM Organisations API</a>
+            <a class="active" data-page="manager-contracts-api.html" href="manager-contracts-api.html"><span class="icon">📄</span> Manager Contracts API</a>
+            <a data-page="trust-accounting.html" href="trust-accounting.html"><span class="icon">🏦</span> Trust Accounting</a>
+            <a data-page="feature-toggles.html" href="feature-toggles.html"><span class="icon">🎛️</span> Feature Toggles</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#overview">Overview</a>
+            <a href="#legislation">Legislation</a>
+            <a href="#get-expiring">GET /expiring</a>
+            <a href="#create-contract">POST /manager-contracts</a>
+            <a href="#list-contracts">GET /manager-contracts</a>
+            <a href="#get-contract">GET /manager-contracts/{id}</a>
+            <a href="#update-contract">PUT /manager-contracts/{id}</a>
+            <a href="#contract-fields">Contract Fields</a>
+            <a href="#computed-fields">Computed Fields</a>
+            <a href="#roles">Roles</a>
+            <a href="#storage">Storage</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <h1>Manager Contracts API</h1>
+        <p>
+            Router: <code>backend/routers/manager_contracts.py</code><br/>
+            Prefix: <code>/manager-contracts</code><br/>
+            Full base path: <code>/api/manager-contracts</code>
+        </p>
+        <p>
+            Tracks strata manager agreements for legislative compliance.
+            All endpoints are building-scoped via <code>get_current_building()</code> — the authenticated
+            user's building context is injected automatically and cannot be spoofed via the request body.
+        </p>
+        <div class="callout">
+            <strong>Storage: MongoDB.</strong> Manager contracts are stored in the
+            <code>manager_contracts</code> MongoDB collection (scoped by <code>building_id</code>).
+            This is distinct from the management hierarchy feature which uses Postgres exclusively.
+            The <code>contract_id</code> path parameter is a MongoDB <code>ObjectId</code>.
+        </div>
+
+        <section id="overview">
+            <h2>Endpoint Summary</h2>
+            <table>
+                <thead>
+                    <tr><th>Method</th><th>Path</th><th>Description</th><th>Min role</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-get">GET</span></td>
+                        <td><code>/manager-contracts/expiring</code></td>
+                        <td>List contracts expiring within N days</td>
+                        <td>EC or manager</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-post">POST</span></td>
+                        <td><code>/manager-contracts</code></td>
+                        <td>Create contract record</td>
+                        <td>EC or manager</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-get">GET</span></td>
+                        <td><code>/manager-contracts</code></td>
+                        <td>List contracts (paginated)</td>
+                        <td>EC or manager</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-get">GET</span></td>
+                        <td><code>/manager-contracts/{contract_id}</code></td>
+                        <td>Get single contract</td>
+                        <td>EC or manager</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-put">PUT</span></td>
+                        <td><code>/manager-contracts/{contract_id}</code></td>
+                        <td>Update contract (terminate, add document, etc.)</td>
+                        <td>EC or manager</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="callout">
+                <strong>Route ordering.</strong> <code>GET /expiring</code> is registered before
+                <code>GET /{contract_id}</code> to avoid the path <code>/expiring</code> being
+                interpreted as a contract ID. This ordering is maintained in the router source.
+            </div>
+        </section>
+
+        <section id="legislation">
+            <h2>Legislation</h2>
+            <p>This router enforces statutory constraints on strata manager agreements:</p>
+            <table>
+                <thead>
+                    <tr><th>Jurisdiction</th><th>Act</th><th>Section</th><th>Rule</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>ACT</td>
+                        <td>Unit Titles (Management) Act 2011</td>
+                        <td>s.60</td>
+                        <td>Strata manager agreements must not exceed 3 years (36 months)</td>
+                    </tr>
+                    <tr>
+                        <td>ACT</td>
+                        <td>Unit Titles (Management) Act 2011</td>
+                        <td>s.61</td>
+                        <td>Contract must be disclosed at a general meeting before taking effect</td>
+                    </tr>
+                    <tr>
+                        <td>NSW</td>
+                        <td>Strata Schemes Management Act 2015</td>
+                        <td>s.49</td>
+                        <td>Managing agency agreements must not exceed 3 years; no auto-renewal clauses</td>
+                    </tr>
+                    <tr>
+                        <td>ACT</td>
+                        <td>Property &amp; Stock Agents Bundled Acts 2004</td>
+                        <td>—</td>
+                        <td>Strata manager licence required (ACT Revenue Office)</td>
+                    </tr>
+                    <tr>
+                        <td>NSW</td>
+                        <td>NSW Fair Trading</td>
+                        <td>—</td>
+                        <td>Real estate licence with strata management endorsement required</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>
+                The maximum duration (36 months) is looked up per jurisdiction via
+                <code>JurisdictionService.get_rule_value(building_id, "manager_contract_max_years")</code>.
+                Auto-renewal clauses are unconditionally rejected (HTTP 400) regardless of jurisdiction.
+            </p>
+        </section>
+
+        <section id="get-expiring">
+            <h2>GET /manager-contracts/expiring</h2>
+            <p>
+                Returns contracts where <code>contract_end_date</code> falls between today and
+                <code>today + days_ahead</code>, and status is not <code>terminated</code>. Results are
+                sorted ascending by <code>contract_end_date</code>.
+            </p>
+            <p>
+                Use this endpoint to initiate renewal or tender processes. ACT UTMA 2011 s.60 requires
+                re-tender or a fresh OC resolution before expiry.
+            </p>
+
+            <h3>Query parameters</h3>
+            <table>
+                <thead>
+                    <tr><th>Param</th><th>Type</th><th>Default</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>days_ahead</code></td><td>integer</td><td>90</td><td>Range: 1–365. Contracts expiring within this many days.</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Response 200</h3>
+            <pre><code>{
+  "data": [
+    {
+      "id": "mongo-objectid",
+      "building_id": "13195",
+      "manager_name": "Jane Smith",
+      "manager_company": "Strata Solutions Pty Ltd",
+      "contract_end_date": "2026-09-30",
+      "days_until_expiry": 112,
+      "status": "active",
+      "is_compliant": true,
+      "compliance_issues": [],
+      ...
+    }
+  ],
+  "count": 1,
+  "days_ahead": 90,
+  "note": "ACT UTMA 2011 s.60 / NSW SSMA 2015 s.49: Contracts cannot exceed 3 years. Renewal requires a fresh resolution at a general meeting."
+}</code></pre>
+        </section>
+
+        <section id="create-contract">
+            <h2>POST /manager-contracts</h2>
+            <p>
+                Creates a strata manager contract record. Enforces duration and auto-renewal constraints
+                before writing to MongoDB. Creates an audit log entry via <code>create_audit_log()</code>.
+            </p>
+            <p>Returns HTTP 201 on success.</p>
+            <p>
+                The <code>building_id</code> is always taken from the authenticated user's building context
+                (<code>get_current_building()</code>) — the value in the request body is overwritten to
+                prevent BOLA/IDOR spoofing.
+            </p>
+
+            <h3>Request body</h3>
+            <table>
+                <thead>
+                    <tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>building_id</code></td><td>string</td><td>Yes (body)</td><td>Overwritten by server-side building context. Include for schema conformance.</td></tr>
+                    <tr><td><code>manager_name</code></td><td>string</td><td>Yes</td><td>Individual manager's full name</td></tr>
+                    <tr><td><code>manager_company</code></td><td>string</td><td>Yes</td><td>Name of the strata management company</td></tr>
+                    <tr><td><code>abn</code></td><td>string</td><td>No</td><td>ABN of the management company</td></tr>
+                    <tr><td><code>licence_number</code></td><td>string</td><td>No</td><td>Strata manager licence number (ACT/NSW)</td></tr>
+                    <tr><td><code>licence_expiry_date</code></td><td>date string</td><td>No</td><td>ISO-8601. Used for compliance check.</td></tr>
+                    <tr><td><code>contract_start_date</code></td><td>date string</td><td>Yes</td><td>ISO-8601</td></tr>
+                    <tr><td><code>contract_end_date</code></td><td>date string</td><td>Yes</td><td>ISO-8601</td></tr>
+                    <tr><td><code>contract_duration_months</code></td><td>integer</td><td>Yes</td><td>Min: 1. Must not exceed jurisdiction max (36 for ACT/NSW). Validated against JurisdictionService.</td></tr>
+                    <tr><td><code>auto_renewal</code></td><td>boolean</td><td>No</td><td>Default: false. Setting true is rejected with HTTP 400.</td></tr>
+                    <tr><td><code>termination_notice_days</code></td><td>integer</td><td>No</td><td>Default: 90. Min: 0.</td></tr>
+                    <tr><td><code>annual_fee</code></td><td>float</td><td>No</td><td>Annual management fee in AUD. Min: 0.</td></tr>
+                    <tr><td><code>fee_structure</code></td><td>string</td><td>No</td><td>One of: percentage_of_levies, fixed_monthly, fixed_annual, hourly, per_lot</td></tr>
+                    <tr><td><code>disclosed_at_meeting</code></td><td>boolean</td><td>No</td><td>Default: false. UTMA 2011 s.61 — must be disclosed at a general meeting.</td></tr>
+                    <tr><td><code>disclosure_meeting_date</code></td><td>date string</td><td>No</td><td>ISO-8601. Date of disclosure meeting.</td></tr>
+                    <tr><td><code>resolution_number</code></td><td>string</td><td>No</td><td>OC resolution number from meeting minutes</td></tr>
+                    <tr><td><code>document_url</code></td><td>string</td><td>No</td><td>URL to signed contract document</td></tr>
+                    <tr><td><code>notes</code></td><td>string</td><td>No</td><td>Free-text notes</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Response 201</h3>
+            <p>Returns the created contract with computed fields appended.</p>
+            <pre><code>{
+  "id": "mongo-objectid",
+  "building_id": "13195",
+  "manager_name": "Jane Smith",
+  "manager_company": "Strata Solutions Pty Ltd",
+  "contract_start_date": "2026-01-01",
+  "contract_end_date": "2028-12-31",
+  "contract_duration_months": 36,
+  "auto_renewal": false,
+  "termination_notice_days": 90,
+  "disclosed_at_meeting": false,
+  "state": "ACT",
+  "max_duration_months": 36,
+  "status": "active",
+  "days_until_expiry": 939,
+  "is_compliant": false,
+  "compliance_issues": [
+    "Contract not yet disclosed at a general meeting (UTMA 2011 s.61)."
+  ],
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "created_by": "user-id"
+}</code></pre>
+
+            <h3>Error responses</h3>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Condition</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>400</td><td>contract_duration_months exceeds jurisdiction max (36 months for ACT/NSW)</td></tr>
+                    <tr><td>400</td><td>auto_renewal is true</td></tr>
+                    <tr><td>403</td><td>Caller role is not in allowed set (EC or manager)</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="list-contracts">
+            <h2>GET /manager-contracts</h2>
+            <p>
+                Returns paginated list of contracts for the caller's building.
+                Sorted descending by <code>contract_start_date</code>.
+            </p>
+
+            <h3>Query parameters</h3>
+            <table>
+                <thead>
+                    <tr><th>Param</th><th>Type</th><th>Default</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>status</code></td><td>string</td><td>—</td><td>Filter by status: active | expired | terminated</td></tr>
+                    <tr><td><code>page</code></td><td>integer</td><td>1</td><td>Min: 1</td></tr>
+                    <tr><td><code>page_size</code></td><td>integer</td><td>20</td><td>Range: 1–100</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Response 200</h3>
+            <pre><code>{
+  "data": [ ... ],    // array of contract objects with computed fields
+  "total": 5,
+  "page": 1,
+  "page_size": 20,
+  "pages": 1
+}</code></pre>
+        </section>
+
+        <section id="get-contract">
+            <h2>GET /manager-contracts/{contract_id}</h2>
+            <p>
+                Returns a single contract by MongoDB ObjectId.
+                Enforces building isolation: the document is fetched with
+                <code>{"_id": oid, "building_id": building_id}</code> so a manager cannot
+                retrieve contracts from other buildings even if they know the ObjectId.
+            </p>
+
+            <h3>Path parameter</h3>
+            <p><code>contract_id</code> — MongoDB ObjectId string (24-character hex). Returns 400 if not a valid ObjectId format.</p>
+
+            <h3>Response 200</h3>
+            <p>Single contract object including all computed fields.</p>
+
+            <h3>Error responses</h3>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Condition</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>400</td><td>contract_id is not a valid MongoDB ObjectId</td></tr>
+                    <tr><td>403</td><td>Caller role not in allowed set</td></tr>
+                    <tr><td>404</td><td>Contract not found (or belongs to a different building)</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="update-contract">
+            <h2>PUT /manager-contracts/{contract_id}</h2>
+            <p>
+                Partial update — all fields are optional; at least one must be supplied (400 if empty).
+                Re-validates <code>contract_duration_months</code> and <code>auto_renewal</code> if provided.
+                Creates an audit log entry.
+            </p>
+            <p>
+                To terminate a contract, set <code>status = "terminated"</code> and supply
+                <code>terminated_at</code> (ISO-8601 datetime) and optionally <code>termination_reason</code>.
+            </p>
+
+            <h3>Request body</h3>
+            <table>
+                <thead>
+                    <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>manager_name</code></td><td>string</td><td></td></tr>
+                    <tr><td><code>manager_company</code></td><td>string</td><td></td></tr>
+                    <tr><td><code>abn</code></td><td>string</td><td></td></tr>
+                    <tr><td><code>licence_number</code></td><td>string</td><td></td></tr>
+                    <tr><td><code>licence_expiry_date</code></td><td>date string</td><td>ISO-8601</td></tr>
+                    <tr><td><code>contract_end_date</code></td><td>date string</td><td>ISO-8601</td></tr>
+                    <tr><td><code>contract_duration_months</code></td><td>integer</td><td>Must not exceed 36</td></tr>
+                    <tr><td><code>auto_renewal</code></td><td>boolean</td><td>Setting true returns 400</td></tr>
+                    <tr><td><code>termination_notice_days</code></td><td>integer</td><td></td></tr>
+                    <tr><td><code>annual_fee</code></td><td>float</td><td></td></tr>
+                    <tr><td><code>fee_structure</code></td><td>string</td><td>percentage_of_levies | fixed_monthly | fixed_annual | hourly | per_lot</td></tr>
+                    <tr><td><code>disclosed_at_meeting</code></td><td>boolean</td><td></td></tr>
+                    <tr><td><code>disclosure_meeting_date</code></td><td>date string</td><td></td></tr>
+                    <tr><td><code>resolution_number</code></td><td>string</td><td></td></tr>
+                    <tr><td><code>document_url</code></td><td>string</td><td>URL to signed contract document</td></tr>
+                    <tr><td><code>status</code></td><td>string</td><td>active | expired | terminated</td></tr>
+                    <tr><td><code>terminated_at</code></td><td>datetime string</td><td>ISO-8601. Set when terminating.</td></tr>
+                    <tr><td><code>termination_reason</code></td><td>string</td><td></td></tr>
+                    <tr><td><code>notes</code></td><td>string</td><td></td></tr>
+                </tbody>
+            </table>
+
+            <h3>Response 200</h3>
+            <pre><code>{
+  "message": "Contract updated.",
+  "contract_id": "mongo-objectid"
+}</code></pre>
+
+            <h3>Error responses</h3>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Condition</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>400</td><td>Invalid ObjectId; or no fields to update; or contract_duration_months &gt; 36; or auto_renewal=true</td></tr>
+                    <tr><td>403</td><td>Caller role not in allowed set</td></tr>
+                    <tr><td>404</td><td>Contract not found or belongs to a different building</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="contract-fields">
+            <h2>Contract Fields Reference</h2>
+            <table>
+                <thead>
+                    <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>id</code></td><td>string</td><td>MongoDB ObjectId (string form)</td></tr>
+                    <tr><td><code>building_id</code></td><td>string</td><td>Partition key — always server-set from auth context</td></tr>
+                    <tr><td><code>manager_name</code></td><td>string</td><td>Individual strata manager</td></tr>
+                    <tr><td><code>manager_company</code></td><td>string</td><td>Management company</td></tr>
+                    <tr><td><code>abn</code></td><td>string</td><td>Company ABN</td></tr>
+                    <tr><td><code>licence_number</code></td><td>string</td><td>ACT/NSW licence number</td></tr>
+                    <tr><td><code>licence_expiry_date</code></td><td>ISO-8601 date</td><td>Monitored for compliance</td></tr>
+                    <tr><td><code>contract_start_date</code></td><td>ISO-8601 date</td><td></td></tr>
+                    <tr><td><code>contract_end_date</code></td><td>ISO-8601 date</td><td>Used to compute days_until_expiry</td></tr>
+                    <tr><td><code>contract_duration_months</code></td><td>integer</td><td>Must be ≤ 36 (ACT/NSW)</td></tr>
+                    <tr><td><code>auto_renewal</code></td><td>boolean</td><td>Must always be false (prohibited by statute)</td></tr>
+                    <tr><td><code>termination_notice_days</code></td><td>integer</td><td>Notice period in days</td></tr>
+                    <tr><td><code>annual_fee</code></td><td>float</td><td>Annual fee in AUD</td></tr>
+                    <tr><td><code>fee_structure</code></td><td>string</td><td>percentage_of_levies | fixed_monthly | fixed_annual | hourly | per_lot</td></tr>
+                    <tr><td><code>disclosed_at_meeting</code></td><td>boolean</td><td>UTMA 2011 s.61 disclosure compliance flag</td></tr>
+                    <tr><td><code>disclosure_meeting_date</code></td><td>ISO-8601 date</td><td>Date of disclosure meeting</td></tr>
+                    <tr><td><code>resolution_number</code></td><td>string</td><td>OC resolution reference</td></tr>
+                    <tr><td><code>document_url</code></td><td>string</td><td>URL to signed contract</td></tr>
+                    <tr><td><code>state</code></td><td>string</td><td>Server-computed from JurisdictionService (ACT, NSW, etc.)</td></tr>
+                    <tr><td><code>terminated_at</code></td><td>ISO-8601 datetime</td><td>Set when contract is terminated</td></tr>
+                    <tr><td><code>termination_reason</code></td><td>string</td><td>Reason for early termination</td></tr>
+                    <tr><td><code>notes</code></td><td>string</td><td>Free-text</td></tr>
+                    <tr><td><code>created_at</code></td><td>ISO-8601 datetime</td><td></td></tr>
+                    <tr><td><code>updated_at</code></td><td>ISO-8601 datetime</td><td></td></tr>
+                    <tr><td><code>created_by</code></td><td>string</td><td>User ID of creator</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="computed-fields">
+            <h2>Computed Fields</h2>
+            <p>
+                The <code>_enrich_contract()</code> function appends computed fields to every document before
+                it is returned. These are not stored in MongoDB.
+            </p>
+            <table>
+                <thead>
+                    <tr><th>Field</th><th>Logic</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>days_until_expiry</code></td>
+                        <td><code>(contract_end_date - today).days</code>. Negative = expired. Null if date unparseable.</td>
+                    </tr>
+                    <tr>
+                        <td><code>status</code></td>
+                        <td>
+                            <code>terminated</code> if <code>terminated_at</code> is set;<br/>
+                            <code>expired</code> if <code>days_until_expiry &lt; 0</code>;<br/>
+                            <code>active</code> otherwise.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>max_duration_months</code></td>
+                        <td>36 for ACT and NSW (both UTMA 2011 s.60 and SSMA 2015 s.49).</td>
+                    </tr>
+                    <tr>
+                        <td><code>is_compliant</code></td>
+                        <td>
+                            True when all of:<br/>
+                            <code>contract_duration_months ≤ 36</code><br/>
+                            <code>auto_renewal = false</code><br/>
+                            <code>licence_expiry_date</code> not in the past (or not set)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>compliance_issues</code></td>
+                        <td>
+                            Array of human-readable issue strings. Possible values:
+                            <ul>
+                                <li>Duration exceeds max months (UTMA/SSMA citation)</li>
+                                <li>Auto-renewal clause present (prohibited)</li>
+                                <li>Licence expired N days ago</li>
+                                <li>Contract not yet disclosed at a general meeting (UTMA s.61)</li>
+                            </ul>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="roles">
+            <h2>Roles</h2>
+            <p>
+                All endpoints use <code>_require_manager()</code> which checks
+                <code>effective_role(user) in {"super_admin", "strata_manager", "strata_admin", "ec_member", "admin_staff"}</code>.
+            </p>
+            <table>
+                <thead>
+                    <tr><th>Role</th><th>Access</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>super_admin</code></td><td>Full access across all buildings</td></tr>
+                    <tr><td><code>strata_admin</code></td><td>Full access within their managed buildings</td></tr>
+                    <tr><td><code>strata_manager</code></td><td>Full access within assigned buildings</td></tr>
+                    <tr><td><code>ec_member</code></td><td>Full access within own building</td></tr>
+                    <tr><td><code>admin_staff</code></td><td>Full access within own building</td></tr>
+                </tbody>
+            </table>
+            <p>
+                Note: <code>chairman</code> is not a top-level role (removed in migration 0025 / commit
+                <code>67fbc4a5</code>). EC chairmen have role <code>ec_member</code> with
+                <code>ec_position = "CHAIRMAN"</code>. The <code>ec_member</code> role in the allowed set
+                covers them correctly.
+            </p>
+        </section>
+
+        <section id="storage">
+            <h2>Storage</h2>
+            <p>
+                Documents are stored in the <code>manager_contracts</code> MongoDB collection.
+                All queries include <code>building_id</code> from the auth context — the
+                <code>TenantScopedDatabase</code> wrapper auto-injects this.
+            </p>
+            <p>
+                Contract IDs are MongoDB <code>ObjectId</code> values converted to strings (<code>str(doc.pop("_id"))</code>).
+                When providing a <code>contract_id</code> in path params, it must be a 24-character hex string.
+                Invalid ObjectId format returns HTTP 400.
+            </p>
+            <p>
+                Unlike the management hierarchy and SM organisations features, there is no Postgres equivalent
+                for manager contracts at this time. Contracts remain MongoDB-only.
+            </p>
+        </section>
+    </main>
+</div>
+</body>
+</html>

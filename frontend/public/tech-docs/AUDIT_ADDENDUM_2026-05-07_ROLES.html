@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Role-Wording Addendum 2026-05-07 – Strata Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">Strata Management Platform</div>
+            <div class="sub">Technical Documentation · Role-Wording Addendum 2026-05-07</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth</a>
+            <a data-page="permissions.md" href="permissions.md"><span class="icon">🛡️</span> Permissions</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Addenda</div>
+            <a data-page="AUDIT_ADDENDUM_2026-04-30.html" href="AUDIT_ADDENDUM_2026-04-30.html">2026-04-30 Audit</a>
+            <a data-page="AUDIT_ADDENDUM_2026-05-07_ROLES.html" href="AUDIT_ADDENDUM_2026-05-07_ROLES.html">2026-05-07 Roles</a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <h1>Role-Wording Addendum — 2026-05-07</h1>
+
+        <div class="callout success"><strong>Resolved 2026-07-13; tightened 2026-07-15:</strong> the 15 tech-docs HTML
+            files this addendum listed as "rewriting deferred to the next docs refresh"
+            (<code>trust-accounting</code>, <code>feature-toggles</code>, <code>workflows</code>,
+            <code>maintenance-pdf-generation</code>, <code>levy-fairness</code>,
+            <code>matching-engine</code>, <code>finance-extensions</code>,
+            <code>trust_dual_approval</code>, <code>invoices-ocr</code>, <code>portfolio_api</code>,
+            <code>seed-reference</code>, <code>ppm-module</code>,
+            <code>workflow_governance_api</code>, <code>compliance-modules</code>,
+            <code>frontend</code>, <code>owner_finance_api</code>) now each carry the same
+            top-of-page role-note callout as <code>auth.html</code>/<code>permissions.md</code>
+            already had. The 4 mindmap files this addendum's sibling list also covered
+            (<code>01_identity_access</code>, <code>02_tenant_foundation</code>,
+            <code>06_maintenance_operations</code>, <code>07_governance_decisions</code>,
+            <code>15_roles_permissions_features</code>) were reviewed separately — two
+            (<code>docs/architecture/mindmap/INDEX.md</code> and <code>00_master_mindmap.md</code>)
+            had an actual incorrect role list and were corrected outright; the rest still use
+            "chairman" in permission-table/diagram prose, which is accurate shorthand once read
+            through the canonical contract below and was left as-is. On 2026-07-15 the contract was
+            tightened again: a chairperson appointment is represented on <code>ec_member</code>, not
+            on <code>strata_admin</code>.</div>
+
+        <p>This addendum records the canonical contract for the <em>chairman</em> concept across
+            the platform, and lists the older documentation files that still describe chairman
+            as a top-level role. It does not change behaviour — it clarifies wording so readers
+            of the older docs do not assume <code>UserRole.CHAIRMAN</code> exists.</p>
+
+        <h2>Canonical contract</h2>
+
+        <ul>
+            <li><strong>Top-level roles</strong> are defined in <code>backend/models/user.py</code>
+                <code>UserRole</code> enum: <code>SUPER_ADMIN</code>, <code>STRATA_ADMIN</code>,
+                <code>STRATA_MANAGER</code>, <code>EC_MEMBER</code>, <code>OWNER</code>,
+                <code>TENANT</code>, <code>GUEST</code>, plus internal/staff roles.
+                <code>UserRole.CHAIRMAN</code> was removed by Alembic migration <code>0025</code>
+                and commit <code>67fbc4a5</code> (2026-05-03).</li>
+            <li><strong>Chairman</strong> is now an <em>EC position</em> on a user whose top-level
+                role is <code>ec_member</code>. Organisation administration remains
+                <code>strata_admin</code>; do not use that role as a chairperson carrier. The
+                position lives in the <code>ec_position</code> field with the
+                value <code>ECPosition.CHAIRMAN</code>.</li>
+            <li><strong>Backend role guards</strong> use <code>_effective_role(user)</code>, not raw
+                <code>user["role"]</code>. Current role resolution returns the canonical role string;
+                it does not create a top-level <code>"chairman"</code> role from
+                <code>ec_position</code>. Routers that need chairperson-specific gating must check
+                the EC position or an explicit permission flag rather than accepting
+                <code>chairman</code> as a login role. Example role guard:
+                <pre><code>_role = current_user.get("effective_role") or current_user.get("role", "guest")
+if _role not in {UserRole.SUPER_ADMIN, UserRole.EC_MEMBER, UserRole.STRATA_MANAGER}:
+    raise HTTPException(status_code=403, ...)</code></pre>
+            </li>
+            <li><strong>Frontend helpers</strong> should treat chairperson as EC appointment state or
+                permission state, not as a standalone login role. Front-end code should always go
+                through the helpers rather than comparing role strings directly.</li>
+            <li><strong>Graph relations</strong> in
+                <code>services/authorization_engine.py RELATION_PERMISSION_MAP["chairman"]</code>
+                use <code>"chairman"</code> as a relation tag, not as a top-level role. That is
+                expected and supported.</li>
+        </ul>
+
+        <h2>Where “chairman” still appears in older docs</h2>
+
+        <p>The following files use historical wording where <code>chairman</code> is presented
+            alongside top-level roles such as <code>strata_manager</code> or <code>super_admin</code>.
+            Each occurrence should be read as “an <code>ec_member</code> whose
+            <code>ec_position</code> is <code>CHAIRMAN</code>”, or as a specific permission flag
+            where the route has been modernised. Do not read it as a top-level
+            <code>chairman</code> login role or as a <code>strata_admin</code> substitute.</p>
+
+        <ul>
+            <li><code>frontend/public/tech-docs/api-reference.md</code> — 11 endpoint role-tables.
+                Top-of-file note added 2026-05-07 explaining the convention.</li>
+            <li><code>frontend/public/tech-docs/permissions.md</code> — already states the
+                contract correctly at the top of the file (lines 8–9). No change required.</li>
+            <li><code>frontend/public/tech-docs/auth.html</code> — already carries the corrective
+                note <em>“Chairman is now an ec_position on ec_member, not a system role”</em> at
+                the relevant section.</li>
+            <li><code>frontend/public/tech-docs/{trust-accounting,feature-toggles,workflows,
+                maintenance-pdf-generation,levy-fairness,matching-engine,finance-extensions,
+                trust_dual_approval,invoices-ocr,portfolio_api,seed-reference,ppm-module,
+                workflow_governance_api,compliance-modules,frontend,owner_finance_api}.html</code>
+                — these list <code>chairman</code> in role descriptions or sidebar copy. Reading
+                them through the canonical contract above makes them operationally correct.
+                Rewriting each is deferred to the next docs refresh.</li>
+            <li><code>frontend/public/tech-docs/mindmaps/{01_identity_access,02_tenant_foundation,
+                06_maintenance_operations,07_governance_decisions,15_roles_permissions_features,
+                INDEX}.md</code> — same situation; the master mindmap will be re-rendered when
+                the role architecture page is refreshed.</li>
+            <li><code>frontend/public/user-guides/role_strata_admin.html</code>,
+                <code>role_admin.html</code>, <code>quick_role_strata_admin.html</code>,
+                <code>workflow_governance.html</code>, <code>decision_register.html</code>,
+                <code>conflict-of-interest.html</code>,
+                <code>request_management_staff_guide.html</code>,
+                <code>parcel-management.html</code>, <code>keys_fobs_guide.html</code>,
+                <code>building-onboarding-guide.html</code>,
+                <code>quick_intelligence_guide.html</code>,
+                <code>quick_index.html</code>, <code>payment-plans.html</code> — these are
+                end-user guides where <em>chairman</em> reads naturally as a position title and
+                does not imply a code-level role. No edit required for user-facing wording.</li>
+        </ul>
+
+        <h2>What this addendum does <em>not</em> do</h2>
+
+        <ul>
+            <li>It does not rename any code identifier or remove
+                <code>"chairman"</code> from <code>RELATION_PERMISSION_MAP</code>,
+                <code>EC_POSITION_MAP</code>, or <code>AuthContext.tsx</code>.</li>
+            <li>It does not template <em>“East Gate”</em> mentions in the user-guide HTML.
+                The 33 templated guides (per gap F-022, commit <code>0ec43f3c</code>) already use
+                <code>data-bldg</code> tokens; remaining mentions are East-Gate-specific by design
+                (e.g. <code>east_gate_inclusions.html</code>) and should not be globally rewritten.</li>
+            <li>It does not flip any feature toggle. The financial-cutover toggles seeded by
+                Alembic <code>0031</code> remain at <code>is_enabled = false</code>.</li>
+        </ul>
+
+        <h2>Cross-references</h2>
+
+        <ul>
+            <li><a data-page="permissions.md" href="permissions.md">permissions.md</a> — top-of-file
+                explanation of the chairman contract.</li>
+            <li><a data-page="auth.html" href="auth.html">auth.html</a> — section that already
+                carries an inline corrective note.</li>
+            <li><a data-page="api-reference.md" href="api-reference.md">api-reference.md</a> —
+                role-table convention note (added 2026-05-07).</li>
+            <li><a data-page="AUDIT_ADDENDUM_2026-04-30.html"
+                   href="AUDIT_ADDENDUM_2026-04-30.html">2026-04-30 audit addendum</a> — prior
+                docs-refresh tracker; this 2026-05-07 addendum is scoped only to role wording.</li>
+        </ul>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Unit Numbering &amp; Owner Finance Resolution – Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">StrataOS</div>
+            <div class="sub">Technical Documentation · Unit Numbering &amp; Owner Finance Resolution</div>
+        </div>
+    </div>
+    <span class="header-badge">Manager / Admin</span>
+</header>
+<div class="layout">
+    <main id="content">
+        <h1>Unit Numbering &amp; Owner Finance Resolution</h1>
+        <p><em>Updated 2026-07-01 · branch <code>fix/unit-finance-resolution-audit</code>
+            · featuretrace tag <code>finance-owner-dashboard</code></em></p>
+
+        <h2>Concept</h2>
+        <p>Unit numbers are conceptually <strong>numeric lots</strong>. The display prefix
+            (e.g. apartments <code>UA</code>, townhouses <code>TH</code>) is per-building
+            presentation configuration assigned at onboarding, not data. Stored canonical
+            keys (<code>units.unit_number</code>, e.g. <code>TH087</code>) remain the join key
+            across finance collections until the Mongo→Postgres cutover completes; a full
+            numeric re-key is deferred until after cutover.</p>
+
+        <h2>Data model</h2>
+        <table>
+            <tr><th>Store</th><th>Shape</th></tr>
+            <tr><td><code>db.settings</code></td>
+                <td><code>{type: "unit_display", building_id, rules: [{prefix, min, max, pad}]}</code></td></tr>
+            <tr><td>East Gate (13195)</td>
+                <td><code>UA</code> lots 1–70, <code>TH</code> lots 71–87, pad 3</td></tr>
+            <tr><td>Demo Residences (UP-DEMO-001)</td>
+                <td><code>A</code> lots 1–14, pad 1</td></tr>
+        </table>
+        <p>Seed: <code>backend/seeds/unit_display_config.py</code> (idempotent).</p>
+
+        <h2>API</h2>
+        <table>
+            <tr><th>Endpoint</th><th>Auth</th><th>Behaviour</th></tr>
+            <tr>
+                <td><code>GET /api/settings/unit-display</code></td>
+                <td>Any authenticated building member</td>
+                <td>Returns <code>{building_id, rules}</code>; empty rules = raw display.</td>
+            </tr>
+            <tr>
+                <td><code>PUT /api/settings/unit-display</code></td>
+                <td><code>can_manage_users</code></td>
+                <td>Validates prefix 0–5 letters, bounds 1–9999, pad 1–4, non-overlapping
+                    ranges (422 on violation). Display-only — never rewrites stored keys.</td>
+            </tr>
+        </table>
+        <p>Handlers live inline in <code>backend/server.py</code> (the
+            <code>routers/settings.py</code> file is an unwired mirror — endpoints added
+            there alone return 404).</p>
+
+        <h2>Canonical resolution in finance routes</h2>
+        <p><code>backend/utils/unit_number.py</code> provides:</p>
+        <ul>
+            <li><code>unit_number_candidates(value, rules)</code> — display variants
+                (<code>87</code>, <code>U87</code>, <code>Unit 87</code>, rule-formatted) for lookup.</li>
+            <li><code>resolve_canonical_unit_number(db, building_id, value, rules)</code> —
+                resolves to the stored <code>units.unit_number</code> before authorisation and reads.</li>
+            <li><code>user_unit_matches(current_user, unit)</code> — bidirectional ownership
+                match across <code>unit_number</code> + <code>owned_units</code>.</li>
+            <li><code>format_unit_display(lot, rules)</code> — numeric lot → display string.</li>
+        </ul>
+        <p>Applied in <code>GET /finance/unit-dashboard-overview/{unit}</code>, unit levy
+            history, levy status, and the owner payment write guard.</p>
+
+        <h2>Postgres-token identity bridge</h2>
+        <p>Login is Postgres-first; <code>core.users</code> has no unit columns. Until
+            <code>identity_core</code> is promoted (see <code>core.domain_cutover_status</code>),
+            <code>get_current_user</code> backfills <code>unit_number</code>,
+            <code>owned_units</code>, <code>custom_permissions</code>, and
+            <code>legacy_user_id</code> from the MongoDB user matched by email
+            (<code>utils/auth.py:_backfill_legacy_unit_context</code>). Without this bridge,
+            owner-scoped guards 403 owners on their own unit.</p>
+
+        <h2>Tests</h2>
+        <ul>
+            <li><code>tests/backend/test_unit_number_canonicalisation.py</code></li>
+            <li><code>tests/backend/test_unit_finance_access.py</code></li>
+            <li><code>tests/backend/test_unit_display_config.py</code></li>
+        </ul>
+
+        <h2>Related documents</h2>
+        <ul>
+            <li><code>docs/api/owner_finance_unit_resolution.md</code> — verified contract + root cause.</li>
+            <li><code>docs/runbooks/unit_87_finance_resolution_debug.md</code> — diagnostic runbook + resolution.</li>
+            <li>User guide: <code>user-guides/unit-numbering-guide.html</code>.</li>
+        </ul>
+    </main>
+</div>
+</body>
+</html>

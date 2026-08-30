@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>BI Analytics — Owner Investment Endpoints — StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet">
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">StrataOS</div>
+            <div class="sub">Technical Documentation · BI Analytics Phase 2</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">BI Analytics</div>
+            <a href="bi-analytics-overview.html"><span class="icon">📊</span> BI Overview</a>
+            <a href="bi-analytics-building-api.html"><span class="icon">🏢</span> Building Endpoints</a>
+            <a href="bi-analytics-portfolio-api.html"><span class="icon">🗂️</span> Portfolio Endpoints</a>
+            <a class="active" href="bi-analytics-owner-api.html"><span class="icon">👤</span> Owner Endpoints</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#auth">Auth &amp; Scoping</a>
+            <a href="#investment">Investment Analytics</a>
+            <a href="#levy">Levy History</a>
+            <a href="#arrears">Arrears Status</a>
+            <a href="#investor">Investor Intelligence</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main>
+        <h1>BI Analytics — Owner &amp; Investor Endpoints</h1>
+        <p>Investment-grade analytics for individual owners and lots. Prefix: <code>/api/bi</code> and
+        <code>/api/intelligence/investor</code>.</p>
+
+        <section id="auth">
+            <h2>Auth &amp; Scoping</h2>
+            <p>Owner endpoints enforce per-lot access control:</p>
+            <ul>
+                <li><strong>Owner</strong> — can only access data when <code>owner_id</code> matches the caller token and the requested <code>building_id</code>/ <code>lot_number</code> is present in the token or <code>user_units</code> compatibility records.</li>
+                <li><strong>super_admin, strata_admin, strata_manager, ec_member</strong> — full access to any owner/lot.</li>
+            </ul>
+            <p>The <code>owner_id</code> path parameter is matched against all known auth identifiers: <code>id</code>, <code>_id</code>, and <code>user_id</code>. Lot-specific endpoints require <code>building_id</code> and <code>lot_number</code> query parameters.</p>
+        </section>
+
+        <section id="investment">
+            <h2>Investment Analytics</h2>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/owner/{owner_id}/total-cost-of-ownership</code></h3>
+            <p>Cost of ownership breakdown for one requested lot. Requires <code>building_id</code>, <code>lot_number</code>, and optional <code>years</code> query parameters.</p>
+            <p><strong>Response:</strong> array entries with <code>financial_year</code>, <code>levies</code>, <code>water</code>, <code>council_rates</code>, <code>insurance_share</code>, <code>maintenance_share</code>, <code>total_cost</code>, and <code>source</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/owner/{owner_id}/yield-estimate</code></h3>
+            <p>Estimated rental yield for owned lots based on suburb market data and building health context.</p>
+            <table>
+                <tr><th>Query Param</th><th>Type</th><th>Description</th></tr>
+                <tr><td><code>lot_number</code></td><td>string</td><td>Required lot scope.</td></tr>
+            </table>
+            <p><strong>Response:</strong> PG rows include quarterly rental income, strata costs, net income, gross/net yield percentages, vacancy weeks, and <code>source</code>; Mongo fallback returns the investor summary service payload.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/owner/{owner_id}/investment-risk</code></h3>
+            <p>Building-level risk factors from the owner's perspective: sinking fund adequacy, deferred maintenance,
+            arrears concentration, special levy risk.</p>
+            <p><strong>Response:</strong> object with <code>sinking_fund_shortfall</code>, <code>shortfall_years</code>, <code>own_lot_in_arrears</code>, <code>critical_assets_count</code>, <code>risk_score</code>, and <code>source</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/owner/{owner_id}/building-health-context</code></h3>
+            <p>Building health summary presented in owner-friendly language (no internal admin KPIs).
+            Suitable for displaying on the Owner Dashboard.</p>
+            <p><strong>Response:</strong> owner-safe building health trend entries with date, overall score, component scores, health label, and source.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/owner/{owner_id}/capex-schedule</code></h3>
+            <p>Upcoming capital works schedule that will affect the owner's levies. Sourced from
+            <code>capital_replacement_schedule</code> and <code>sinking_fund_plan</code>.</p>
+            <p><strong>Response:</strong> owner-safe capex entries currently include year, planned amount, and forecast flag; manager callers may receive the full capex-vs-plan payload.</p>
+        </section>
+
+        <section id="levy">
+            <h2>Levy History</h2>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/owner/{owner_id}/levy-history</code></h3>
+            <p>Payment history for one owner lot across the requested year window.</p>
+            <table>
+                <tr><th>Query Param</th><th>Type</th><th>Description</th></tr>
+                <tr><td><code>years</code></td><td>int</td><td>Number of years to return (default 5, max 10)</td></tr>
+                <tr><td><code>lot_number</code></td><td>string</td><td>Filter to specific lot</td></tr>
+            </table>
+            <p><strong>Response:</strong> array entries with <code>financial_year</code>, levy charge/payment totals, outstanding values, and <code>source</code>.</p>
+        </section>
+
+        <section id="arrears">
+            <h2>Arrears Status</h2>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/owner/{owner_id}/arrears-status</code></h3>
+            <p>Current arrears status for one requested owner lot. Reflects the same data as the BI arrears snapshot or Mongo levy ledger fallback.</p>
+            <p><strong>Response:</strong> an object with <code>lot_number</code>, outstanding totals, arrears state, and <code>source</code>.</p>
+        </section>
+
+        <section id="investor">
+            <h2>Investor Intelligence (investor_intelligence.py)</h2>
+            <p>Prefix: <code>/api/intelligence/investor</code>. Higher-fidelity investment analysis for
+            sophisticated owners and super admins. Role: super_admin, strata_admin, strata_manager, ec_member
+            get full access; owner gets own-unit-only access.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/intelligence/investor/summary/{unit_number}</code></h3>
+            <p>Comprehensive investment summary for a specific unit/lot.</p>
+            <p><strong>Response (<code>InvestorUnitSummary</code>):</strong></p>
+            <pre><code>{
+  "unit_number": "TH087",
+  "owner_name": "...",
+  "building_health_score": 82,
+  "levy_trajectory": { "current_annual_cents": 340870, "cagr_5yr_pct": 3.2 },
+  "risk_adjusted_yield_pct": 4.1,
+  "capital_risk_score": 35,
+  "sinking_fund_adequacy_pct": 78,
+  "recommended_action": "hold | review | exit",
+  "source": "postgres_bi" | "mongo"
+}</code></pre>
+
+            <h3><span class="badge badge-get">GET</span> <code>/intelligence/investor/building-health-report</code></h3>
+            <p>Full building health report as a PDF <code>StreamingResponse</code>. Covers financial health,
+            asset condition, compliance status, and 5-year levy trajectory.</p>
+            <p><strong>Role:</strong> super_admin, strata_admin, strata_manager, ec_member only (owners do not get PDF).</p>
+            <pre><code>GET /api/intelligence/investor/building-health-report
+Accept: application/pdf
+→ StreamingResponse (PDF)</code></pre>
+
+            <h3><span class="badge badge-get">GET</span> <code>/intelligence/investor/levy-trajectory</code></h3>
+            <p>Levy trend data for charting: historical actuals and 5-year CPI projection.</p>
+            <p><strong>Response (<code>LevyTrajectoryResult</code>):</strong> array of <code>{year, admin_levy_cents, sinking_levy_cents, total_cents, is_projection}</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/intelligence/investor/risk-adjusted-yield/{unit_number}</code></h3>
+            <p>Risk-adjusted gross yield for a specific unit, factoring in sinking fund risk, deferred maintenance
+            risk, and building health score as discounts to the raw market yield.</p>
+            <p><strong>Response (<code>RiskAdjustedYieldResult</code>):</strong></p>
+            <pre><code>{
+  "unit_number": "TH087",
+  "gross_yield_pct": 4.8,
+  "risk_discount_pct": 0.7,
+  "risk_adjusted_yield_pct": 4.1,
+  "risk_factors": [
+    { "factor": "sinking_fund_adequacy", "impact_pct": -0.3, "severity": "low" },
+    { "factor": "deferred_maintenance",  "impact_pct": -0.4, "severity": "medium" }
+  ]
+}</code></pre>
+
+            <h4>Role access for investor/summary and risk-adjusted-yield</h4>
+            <p>Owner callers are validated: the <code>unit_number</code> must appear in their
+            <code>user_units</code> records. Mismatched unit number returns 403, not 404 (to avoid
+            enumeration).</p>
+        </section>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Maintenance PDF Generation · Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .mermaid-block {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 1.2rem;
+            margin: 1rem 0;
+            font-family: monospace;
+            font-size: 0.85rem;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+        }
+
+        th {
+            background: #f1f3f5;
+        }
+
+        code {
+            background: #f1f3f5;
+            padding: 0.1em 0.3em;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .callout {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 0.75rem 1rem;
+            margin: 1rem 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .callout.info {
+            background: #cff4fc;
+            border-color: #0dcaf0;
+        }
+
+        .callout.success {
+            background: #d1e7dd;
+            border-color: #198754;
+        }
+    </style>
+</head>
+<body>
+<div class="guide-container">
+
+    <h1>Maintenance PDF Generation</h1>
+    <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role lists on this page naming "chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+    <p class="intro">
+        The maintenance module generates Purchase Order (PO) and Invoice PDFs on demand.
+        PDFs are returned as streaming responses and include the requesting building's
+        registered strata address in the document footer — no hardcoded addresses.
+    </p>
+
+    <hr/>
+
+    <h2>Endpoints</h2>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Method</th>
+            <th>Path</th>
+            <th>Returns</th>
+            <th>Auth</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>GET</code></td>
+            <td><code>/maintenance/{request_id}/purchase-order/pdf</code></td>
+            <td><code>application/pdf</code> streaming</td>
+            <td>strata_manager, super_admin, chairman</td>
+        </tr>
+        <tr>
+            <td><code>GET</code></td>
+            <td><code>/maintenance/{request_id}/invoice/pdf</code></td>
+            <td><code>application/pdf</code> streaming</td>
+            <td>strata_manager, super_admin, chairman</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <hr/>
+
+    <h2>Handler Flow — Purchase Order PDF</h2>
+
+    <div class="mermaid-block">sequenceDiagram
+        participant C as Client
+        participant H as get_purchase_order_pdf()
+        participant DB as db.maintenance_requests
+        participant S as get_general_settings_or_default()
+        participant G as generate_purchase_order_pdf()
+
+        C->>H: GET /maintenance/{id}/purchase-order/pdf
+        H->>DB: find_one({_id, building_id})
+        DB-->>H: maintenance doc (or None → 404)
+        H->>S: get_general_settings_or_default(building_id)
+        S-->>H: {strata_address, plan_number, ...}
+        H->>G: generate_purchase_order_pdf(po_data, building_settings=settings)
+        G-->>H: pdf_bytes (ReportLab)
+        H-->>C: StreamingResponse(pdf_bytes, media_type="application/pdf")
+    </div>
+
+    <p><em>The Invoice PDF flow is identical — only the generator function differs
+        (<code>generate_invoice_pdf</code>).</em></p>
+
+    <hr/>
+
+    <h2>Building Address Resolution</h2>
+
+    <p>Both generators resolve the footer address from <code>building_settings</code>
+        using this priority chain:</p>
+
+    <pre><code>address = (
+    building_settings.get("strata_address")
+    or building_settings.get("building_address")
+    or ""
+)</code></pre>
+
+    <p>The <code>strata_address</code> field is the canonical value stored in
+        <code>db.settings</code> (tenant-scoped by <code>building_id</code>).
+        <code>building_address</code> is accepted as a fallback for legacy documents.</p>
+
+    <div class="callout success">
+        <strong>Multi-tenant guarantee:</strong> <code>get_general_settings_or_default(building_id)</code>
+        always queries <code>db.settings</code> scoped to the requesting building's
+        <code>building_id</code>. A Sierra (16244) request will never show East Gate's (13195)
+        address in the footer.
+    </div>
+
+    <hr/>
+
+    <h2>Generator Signatures</h2>
+
+    <pre><code># backend/utils/pdf_generator.py
+
+def generate_purchase_order_pdf(
+    po_data: dict,
+    building_settings: dict = None,
+) -> bytes: ...
+
+def generate_invoice_pdf(
+    invoice_data: dict,
+    building_settings: dict = None,
+) -> bytes: ...</code></pre>
+
+    <p>When <code>building_settings=None</code>, the address footer is omitted (empty string).
+        This cannot happen in production because the handler always passes the settings result —
+        but <code>None</code> is accepted to keep the generators testable in isolation.</p>
+
+    <hr/>
+
+    <h2>Error Handling</h2>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Condition</th>
+            <th>HTTP Status</th>
+            <th>Detail</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Maintenance request not found</td>
+            <td>404</td>
+            <td>"Maintenance request not found"</td>
+        </tr>
+        <tr>
+            <td>Request belongs to different building</td>
+            <td>404</td>
+            <td>(DB query includes building_id filter)</td>
+        </tr>
+        <tr>
+            <td>Caller role not in allowed set</td>
+            <td>403</td>
+            <td>"Permission denied"</td>
+        </tr>
+        <tr>
+            <td>PDF generation exception</td>
+            <td>500</td>
+            <td>"Failed to generate PDF"</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <hr/>
+
+    <h2>PDF Content</h2>
+
+    <h3>Purchase Order</h3>
+    <ul>
+        <li>PO Number, Issue Date</li>
+        <li>Vendor name and address</li>
+        <li>Line items table: description, quantity, unit price, total</li>
+        <li>GST summary and grand total</li>
+        <li>Authorised by (strata manager name)</li>
+        <li>Footer: building strata address + plan number</li>
+    </ul>
+
+    <h3>Invoice</h3>
+    <ul>
+        <li>Invoice Number, Invoice Date, Due Date</li>
+        <li>Vendor details</li>
+        <li>Line items table with GST</li>
+        <li>Payment reference instructions</li>
+        <li>Footer: building strata address + plan number</li>
+    </ul>
+
+    <hr/>
+
+    <h2>Testing</h2>
+
+    <p>Two test files cover PDF generation at different layers:</p>
+
+    <table>
+        <thead>
+        <tr>
+            <th>File</th>
+            <th>Layer</th>
+            <th>Tests</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>tests/backend/test_pdf_generator_po_invoice.py</code></td>
+            <td>Pure unit — generator functions directly</td>
+            <td>35 — address in footer, multi-tenant isolation, GST, empty fields</td>
+        </tr>
+        <tr>
+            <td><code>tests/backend/test_maintenance_pdf_handlers.py</code></td>
+            <td>Handler — DB mock + generator mock</td>
+            <td>17 — 403/404/500 paths, building_settings passed correctly, StreamingResponse</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="callout info">
+        PDF text assertions use <code>pdfminer.high_level.extract_text(io.BytesIO(pdf_bytes))</code>.
+        Raw byte-string search (<code>b"text" in pdf_bytes</code>) does <strong>not</strong> work
+        because ReportLab compresses content streams with ASCII85+FlateDecode.
+    </div>
+
+    <h3>Run PDF Tests</h3>
+    <pre><code>cd /home/gagneet/strata-management
+backend/venv/bin/python3 -m pytest \
+    tests/backend/test_pdf_generator_po_invoice.py \
+    tests/backend/test_maintenance_pdf_handlers.py \
+    -v</code></pre>
+
+    <hr/>
+
+    <h2>Related Files</h2>
+
+    <ul>
+        <li><code>backend/utils/pdf_generator.py</code> — <code>generate_purchase_order_pdf()</code>, <code>generate_invoice_pdf()</code>
+        </li>
+        <li><code>backend/routers/maintenance.py</code> — <code>get_purchase_order_pdf()</code>,
+            <code>get_invoice_pdf()</code></li>
+        <li><code>backend/services/settings_service.py</code> —
+            <code>get_general_settings_or_default(building_id)</code></li>
+    </ul>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Smart Request Guide — Strata Management Platform</title>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #0f172a;
+            font-size: 1.75rem;
+        }
+
+        h2 {
+            color: #1e40af;
+            font-size: 1.25rem;
+            margin-top: 2rem;
+        }
+
+        h3 {
+            color: #374151;
+            font-size: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .warning {
+            background: #fffbeb;
+            border-color: #f59e0b;
+        }
+
+        .info {
+            background: #eff6ff;
+            border-color: #3b82f6;
+        }
+
+        .success {
+            background: #f0fdf4;
+            border-color: #22c55e;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th {
+            background: #1e3a5f;
+            color: white;
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        td {
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+
+        code {
+            background: #f1f5f9;
+            border-radius: 4px;
+            padding: 0.1em 0.4em;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .step {
+            display: flex;
+            gap: 1rem;
+            margin: 0.75rem 0;
+        }
+
+        .step-num {
+            width: 28px;
+            height: 28px;
+            background: #1e40af;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+            font-size: 0.875rem;
+        }
+
+        footer {
+            margin-top: 3rem;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 1rem;
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Smart Request — User Guide</h1>
+<p><strong>Role:</strong> All approved residents (owners, tenants, EC members)</p>
+<p><strong>Location:</strong> <code>/dashboard/smart-request</code> or from Community Hub → Smart Request</p>
+
+<div class="card info">
+    <strong>What is Smart Request?</strong><br/>
+    Smart Request is an intelligent triage system. You submit a query or request and the system either answers it
+    instantly (auto-resolve) or routes it to the strata management team for follow-up within 48 hours.
+</div>
+
+<h2>How to Submit a Request</h2>
+
+<div class="step">
+    <div class="step-num">1</div>
+    <div><strong>Choose a Category</strong><br/>Select the type of request: Maintenance, Levy Query, By-Law Query,
+        Document Request, Noise Complaint, or Other.
+    </div>
+</div>
+<div class="step">
+    <div class="step-num">2</div>
+    <div><strong>Fill in the Details</strong><br/>Provide a subject line and a detailed description. The more detail you
+        provide, the faster your request can be resolved.
+    </div>
+</div>
+<div class="step">
+    <div class="step-num">3</div>
+    <div><strong>Submit</strong><br/>Click "Submit Request". You'll see a confirmation with your reference number.</div>
+</div>
+<div class="step">
+    <div class="step-num">4</div>
+    <div><strong>Track your request</strong><br/>Click "Track Status" to follow your request's progress, or find it in
+        the "My Requests" list on the same page.
+    </div>
+</div>
+
+<h2>What Happens After You Submit?</h2>
+
+<table>
+    <tr>
+        <th>Stage</th>
+        <th>Meaning</th>
+        <th>SLA</th>
+    </tr>
+    <tr>
+        <td>Auto-Resolved</td>
+        <td>Your query was answered instantly from our knowledge base. No further action needed.</td>
+        <td>Instant</td>
+    </tr>
+    <tr>
+        <td>Open</td>
+        <td>Your request is in the queue, waiting for initial review by the strata management team.</td>
+        <td>Up to 48 hours</td>
+    </tr>
+    <tr>
+        <td>In Review</td>
+        <td>A staff member is actively reviewing your request.</td>
+        <td>Within 48h of Open</td>
+    </tr>
+    <tr>
+        <td>In Progress</td>
+        <td>Your request has been assigned and work has started.</td>
+        <td>Varies by type</td>
+    </tr>
+    <tr>
+        <td>Awaiting Resident</td>
+        <td>The team needs more information from you. Check your email and the timeline for what's needed.</td>
+        <td>Paused until you respond</td>
+    </tr>
+    <tr>
+        <td>Resolved</td>
+        <td>Your request has been actioned. You'll receive a notification.</td>
+        <td>—</td>
+    </tr>
+    <tr>
+        <td>Closed</td>
+        <td>The request has been fully closed and archived.</td>
+        <td>—</td>
+    </tr>
+    <tr>
+        <td>Overdue</td>
+        <td>The 48-hour SLA has been exceeded. The team will be escalating this shortly.</td>
+        <td>Breach flagged</td>
+    </tr>
+</table>
+
+<h2>Notifications</h2>
+<ul>
+    <li>You will receive an <strong>email notification</strong> each time the status of your request changes.</li>
+    <li>A <strong>bell notification</strong> will also appear in your dashboard notification panel.</li>
+    <li>The email is sent to both your login email and your @ email (if different).</li>
+</ul>
+
+<h2>Who Reviews My Request?</h2>
+<p>All non-auto-resolved requests are reviewed by the <strong>strata management team</strong>, which includes:</p>
+<ul>
+    <li>Strata Manager</li>
+    <li>Building Chairman</li>
+    <li>Executive Committee (EC) members</li>
+</ul>
+<p>Requests are triaged by category and urgency. Maintenance requests may be escalated to a contractor if required.</p>
+
+<h2>Reference Numbers</h2>
+<p>Every submitted request receives a unique reference number in the format <code>REQ-YYYY-NNNN</code> (e.g. <code>REQ-2026-0042</code>).
+    Quote this number when contacting the strata manager about your request.</p>
+
+<h2>Tips for Faster Resolution</h2>
+<div class="card">
+    <ul style="margin: 0; padding-left: 1.25rem;">
+        <li>For maintenance: include the exact location (floor, unit number, area), what you've already tried, and
+            urgency level.
+        </li>
+        <li>For levy queries: include your unit number and the financial year in question.</li>
+        <li>For noise complaints: include the approximate time, duration, and the unit number if known.</li>
+        <li>For by-law queries: quote the by-law number if you know it.</li>
+    </ul>
+</div>
+
+<h2>Related Pages</h2>
+<ul>
+    <li><a href="/dashboard/requests">My Requests</a> — View all requests across all types (maintenance, insurance, pet,
+        etc.)
+    </li>
+    <li><a href="/dashboard/community">Community Hub</a> — Building-wide activity overview</li>
+    <li><a href="/dashboard/maintenance">Maintenance</a> — Dedicated maintenance management</li>
+</ul>
+
+<footer>
+    <span data-bldg="name">your building</span> | Executive Committee | Strata Manager<br>
+    E: <a data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC
+    email</a><br>
+    P: <span data-bldg="contact_phone">(contact number)</span>
+</footer>
+
+<script src="building-config.js"></script>
+</body>
+</html>

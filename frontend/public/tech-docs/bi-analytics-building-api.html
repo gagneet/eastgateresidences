@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>BI Analytics — Building Endpoints — StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet">
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">StrataOS</div>
+            <div class="sub">Technical Documentation · BI Analytics Phase 2</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">BI Analytics</div>
+            <a href="bi-analytics-overview.html"><span class="icon">📊</span> BI Overview</a>
+            <a class="active" href="bi-analytics-building-api.html"><span class="icon">🏢</span> Building Endpoints</a>
+            <a href="bi-analytics-portfolio-api.html"><span class="icon">🗂️</span> Portfolio Endpoints</a>
+            <a href="bi-analytics-owner-api.html"><span class="icon">👤</span> Owner Endpoints</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#auth">Auth</a>
+            <a href="#financial">Financial</a>
+            <a href="#maintenance">Maintenance</a>
+            <a href="#compliance">Compliance</a>
+            <a href="#occupancy">Occupancy &amp; Utility</a>
+            <a href="#risk">Asset Risk</a>
+            <a href="#etl">ETL &amp; Cutover</a>
+            <a href="#alerts">Alerts</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main>
+        <h1>BI Analytics — Building-Level Endpoints</h1>
+        <p>All endpoints use prefix <code>/api/bi</code>. Served from <code>backend/routers/bi.py</code>.
+        Toggle: <code>bi_analytics_building_enabled</code>.</p>
+
+        <section id="auth">
+            <h2>Authentication &amp; Role Guard</h2>
+            <p>All building endpoints require an authenticated, approved user with one of:</p>
+            <ul>
+                <li><strong>super_admin</strong>, <strong>strata_admin</strong>, <strong>strata_manager</strong>, <strong>ec_member</strong></li>
+            </ul>
+            <p>Role check uses <code>effective_role</code> (never raw <code>user["role"]</code>) to handle elevated
+            owners correctly. The inline guard pattern (<code>_require_manager</code>) is used per CLAUDE.md.</p>
+        </section>
+
+        <section id="financial">
+            <h2>Financial Endpoints</h2>
+
+            <p class="callout"><strong>Metric contract (GAP-FIN-040):</strong> <code>levy_collection_rate</code> /
+            <code>collection_rate</code> are the <strong>Due-date Collection Rate</strong> (canonical
+            <code>get_collection_rate_metrics()</code> → <code>due_date_collection_rate()</code>): receipts allocated to
+            charges due as-of-today ÷ charges due as-of-today. This is <em>not</em> full-year levy coverage / fund
+            health and must never be labelled interchangeably. <code>total_outstanding</code> / arrears figures are
+            per-unit (<code>unit_arrears_and_credit()</code>); a credit on one unit never nets against another unit's
+            arrears.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/financial-summary</code></h3>
+            <p>Financial KPI summary: levy collection %, arrears total, fund balances.</p>
+            <table>
+                <tr><th>Query Param</th><th>Type</th><th>Description</th></tr>
+                <tr><td><code>financial_year</code></td><td>string</td><td>e.g. "2026". Defaults to current year.</td></tr>
+            </table>
+            <p><strong>Response fields:</strong> wrapped in <code>{data, building_id, source}</code>. Current service keys include <code>levy_collection_rate</code>, <code>total_levied</code>, <code>total_paid</code>, <code>total_outstanding</code>, <code>total_arrears</code>, <code>admin_fund_balance</code>, <code>sinking_fund_balance</code>, and <code>source</code>. Amounts are API dollar values, not *_cents fields.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/levy-collection-trend</code></h3>
+            <p>Monthly levy collection rate trend for charting. Returns up to 12 months of data.</p>
+            <p><strong>Response:</strong> array entries currently use <code>{month, charged, paid, collection_rate, source}</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/arrears-hotspots</code></h3>
+            <p>Top arrears lots ranked by outstanding balance. Maximum 20 results.</p>
+            <p><strong>Response:</strong> array entries currently include <code>lot_number</code>, <code>total_outstanding</code>, <code>days_overdue</code>, <code>arrears_band</code>, optional <code>owner_name</code>, and <code>source</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/sinking-fund-projection</code></h3>
+            <p>10-year sinking fund projection from capital plan. Uses <code>analytics.fact_financial_balance</code>
+            when PG primary is enabled; falls back to <code>sinking_fund_plan</code> MongoDB collection.</p>
+            <p><strong>Response:</strong> service returns a projection object with <code>projection</code>, <code>shortfall_risk</code>, <code>shortfall_years</code>, and <code>source</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/capex-vs-plan</code></h3>
+            <p>Capital expenditure actuals versus planned amounts for current year.</p>
+            <p><strong>Response:</strong> array entries are year-level <code>{year, planned, actual, variance, variance_pct, source}</code> records.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/health-trend</code></h3>
+            <p>Historical building financial health score trend (monthly, 6-month window).</p>
+            <p><strong>Response:</strong> array entries include <code>date</code>, <code>overall_score</code>, component scores, <code>health_label</code>, and <code>source</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/sinking-fund-risk</code></h3>
+            <p>Risk assessment of sinking fund adequacy against upcoming capital works.</p>
+            <p><strong>Response:</strong> same shape as <code>sinking-fund-projection</code>; this route is a scoped owner/manager risk view.</p>
+        </section>
+
+        <section id="maintenance">
+            <h2>Maintenance Endpoints</h2>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/maintenance-costs</code></h3>
+            <p>Monthly maintenance spend breakdown by category.</p>
+            <table>
+                <tr><th>Query Param</th><th>Type</th><th>Description</th></tr>
+                <tr><td><code>months</code></td><td>int</td><td>Lookback window (default 12, max 24)</td></tr>
+            </table>
+            <p><strong>Response:</strong> <code>{total_cents, by_category: [{category, spend_cents, request_count}], trend}</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/request-heatmap</code></h3>
+            <p>Maintenance request volume by day-of-week and hour for operational scheduling.</p>
+            <p><strong>Response:</strong> 7×24 matrix of request counts.</p>
+        </section>
+
+        <section id="compliance">
+            <h2>Compliance Endpoints</h2>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/compliance-status</code></h3>
+            <p>Current compliance certificate status across all regulatory domains.</p>
+            <p><strong>Response:</strong> array of <code>{domain, status, expiry_date, days_remaining, rag_status}</code>
+            covering: fire_safety, electrical, pool_safety, lift, WHS, insurance, AGM.</p>
+        </section>
+
+        <section id="occupancy">
+            <h2>Occupancy &amp; Utility Endpoints</h2>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/occupancy-mix</code></h3>
+            <p>Lot occupancy type distribution (owner-occupied vs. tenanted vs. vacant).</p>
+            <p><strong>Response:</strong> <code>{owner_occupied_pct, tenanted_pct, vacant_pct, total_lots}</code>.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/utility-trend</code></h3>
+            <p>Common property utility consumption trend (water, electricity) by month.</p>
+            <p><strong>Response:</strong> array of <code>{month, water_kl, electricity_kwh, cost_cents}</code>.</p>
+        </section>
+
+        <section id="risk">
+            <h2>Asset Risk</h2>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/asset-risk</code></h3>
+            <p>Asset health scores and replacement risk ranking for the building's registered assets.</p>
+            <p><strong>Response:</strong> array of <code>{asset_name, health_score, age_years, replacement_due_year, risk_level}</code>.</p>
+        </section>
+
+        <section id="etl">
+            <h2>ETL &amp; Cutover</h2>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/admin/etl-status</code></h3>
+            <p>ETL freshness report per building: last run timestamp, row counts per fact table, staleness flag.
+            <strong>Role:</strong> super_admin only.</p>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/cutover-status</code></h3>
+            <p>Pre-cutover readiness checklist for enabling <code>bi_pg_primary_enabled</code> on a specific building.
+            Returns per-check pass/fail and a summary <code>ready_for_cutover</code> boolean.</p>
+
+            <h3><span class="badge badge-post">POST</span> <code>/bi/admin/etl/run</code></h3>
+            <p>Trigger an ETL refresh for one or all buildings. <strong>Role:</strong> super_admin only.</p>
+            <pre><code>POST /api/bi/admin/etl/run
+{ "building_id": "13195" }   // or omit for all buildings</code></pre>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/access</code></h3>
+            <p>Returns the caller's BI access map: which tiers and buildings they can access, and which toggles
+            are active. Useful for frontend conditional rendering.</p>
+        </section>
+
+        <section id="alerts">
+            <h2>Alerts</h2>
+
+            <h3><span class="badge badge-get">GET</span> <code>/bi/building/{building_id}/alerts</code></h3>
+            <p>Active BI-derived alerts for the building (arrears threshold breach, sinking fund shortfall risk,
+            compliance deadline within 30 days, asset replacement overdue). Returns ordered by severity.</p>
+            <p><strong>Response:</strong> array of <code>{alert_type, severity, message, action_url}</code>.</p>
+        </section>
+    </main>
+</div>
+</body>
+</html>

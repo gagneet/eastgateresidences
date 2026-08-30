@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>PostgreSQL Financial Core – StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad: true, theme: 'dark', securityLevel: 'strict'});</script>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">StrataOS</div>
+            <div class="sub">Technical Documentation · PostgreSQL Financial Core</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Feature Domains</div>
+            <a class="active" data-page="postgresql-financial-core.html" href="postgresql-financial-core.html"><span
+                    class="icon">🐘</span> PostgreSQL Financial Core</a>
+            <a data-page="trust-accounting.md" href="trust-accounting.md"><span class="icon">🏦</span> Trust
+                Accounting</a>
+            <a data-page="feature-toggles.html" href="feature-toggles.html"><span class="icon">🔁</span> Feature Toggles</a>
+            <a data-page="compliance.html" href="compliance.html"><span class="icon">📋</span> Compliance</a>
+            <a data-page="seed-reference.html" href="seed-reference.html"><span class="icon">🌱</span> Seed Reference</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#east-gate-status">East Gate Status</a>
+            <a href="#architecture">Architecture Overview</a>
+            <a href="#schema">PostgreSQL Schema</a>
+            <a href="#service-api">FinancialCoreService API</a>
+            <a href="#migrations">Alembic Migrations</a>
+            <a href="#plugins">Plugin System</a>
+            <a href="#outbox">Transactional Outbox</a>
+            <a href="#rls">Row-Level Security</a>
+            <a href="#env-vars">Environment Variables</a>
+            <a href="#cutover">Cutover Runbook</a>
+            <a href="#references">Related References</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <h1>PostgreSQL Financial Core</h1>
+        <p>
+            This document describes the PostgreSQL-backed financial core and the current cutover contract used to move
+            financial reads and writes off MongoDB safely. StrataOS uses a <strong>strangler-fig pattern</strong>:
+            MongoDB remains available as the legacy fallback while PostgreSQL becomes the canonical finance source
+            per scheme behind explicit cutover controls. The current verified state on <strong>2026-07-24</strong> is:
+            East Gate identity is PostgreSQL read/write, while finance, trust ledger, trust reconciliation, and
+            governance are in PostgreSQL shadow mode. MongoDB still serves live finance/trust/governance reads and
+            writes until shadow-read divergence is clean enough to promote. The write path lives under
+            <code>backend/services/financial_core/</code>; current cutover checks are codified in
+            <code>backend/scripts/postgres_cutover_p0_readiness.py</code>.
+        </p>
+
+
+        <div class="callout">
+            <strong>2026-07-24 live PostgreSQL inventory.</strong> Alembic is at
+            <code>0071_powerhouse_cmd_foundation</code>. East Gate table counts were inspected with its real
+            PostgreSQL tenant context: <code>finance.journal_entries</code> has 3,198 rows,
+            <code>finance.journal_lines</code> has 6,396 rows, <code>finance.bank_transactions</code> has 2,855 rows,
+            <code>finance.receipts</code> has 2,221 rows, <code>finance.levy_items</code> has 957 rows, and
+            <code>finance.evidence_documents</code> has 10 rows. Full field-level inventory:
+            <a href="postgresql-live-data-inventory-2026-07-24.md">PostgreSQL live data inventory</a>.
+        </div>
+
+        <section id="east-gate-status">
+            <h2>East Gate Finance Ingestion Status</h2>
+            <p>
+                East Gate Residences uses the Demo Bank and historical reconstruction path to produce PostgreSQL
+                ledger evidence. The current branch fixes owner-transfer dating and payer-party resolution so imported
+                receipts and ownership periods point at the real PostgreSQL party/lot records instead of stale or
+                fabricated anchors. The staging and matching paths remain guarded: approved data is promoted into
+                PostgreSQL only through controlled scripts and finance services.
+            </p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr><th>Area</th><th>Current verified state</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr><td>Identity and ownership</td><td><code>identity_core</code> is <code>postgres_write</code> for building <code>13195</code>. Live PostgreSQL contains 87 lots, 250 parties, 166 ownership periods, 105 users, and 97 user-unit links.</td></tr>
+                    <tr><td>Finance ledger</td><td><strong>Updated 2026-08-29:</strong> <code>finance_ledger</code> is <code>postgres_write</code> / <code>promoted</code> &mdash; the row was restored on or about 2026-08-28 after a period with no row at all. The real blocker is now PostgreSQL's own allocation trail: <strong>$224,733.13 of <code>levy_items.paid_cents</code> has no <code>receipt_allocations</code> row</strong> (496 items), 356 receipts / $567,813.95 are unallocated, and receipts exceed charges by $338,335.05. Until that is closed PostgreSQL cannot produce a defensible per-lot position.</td></tr>
+                    <tr><td>Ledger evidence</td><td>Live PostgreSQL contains 10 evidence documents, one financial cutover config row, and one onboarding audit row.</td></tr>
+                    <tr><td>Posting volume</td><td>Live PostgreSQL contains 2,687 journal entries and 12,250 journal lines, plus 3,480 levy items charging $1,771,930.86. Verified live 2026-08-29.</td></tr>
+                    <tr><td>Matching and receipts</td><td>Live PostgreSQL contains 3,992 bank transactions, 2,233 receipts (2,163 not retired, $2,110,265.91) and 4,037 receipt allocations ($1,539,156.43). Verified live 2026-08-29.</td></tr>
+                    <tr><td>Cutover safety</td><td>All eight East Gate domains are PG write-primary, finance included. But the control plane saying <code>postgres_write</code> does not mean a router reads PostgreSQL &mdash; only 10 of 133 routers consult it. The nightly DR check reports the two stores in agreement (87/87 lots, $0.00 net gap); the 260 unresolved shadow diffs that appeared to contradict this were comparator artefacts, fixed at source 2026-08-29. Verify serving source per route before relying on it.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p>
+                Operational references include <code>backend/migrations/postgres/migrate_building_13195.py</code>,
+                <code>backend/routers/financial_matching.py</code>, <code>backend/db_postgres/repos/ownership_repo.py</code>,
+                <code>backend/scripts/postgres_cutover_p0_readiness.py</code>, and the East Gate runbook in
+                <code>docs/runbooks/east_gate_demo_bank_cutover.md</code>.
+            </p>
+        </section>
+
+        <div class="callout">
+            <strong>Strangler-fig migration.</strong> The PostgreSQL financial core does not replace MongoDB in a
+            big-bang cutover. Both stores run concurrently under a feature flag. The adapter layer transparently routes
+            reads and writes to the correct store based on the building's flag state. No existing MongoDB-backed
+            endpoints change behaviour while the flag is <code>OFF</code>.
+        </div>
+
+        <!-- ─── 1. Architecture Overview ───────────────────────────────────────── -->
+        <section id="architecture">
+            <h2>1. Architecture Overview</h2>
+            <p>
+                Financial requests still enter through the existing FastAPI routers. Cutover is now controlled through
+                the umbrella feature <code>financial_integration_layer_v2</code> plus explicit child toggles. Write
+                paths activate through <code>financial_pg_writes_enabled</code>; current-balance read paths activate
+                through <code>financial_pg_reads_enabled</code> and route-specific child toggles such as
+                <code>external_api_finance_pg_enabled</code>, <code>trust_pg_ledger_enabled</code>, and
+                <code>trust_reconciliation_pg_enabled</code>.
+            </p>
+
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart TD
+                    FE[Next.js UI] --> API[FastAPI Routes]
+                    API --> FLAG{financial_integration_layer_v2 + child toggle?}
+                    FLAG -- OFF --> MONGO[(MongoDB legacy)]
+                    FLAG -- ON --> ADAPTER[FinancialCoreAdapter / Read Services]
+                    ADAPTER --> SVC[FinancialCoreService]
+                    ADAPTER --> READS[financial_read_service + trust_read_service]
+                    SVC --> PG[(PostgreSQL)]
+                    READS --> PG
+                    SVC --> OUTBOX[core.outbox]
+                    OUTBOX -- async relay --> MONGO
+                </div>
+                <div class="diagram-caption">Request routing under the strangler-fig pattern — MongoDB serves as both
+                    legacy store and eventual archive target via the outbox relay.
+                </div>
+            </div>
+
+            <h3>Canonical cutover toggles</h3>
+            <p>
+                The canonical source is PostgreSQL config, not ad-hoc Mongo flags. Toggles are stored in
+                <code>core.feature_toggles</code> / <code>core.feature_toggle_overrides</code>; banking runtime
+                selection lives in <code>core.building_settings</code>.
+            </p>
+            <ul>
+                <li><code>financial_integration_layer_v2</code> — umbrella gate for all finance cutover work</li>
+                <li><code>financial_pg_writes_enabled</code> — enables PostgreSQL financial writes</li>
+                <li><code>financial_pg_reads_enabled</code> — enables PostgreSQL current-balance reads</li>
+                <li><code>external_api_finance_pg_enabled</code> — repoints external finance API reads to PostgreSQL</li>
+                <li><code>trust_pg_ledger_enabled</code> — repoints trust ledger read endpoints to PostgreSQL</li>
+                <li><code>trust_reconciliation_pg_enabled</code> — repoints trust reconciliation read endpoints</li>
+                <li><code>bank_integration_abstraction_enabled</code> — enables provider-neutral bank runtime selection</li>
+                <li><code>banking.provider</code> / <code>banking.mode</code> — select <code>mock</code>,
+                    <code>csv_replay</code>, <code>basiq</code>, or <code>macquarie_deft</code> with
+                    <code>mock</code>, <code>sandbox</code>, or <code>live</code> mode
+                </li>
+            </ul>
+            <div class="callout">
+                <strong>Default state: OFF.</strong> Every child toggle is gated by the umbrella feature, so a scheme
+                cannot accidentally enable one read/write slice without first opting into the broader finance cutover.
+            </div>
+        </section>
+
+        <!-- ─── 2. PostgreSQL Schema ───────────────────────────────────────────── -->
+        <section id="schema">
+            <h2>2. PostgreSQL Schema</h2>
+            <p>
+                The database is partitioned into twelve application schemas. Each schema groups tables by bounded
+                context, allowing independent permission grants and future extraction into separate services. The
+                2026-07-24 live inventory inspected 202 application base tables: access 8, ai_assist 7, analytics 26,
+                communications 23, compliance 23, core 43, documents 6, finance 30, governance 8, modules 4, ops 18,
+                and sustainability 6. Forty-four tables currently contain data for the East Gate tenant context or
+                global catalogue context.
+            </p>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Schema</th>
+                        <th>Purpose</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>core</code></td>
+                        <td>Tenancy, schemes, buildings, lots, ownership, users, outbox, audit, feature toggles</td>
+                    </tr>
+                    <tr>
+                        <td><code>finance</code></td>
+                        <td>Journal ledger, levy schedules, receipts, bank transactions</td>
+                    </tr>
+                    <tr>
+                        <td><code>ops</code></td>
+                        <td>Work orders, vendor invoices, approvals</td>
+                    </tr>
+                    <tr>
+                        <td><code>compliance</code></td>
+                        <td>ACT 2026 reform tables, disclosure events, manager licences</td>
+                    </tr>
+                    <tr>
+                        <td><code>analytics</code></td>
+                        <td>Login audit and future aggregated read models</td>
+                    </tr>
+                    <tr>
+                        <td><code>modules</code></td>
+                        <td>Plugin / feature module registry</td>
+                    </tr>
+
+                    <tr>
+                        <td><code>documents</code></td>
+                        <td>Document folders, document registry, retention and evidence metadata</td>
+                    </tr>
+                    <tr>
+                        <td><code>governance</code></td>
+                        <td>AGM, motions, votes, EC members, decisions, by-laws</td>
+                    </tr>
+                    <tr>
+                        <td><code>communications</code></td>
+                        <td>Announcements, notices, letters, messages and campaigns</td>
+                    </tr>
+                    <tr>
+                        <td><code>access</code></td>
+                        <td>Access device lifecycle and access request records</td>
+                    </tr>
+                    <tr>
+                        <td><code>sustainability</code></td>
+                        <td>Sustainability profile, projects and benefit records</td>
+                    </tr>
+                    <tr>
+                        <td><code>ai_assist</code></td>
+                        <td>AI review and assessment support tables</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Key Tables — <code>finance</code> schema</h3>
+            <p>The live schema is at Alembic <code>0079_opening_balance_evidence</code>. The finance schema has 30 base tables; the populated East Gate tables are <code>accounting_periods</code>, <code>bank_transactions</code>, <code>evidence_documents</code>, <code>financial_cutover_config</code>, <code>financial_onboarding_audit</code>, <code>funds</code>, <code>gl_accounts</code>, <code>journal_entries</code>, <code>journal_lines</code>, <code>levy_items</code>, <code>levy_runs</code>, <code>receipt_allocations</code>, <code>receipts</code>, and <code>trust_accounts</code>. Empty finance tables are listed in the live inventory.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Table(s)</th>
+                        <th>Role</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>journal_entries</code> + <code>journal_lines</code></td>
+                        <td>Double-entry, append-only general ledger. Every financial event produces a balanced pair of
+                            debit/credit lines. Immutability enforced by PL/pgSQL trigger (migration 0007).
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>levy_rules</code>, <code>levy_runs</code>, <code>levy_items</code></td>
+                        <td>Levy engine — rules define the schedule, runs materialise a period's levy batch, items are
+                            per-lot charge records.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>receipts</code> + <code>receipt_allocations</code></td>
+                        <td>Payment recording. A receipt captures the inbound payment; allocations distribute it across
+                            outstanding levy items.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>bank_transactions</code> + <code>reconciliation_runs</code></td>
+                        <td>Bank statement import and matching. Reconciliation runs record the outcome of matching bank
+                            transactions to receipts.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>trust_accounts</code>, <code>funds</code>, <code>gl_accounts</code>, <code>accounting_periods</code>
+                        </td>
+                        <td>Chart of accounts and fund structure — admin fund, sinking fund, trust bank accounts, and
+                            period boundaries.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout">
+                <strong>Money invariant — BIGINT cents only.</strong> All monetary amounts in every
+                <code>finance</code> schema table are stored as <code>BIGINT</code> representing integer cents.
+                <code>NUMERIC</code> and floating-point types are <strong>prohibited</strong> for money columns.
+                Division that would produce a fractional cent must be resolved with an explicit rounding rule before
+                storage. Violations are caught by a <code>CHECK</code> constraint on insert.
+            </div>
+        </section>
+
+        <!-- ─── 3. FinancialCoreService API ───────────────────────────────────── -->
+        <section id="service-api">
+            <h2>3. FinancialCoreService API</h2>
+            <p>
+                <code>backend/services/financial_core/service.py</code> is the <strong>sole authorised writer</strong>
+                to PostgreSQL. No FastAPI route handler, plugin, background job, or migration script may issue
+                <code>INSERT</code> / <code>UPDATE</code> / <code>DELETE</code> statements against the
+                <code>finance</code> schema outside of this service.
+            </p>
+
+            <h3>Public Methods</h3>
+            <pre><code>create_levy(cmd: CreateLevyCommand) -> Levy
+record_payment(cmd: RecordPaymentCommand) -> Receipt
+allocate_payment(cmd: AllocatePaymentCommand) -> list[PaymentAllocation]
+generate_arrears(cmd: GenerateArrearsCommand) -> ArrearsReport
+reverse_entry(cmd: ReverseEntryCommand) -> JournalEntry
+reconcile_bank_transaction(cmd: ReconcileBankTxCommand) -> ReconcileResult</code></pre>
+
+            <h3>Command Pattern</h3>
+            <p>
+                Each method accepts a <strong>command value object</strong> (a frozen Pydantic model). Commands
+                carry all input data required to complete the operation; callers may not pass raw dicts or keyword
+                arguments to these methods. The service:
+            </p>
+            <ol>
+                <li>Validates business invariants (e.g., levy amounts &gt; 0, accounting period open, sufficient
+                    balance).
+                </li>
+                <li>Calls registered plugin hooks in declaration order (see <a href="#plugins">§ 5 Plugin System</a>).
+                </li>
+                <li>Writes to PostgreSQL and inserts the corresponding outbox event in the <strong>same database
+                    transaction</strong>.
+                </li>
+                <li>Returns a typed result object; never raises silently.</li>
+            </ol>
+
+            <div class="callout">
+                <strong>No direct DB access from routes.</strong> Route handlers obtain a
+                <code>FinancialCoreAdapter</code> via dependency injection. The adapter calls service methods.
+                Any attempt to bypass the adapter (e.g., importing <code>session</code> directly in a router file)
+                is a policy violation and will fail code review.
+            </div>
+        </section>
+
+        <!-- ─── 4. Alembic Migrations ──────────────────────────────────────────── -->
+        <section id="migrations">
+            <h2>4. Alembic Migrations</h2>
+            <p>
+                Migrations live in <code>backend/alembic/versions/</code> and are managed by Alembic with
+                <code>asyncpg</code>. They are applied manually — never auto-applied on application startup.
+                Run them in order when provisioning a new environment.
+            </p>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Revision</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>0001</code></td>
+                        <td>Schemas, extensions (<code>pgcrypto</code>, <code>btree_gist</code>, <code>citext</code>,
+                            <code>pg_trgm</code>), ENUM types
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>0002</code></td>
+                        <td><code>core.tenants</code>, <code>schemes</code>, <code>buildings</code>, <code>lots</code>,
+                            <code>parties</code>, <code>ownership_periods</code> (bitemporal)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>0003</code></td>
+                        <td><code>finance.journal_entries</code>, <code>journal_lines</code>, <code>core.outbox</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>0004</code></td>
+                        <td><code>finance.levy_rules</code>, <code>levy_runs</code>, <code>levy_items</code>, <code>receipts</code>,
+                            <code>bank_transactions</code>, <code>payment_plans</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>0005</code></td>
+                        <td><code>ops.vendors</code>, <code>work_orders</code>, <code>invoices</code>, <code>core.approval_policies</code>,
+                            <code>approval_requests</code>, <code>approval_steps</code>, ACT compliance tables
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>0006</code></td>
+                        <td><code>modules.tenant_modules</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>0007</code></td>
+                        <td>PL/pgSQL triggers: immutability guards on <code>journal_entries</code>, balanced-journal
+                            enforcement, hash chain
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>0008</code></td>
+                        <td>Row-Level Security policies + production indexes (41 tables)</td>
+                    </tr>
+                    <tr>
+                        <td><code>0009</code></td>
+                        <td>ADD <code>tenant_id</code> to <code>approval_steps</code>,
+                            <code>payment_plan_installments</code>, <code>receipt_allocations</code> + RLS on those
+                            tables
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Migration Commands</h3>
+            <pre><code># Run all migrations (requires DATABASE_URL in backend/.env)
+cd backend &amp;&amp; venv/bin/alembic upgrade head
+
+# Check current revision
+cd backend &amp;&amp; venv/bin/alembic current
+
+# Generate SQL for a specific migration (dry-run)
+cd backend &amp;&amp; venv/bin/alembic upgrade 0009 --sql</code></pre>
+
+            <div class="callout">
+                <strong>Run order matters.</strong> Migrations must be applied sequentially. Skipping a revision
+                will cause a foreign-key or schema reference error in the next migration. If
+                <code>alembic current</code> shows <code>(head)</code>, no action is needed.
+            </div>
+        </section>
+
+        <!-- ─── 5. Plugin System ───────────────────────────────────────────────── -->
+        <section id="plugins">
+            <h2>5. Plugin System</h2>
+            <p>
+                Plugins live in <code>backend/plugins/</code>. They extend <code>FinancialCoreService</code>
+                behaviour without modifying core service code. Plugins are discovered at startup and registered
+                against the hook registry.
+            </p>
+
+            <h3>What Plugins Can Do</h3>
+            <ul>
+                <li>Validate commands before execution.</li>
+                <li>Enrich or transform commands (adding jurisdiction-specific fields).</li>
+                <li>Log custom audit events.</li>
+                <li>Generate compliance artefacts triggered by financial events.</li>
+                <li>Declare the capabilities they provide.</li>
+            </ul>
+
+            <h3>What Plugins Cannot Do</h3>
+            <div class="callout">
+                <strong>Plugins may not write to the ledger directly.</strong> A plugin that attempts a direct
+                <code>INSERT</code> into <code>finance.journal_entries</code> will be blocked by RLS (the plugin
+                executes under the <code>strataos_app</code> role without BYPASSRLS). All ledger changes must go
+                through a service command.
+            </div>
+
+            <h3>Hook Types</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Hook</th>
+                        <th>Signature</th>
+                        <th>Behaviour</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>validate_command</code></td>
+                        <td><code>(cmd) → None</code></td>
+                        <td>Raise <code>ValueError</code> to block the command. Called before any DB writes.</td>
+                    </tr>
+                    <tr>
+                        <td><code>enrich_command</code></td>
+                        <td><code>(cmd) → cmd</code></td>
+                        <td>Return an enriched (but still immutable) copy of the command. Must not mutate in place.</td>
+                    </tr>
+                    <tr>
+                        <td><code>enrich_template</code></td>
+                        <td><code>(tmpl) → tmpl</code></td>
+                        <td>Add jurisdiction-specific fields to a document or PDF template before rendering.</td>
+                    </tr>
+                    <tr>
+                        <td><code>log_event</code></td>
+                        <td><code>(event) → None</code></td>
+                        <td>Non-blocking audit logging. Exceptions are caught and logged; they do not roll back the
+                            transaction.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>generate_artefact</code></td>
+                        <td><code>(ctx) → Artefact</code></td>
+                        <td>Produce a compliance document (PDF, JSON disclosure record, etc.) as a side-effect of a
+                            command.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>expose_capability</code></td>
+                        <td><code>() → Capability</code></td>
+                        <td>Declare what capabilities the plugin provides so the service registry can query them.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Example: ACT 2026 Reform Plugin</h3>
+            <p>
+                <code>backend/plugins/examples/act_plugin.py</code> implements the
+                <code>validate_command</code> hook to enforce ACT 2026 levy reform rules. It blocks any
+                <code>CreateLevyCommand</code> where <code>total_levy_cents &lt;= 0</code>, raising a
+                descriptive <code>ValueError</code> that the route layer surfaces as an HTTP 422 response.
+            </p>
+            <pre><code>class ACTReformPlugin:
+    def validate_command(self, cmd):
+        if isinstance(cmd, CreateLevyCommand):
+            if cmd.total_levy_cents &lt;= 0:
+                raise ValueError(
+                    "ACT 2026 reform: levy amount must be positive (got "
+                    f"{cmd.total_levy_cents} cents)"
+                )</code></pre>
+        </section>
+
+        <!-- ─── 6. Transactional Outbox (ADR-003) ─────────────────────────────── -->
+        <section id="outbox">
+            <h2>6. Transactional Outbox (ADR-003)</h2>
+            <p>
+                The outbox pattern guarantees that every PostgreSQL financial write is eventually reflected in
+                MongoDB's <code>events</code> collection — even if the relay worker crashes mid-flight.
+            </p>
+
+            <h3>How It Works</h3>
+            <ol>
+                <li>
+                    <code>FinancialCoreService</code> performs the financial write and inserts a row into
+                    <code>core.outbox</code> within the <strong>same database transaction</strong>. Either both
+                    succeed or both roll back — there is no window where a ledger write exists without a
+                    corresponding outbox entry.
+                </li>
+                <li>
+                    <code>backend/workers/outbox_relay.py</code> polls <code>core.outbox</code> for rows where
+                    <code>published_at IS NULL</code> every <strong>5 seconds</strong>.
+                </li>
+                <li>
+                    For each pending row, the relay writes the event payload to the MongoDB <code>events</code>
+                    collection.
+                </li>
+                <li>
+                    On successful MongoDB write, the relay marks the outbox row
+                    <code>published_at = now()</code>.
+                </li>
+                <li>
+                    If the relay crashes before marking a row, the row remains unpublished and will be
+                    re-processed on the next poll cycle. Event consumers must therefore be idempotent (the
+                    event payload includes the originating <code>journal_entry_id</code> as a stable deduplication key).
+                </li>
+            </ol>
+
+            <div class="callout">
+                <strong>At-least-once delivery.</strong> The outbox provides at-least-once semantics, not
+                exactly-once. MongoDB consumers that react to outbox-relayed events must use the
+                <code>journal_entry_id</code> or <code>event_id</code> field to skip duplicate processing.
+            </div>
+
+            <h3>Running the Relay</h3>
+            <pre><code># Start the outbox relay worker (runs as a background loop)
+cd backend &amp;&amp; venv/bin/python3 -m workers.outbox_relay</code></pre>
+            <p>
+                In production, the relay is managed as a systemd service alongside the main backend process.
+                Check <code>docs/deployment/</code> for the unit file.
+            </p>
+        </section>
+
+        <!-- ─── 7. Row-Level Security (ADR-004) ───────────────────────────────── -->
+        <section id="rls">
+            <h2>7. Row-Level Security (ADR-004)</h2>
+            <p>
+                Every tenant-scoped table in PostgreSQL enforces Row-Level Security (RLS) so that a misconfigured
+                query or a compromised application role cannot read or write another tenant's data at the database
+                level — not just at the application layer.
+            </p>
+
+            <h3>Configuration</h3>
+            <ul>
+                <li>Every tenant-scoped table is created with <code>ENABLE ROW LEVEL SECURITY</code> and
+                    <code>FORCE ROW LEVEL SECURITY</code>.
+                </li>
+                <li>The SELECT / INSERT / UPDATE / DELETE policy on each table is:
+                    <pre><code>USING (tenant_id = core.current_tenant_id())</code></pre>
+                </li>
+                <li><code>core.current_tenant_id()</code> is a stable SQL function that reads the
+                    <code>app.tenant_id</code> GUC (Grand Unified Configuration parameter) set via
+                    <code>SET LOCAL app.tenant_id = '...'</code> at the start of each request's database session.
+                </li>
+            </ul>
+
+            <h3>Session Setup</h3>
+            <p>
+                <code>backend/db_postgres/session.py</code> exposes a <code>set_tenant(session, tenant_id)</code>
+                helper that must be called before any query on a tenant-scoped table. The FastAPI dependency
+                <code>get_pg_session()</code> calls this automatically using the resolved <code>building_id</code>
+                from the JWT.
+            </p>
+            <pre><code>async with get_pg_session() as session:
+    # tenant_id is already set — RLS is active
+    result = await session.execute(select(JournalEntry))</code></pre>
+
+            <h3>Roles</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>BYPASSRLS</th>
+                        <th>Purpose</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>strataos_app</code></td>
+                        <td>No</td>
+                        <td>Runtime application role. RLS is always enforced. Used by FastAPI and the outbox relay.</td>
+                    </tr>
+                    <tr>
+                        <td><code>strataos_migrate</code></td>
+                        <td>Yes</td>
+                        <td>Migration role. BYPASSRLS granted exclusively for schema changes via Alembic. Must not be
+                            used at runtime.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout">
+                <strong>Never use <code>strataos_migrate</code> in application code.</strong> The migration role
+                holds <code>BYPASSRLS</code> and is exclusively for Alembic. Using it in a route or service would
+                silently disable all tenant isolation at the database level.
+            </div>
+        </section>
+
+        <!-- ─── 8. Environment Variables ──────────────────────────────────────── -->
+        <section id="env-vars">
+            <h2>8. Environment Variables</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Required</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>DATABASE_URL</code></td>
+                        <td>Optional (warn if absent)</td>
+                        <td>
+                            PostgreSQL connection string in asyncpg format:<br/>
+                            <code>postgresql+asyncpg://user:pass@host/db</code><br/>
+                            If not set, the application starts in MongoDB-only mode and logs a warning.
+                            No PostgreSQL operations are attempted.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout">
+                <strong>Graceful degradation.</strong> The absence of <code>DATABASE_URL</code> is not a fatal
+                startup error. The application initialises normally with the PostgreSQL session factory in a
+                "disabled" state. Any call that reaches <code>FinancialCoreAdapter</code> while
+                <code>DATABASE_URL</code> is unset will raise a <code>FinancialCoreUnavailableError</code>,
+                which the adapter logs and converts to a 503 response — preserving the MongoDB fallback path.
+            </div>
+        </section>
+
+        <!-- ─── 9. Cutover Runbook Summary ────────────────────────────────────── -->
+        <section id="cutover">
+            <h2>9. Cutover Runbook Summary</h2>
+            <p>
+                Full step-by-step instructions are in the migration runbooks. The current high-level sequence is:
+            </p>
+            <ol>
+                <li>
+                    <strong>Start with Acme Demo.</strong> Apply Alembic through head, seed the canonical cutover
+                    toggles, and set <code>financial_integration_layer_v2</code> plus
+                    <code>financial_pg_writes_enabled</code> for the demo scheme.
+                </li>
+                <li>
+                    <strong>Switch the current-balance read slices.</strong> Enable
+                    <code>financial_pg_reads_enabled</code> together with
+                    <code>external_api_finance_pg_enabled</code>, <code>trust_pg_ledger_enabled</code>, and
+                    <code>trust_reconciliation_pg_enabled</code> as each surface is validated.
+                </li>
+                <li>
+                    <strong>Keep banking provider-neutral.</strong> Set <code>banking.provider</code> and
+                    <code>banking.mode</code> in <code>core.building_settings</code>. This wave supports
+                    <code>mock</code> and <code>csv_replay</code>; live-provider keys remain additive later.
+                </li>
+                <li>
+                    <strong>Soak and compare.</strong> Run dual-write/shadow-read comparison until divergence is
+                    acceptable for the selected surface. Keep Mongo fallback available while a scheme is soaking.
+                </li>
+                <li>
+                    <strong>Promote East Gate after demo soak.</strong> Repeat the same toggle sequence for East Gate
+                    only after the demo scheme is stable and the rollback switches are documented.
+                </li>
+            </ol>
+
+            <div class="callout">
+                <strong>Do not rush the reconciliation window.</strong> Any divergence detected during step 4 must
+                be investigated and resolved before restarting the 7-day counter. Proceeding with known divergence
+                risks corrupting financial records for real owners.
+            </div>
+        </section>
+
+        <!-- ─── 10. Related References ────────────────────────────────────────── -->
+        <section id="references">
+            <h2>10. Related References</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Resource</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>docs/migration/05_refreshed_strategic_technology_and_architecture_review.md</code>
+                        </td>
+                        <td>Authoritative architecture spec for the PostgreSQL migration programme. Primary reference
+                            for ADR rationale.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>docs/migration/cutover_runbook_building_13195.md</code></td>
+                        <td>Step-by-step cutover runbook for East Gate Residences (building 13195). Includes pre-flight
+                            checklist, rollback procedure, and stakeholder sign-off matrix.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>docs/architecture/postgresql_financial_core_architecture.md</code></td>
+                        <td>Full architecture reference — sequence diagrams, ER diagrams, plugin lifecycle, and ADR
+                            index.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/services/financial_core/</code></td>
+                        <td>Service implementation — <code>service.py</code>, <code>adapter.py</code>,
+                            <code>commands.py</code>, <code>results.py</code>, plugin registry.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/alembic/versions/</code></td>
+                        <td>Alembic migration files (0001–0009). Each file includes an inline comment explaining the
+                            migration purpose and any irreversible operations.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>tests/backend/test_financial_core_service.py</code></td>
+                        <td>35 unit tests covering all six public service methods, plugin hook ordering, outbox
+                            insertion, and RLS isolation across two tenants.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+</div>
+</body>
+</html>

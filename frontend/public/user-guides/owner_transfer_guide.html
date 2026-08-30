@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Owner Transfer Workflow — <span data-bldg="name">your building</span></title>
+    <style>
+        :root {
+            --primary: #2F4F4F;
+            --secondary: #E07A5F;
+            --accent: #F2CC8F;
+            --bg: #F8F7F4;
+            --card: #FFFFFF;
+            --text: #1A1A2E;
+            --muted: #6B7280;
+            --border: #E5E7EB;
+            --green: #16a34a;
+            --amber: #d97706;
+            --red: #dc2626;
+            --blue: #2563eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            border-radius: 12px;
+            padding: 2rem 2.5rem;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-family: 'Manrope', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        header p {
+            margin-top: 0.5rem;
+            opacity: 0.85;
+            font-size: 0.95rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.65rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 0.4rem;
+        }
+
+        .badge-green {
+            background: #dcfce7;
+            color: var(--green);
+        }
+
+        .badge-amber {
+            background: #fef3c7;
+            color: var(--amber);
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: var(--blue);
+        }
+
+        .badge-red {
+            background: #fee2e2;
+            color: var(--red);
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+        }
+
+        .card h2 {
+            font-family: 'Manrope', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin: 1rem 0 0.4rem;
+            color: var(--text);
+        }
+
+        .card p, .card li {
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        ol, ul {
+            padding-left: 1.4rem;
+        }
+
+        li {
+            margin-bottom: 0.3rem;
+        }
+
+        .step-list {
+            list-style: none;
+            padding: 0;
+            counter-reset: step;
+        }
+
+        .step-list li {
+            counter-increment: step;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+            margin-bottom: 0.8rem;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        .step-list li::before {
+            content: counter(step);
+            background: var(--primary);
+            color: white;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 0.15rem;
+        }
+
+        .auto-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-top: 0.75rem;
+        }
+
+        .auto-table th {
+            background: var(--primary);
+            color: white;
+            padding: 0.55rem 0.75rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .auto-table td {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        .auto-table tr:hover td {
+            background: #f9fafb;
+        }
+
+        .icon {
+            font-size: 1.1rem;
+        }
+
+        .callout {
+            border-left: 4px solid var(--secondary);
+            background: #fff7f5;
+            border-radius: 0 8px 8px 0;
+            padding: 0.75rem 1rem;
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text);
+        }
+
+        .callout strong {
+            color: var(--secondary);
+        }
+
+        .callout-amber {
+            border-left-color: var(--amber);
+            background: #fffbeb;
+        }
+
+        .callout-amber strong {
+            color: var(--amber);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        footer {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.8rem;
+            margin-top: 2.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        footer a {
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <h1>Owner Transfer Workflow</h1>
+        <p>
+            A step-by-step guide for owners, strata managers, real estate agents, and the Executive
+            Committee handling unit ownership changes in your building's management portal.
+        </p>
+        <div style="margin-top:1rem;">
+            <span class="badge badge-blue">Owner</span>
+            <span class="badge badge-blue">Strata Manager</span>
+            <span class="badge badge-blue">Real Estate Agent</span>
+            <span class="badge badge-blue">EC Member</span>
+            <span class="badge badge-blue">Chairman</span>
+            <span class="badge badge-blue">Super Admin</span>
+        </div>
+    </header>
+
+    <!-- Overview -->
+    <div class="card">
+        <h2><span class="icon">📋</span> Overview</h2>
+        <p>
+            When a lot changes hands, the platform must update the strata roll, arrears records, AGM proxies,
+            chat group memberships, and rental certificates — all consistently and automatically.
+            This guide explains how to process an owner transfer and what the system handles for you.
+        </p>
+        <div class="callout" style="margin-top:1rem;">
+            <strong>Two pathways:</strong><br/>
+            <ol style="margin-top:0.4rem; padding-left:1.2rem; color:#374151; font-size:0.875rem;">
+                <li>
+                    <strong>Quick edit via Owners &amp; Units page</strong> — direct field update by Super Admin;
+                    all cascades fire immediately.
+                </li>
+                <li>
+                    <strong>Owner Transfer Request</strong> — formal documented workflow with ownership verification;
+                    cascades fire on approval.
+                </li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Pathway 1 -->
+    <div class="card">
+        <h2><span class="icon">✏️</span> Pathway 1 — Direct Edit (Super Admin)</h2>
+        <p>Use this for quick corrections or when no formal transfer request was submitted.</p>
+        <ol class="step-list" style="margin-top:1rem;">
+            <li>
+                Navigate to <strong>Dashboard → Owners &amp; Units</strong>
+                (<code>/dashboard/owners-units</code>).
+            </li>
+            <li>
+                Find the unit (use the search bar or scroll). Click the <strong>Edit</strong> icon on the row.
+            </li>
+            <li>
+                Update <strong>Owner Name</strong> and any other fields that changed
+                (email, phone, entitlement, occupancy type).
+            </li>
+            <li>
+                Click <strong>Save Changes</strong>. The system immediately triggers all cascade side-effects
+                listed below.
+            </li>
+        </ol>
+        <div class="callout callout-amber">
+            <strong>Note:</strong> Only Super Admins can use direct edit. Strata managers and EC members
+            should use the Owner Transfer Request workflow (Pathway 2).
+        </div>
+    </div>
+
+    <!-- Pathway 2 -->
+    <div class="card">
+        <h2><span class="icon">📝</span> Pathway 2 — Owner Transfer Request (Formal)</h2>
+        <p>
+            Use this when an owner or staff member needs a documented ownership change request.
+            The workflow creates an audit trail, allows pending requests to be edited before review,
+            and applies approval rules based on the reviewer role.
+        </p>
+
+        <h3>Step 1 — Owner or authorised staff submits a request</h3>
+        <ol class="step-list">
+            <li>Ensure the incoming owner has already registered on the portal and has an active user account.</li>
+            <li>
+                Goes to <strong>Dashboard → Owner Transfers</strong>
+                (<code>/dashboard/admin/owner-transfers</code>) and clicks
+                <strong>New Transfer Request</strong>.
+            </li>
+            <li>Selects the unit, enters the incoming owner's email, adds the settlement date if known, and optionally
+                lists any supporting documents.
+            </li>
+            <li>Submits — request status becomes <strong>Pending</strong>.</li>
+            <li>If a mistake is noticed before review starts, the request can still be edited from the same page.</li>
+        </ol>
+
+        <h3>Step 2 — Reviewer approval</h3>
+        <ol class="step-list">
+            <li>
+                Navigate to <strong>Dashboard → Owner Transfers</strong>.
+                Pending requests appear on the <strong>Pending</strong> tab.
+            </li>
+            <li>Click <strong>Review</strong> on the request to open the review dialog.</li>
+            <li>
+                Verify the unit, incoming owner details, settlement date, and any supporting documentation.
+            </li>
+            <li>
+                Choose an action:
+                <ul style="margin-top:0.4rem; color:#374151; font-size:0.875rem;">
+                    <li>
+                        <strong>Approve — Keep Old Owner</strong>: Creates new ownership link; old owner record
+                        stays active (e.g., co-ownership scenario).
+                    </li>
+                    <li>
+                        <strong>Approve — Remove Old Owner</strong>: Creates new ownership link <em>and</em>
+                        deactivates the old owner's unit relationship (standard sale).
+                    </li>
+                    <li>
+                        <strong>Reject</strong>: Marks request rejected; no records changed.
+                    </li>
+                </ul>
+            </li>
+            <li>
+                Approval routing rules:
+                <ul style="margin-top:0.4rem; color:#374151; font-size:0.875rem;">
+                    <li><strong>Super Admin, Strata Manager, or Real Estate Agent</strong>: one approval can complete
+                        the transfer.
+                    </li>
+                    <li><strong>EC Member or Chairman</strong>: two distinct EC approvals are required before the
+                        transfer is processed.
+                    </li>
+                </ul>
+            </li>
+            <li>Enter review notes and click <strong>Submit Decision</strong>.</li>
+        </ol>
+
+        <h3>Step 3 — What happens automatically on approval</h3>
+        <p style="margin-bottom:0.5rem;">
+            All of the following are handled by the system. <strong>No further manual steps required.</strong>
+        </p>
+    </div>
+
+    <!-- Automatic cascade table -->
+    <div class="card">
+        <h2><span class="icon">⚡</span> Automatic Cascades on Approval</h2>
+        <p style="margin-bottom:0.75rem;">
+            When an owner change is saved (either pathway), the system's
+            <code>_cascade_owner_change</code> function automatically handles the following:
+        </p>
+        <table class="auto-table">
+            <thead>
+            <tr>
+                <th>System Area</th>
+                <th>What happens automatically</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><strong>Strata Roll</strong><br/><code>strata_owners</code></td>
+                <td>
+                    Owner name and unit entitlement (UOE) updated in the strata roll. The lot/unit
+                    reference numbers are preserved — only the owner name and entitlement are synced.
+                </td>
+                <td><span class="badge badge-green">Auto</span></td>
+            </tr>
+            <tr>
+                <td><strong>Arrears Provenance</strong><br/><code>units.arrears_metadata</code></td>
+                <td>
+                    If the outgoing unit has a positive <code>balance_owing</code>, the system snapshots
+                    the previous owner's name and the carried arrears amount with a timestamp.
+                    This appears in the Arrears Recovery page as
+                    <em>"$X.XX carried from [Previous Owner] (YYYY-MM-DD)"</em>.
+                </td>
+                <td><span class="badge badge-green">Auto</span></td>
+            </tr>
+            <tr>
+                <td><strong>AGM Proxies</strong><br/><code>agm_attendance</code></td>
+                <td>
+                    If the outgoing owner has an active proxy registered for any upcoming AGM,
+                    all building admins (strata manager, chairman, super admin) receive an in-app
+                    notification to manually void or re-assign the proxy before the meeting.
+                </td>
+                <td>
+                    <span class="badge badge-green">Auto-alert</span>
+                    <span class="badge badge-amber">Admin action needed</span>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>EC Member Records</strong><br/><code>ec_members</code></td>
+                <td>
+                    If the outgoing owner appears as an EC member (matched by name or email),
+                    all building admins receive an in-app notification to review EC membership.
+                    The EC record itself is NOT automatically removed — admin must decide whether
+                    the outgoing owner remains on the EC.
+                </td>
+                <td>
+                    <span class="badge badge-green">Auto-alert</span>
+                    <span class="badge badge-amber">Admin action needed</span>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Chat Groups</strong><br/><code>chat_groups</code></td>
+                <td>
+                    The outgoing owner's user account is removed from all unit-based chat groups
+                    (e.g., Apartments chat, Townhouses chat) associated with this building.
+                </td>
+                <td><span class="badge badge-green">Auto</span></td>
+            </tr>
+            <tr>
+                <td><strong>Rental Certificates</strong><br/><code>rental_certificates</code></td>
+                <td>
+                    If the unit transitions from <em>tenanted</em> to <em>owner-occupied</em> as part of the
+                    transfer, any currently <code>issued</code> rental certificates for that unit are
+                    automatically set to <code>superseded</code>.
+                </td>
+                <td><span class="badge badge-green">Auto (if occupancy changes)</span></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Items needing admin action -->
+    <div class="card">
+        <h2><span class="icon">⚠️</span> Items That Still Need Admin Action</h2>
+        <p>The following are NOT handled automatically and require a manual step:</p>
+        <ul style="margin-top:0.75rem; color:#374151; font-size:0.875rem;">
+            <li style="margin-bottom:0.6rem;">
+                <strong>AGM proxy void / reassignment</strong> — You will receive a bell notification if a proxy exists.
+                Go to <strong>Dashboard → AGM Management</strong> to remove or reassign the proxy vote.
+            </li>
+            <li style="margin-bottom:0.6rem;">
+                <strong>EC membership update</strong> — You will receive a bell notification if the outgoing owner is
+                listed
+                as an EC member. Go to <strong>Dashboard → EC Members</strong> to update or remove the record.
+            </li>
+            <li style="margin-bottom:0.6rem;">
+                <strong>New owner portal account</strong> — The new owner needs a registered account on the portal.
+                If they don't have one, invite them via <strong>Dashboard → Users → Invite User</strong> or direct them
+                to the self-registration page.
+            </li>
+            <li style="margin-bottom:0.6rem;">
+                <strong>Levy correspondence address update</strong> — Confirm levy notices will go to the new owner's
+                preferred address. Check their profile under <strong>Dashboard → Users</strong>.
+            </li>
+            <li style="margin-bottom:0.6rem;">
+                <strong>Outstanding arrears recovery</strong> — Inherited arrears are flagged automatically in the
+                Arrears Recovery page, but the debt recovery action (issuing a demand letter, payment plan, etc.)
+                remains a manual process.
+            </li>
+        </ul>
+    </div>
+
+    <!-- Document checklist -->
+    <div class="card">
+        <h2><span class="icon">📄</span> Required Documentation</h2>
+        <p>For Pathway 2 (formal transfer request), have the following ready before approval:</p>
+        <div class="grid-2">
+            <div>
+                <h3>Incoming owner provides</h3>
+                <ul style="color:#374151; font-size:0.875rem;">
+                    <li>Signed contract of sale (exchange)</li>
+                    <li>Title search / transfer document</li>
+                    <li>Settlement statement (optional)</li>
+                    <li>Current contact details</li>
+                </ul>
+            </div>
+            <div>
+                <h3>Strata manager confirms</h3>
+                <ul style="color:#374151; font-size:0.875rem;">
+                    <li>Lot number matches strata plan</li>
+                    <li>Settlement date recorded</li>
+                    <li>Levy clearance status</li>
+                    <li>Any special by-law conditions</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Roles & permissions -->
+    <div class="card">
+        <h2><span class="icon">🔐</span> Who Can Do What</h2>
+        <table class="auto-table">
+            <thead>
+            <tr>
+                <th>Action</th>
+                <th>Super Admin</th>
+                <th>Strata Manager / Chairman</th>
+                <th>EC Member</th>
+                <th>Owner / Tenant</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Direct edit unit record</td>
+                <td><span class="badge badge-green">Yes</span></td>
+                <td><span class="badge badge-red">No</span></td>
+                <td><span class="badge badge-red">No</span></td>
+                <td><span class="badge badge-red">No</span></td>
+            </tr>
+            <tr>
+                <td>Submit transfer request</td>
+                <td><span class="badge badge-green">Yes</span></td>
+                <td><span class="badge badge-green">Yes</span></td>
+                <td><span class="badge badge-green">Yes</span></td>
+                <td><span class="badge badge-green">Yes</span></td>
+            </tr>
+            <tr>
+                <td>View transfer requests</td>
+                <td><span class="badge badge-green">Yes</span></td>
+                <td><span class="badge badge-green">Yes</span></td>
+                <td><span class="badge badge-green">Yes</span></td>
+                <td><span class="badge badge-red">No</span></td>
+            </tr>
+            <tr>
+                <td>Approve / reject requests</td>
+                <td><span class="badge badge-green">Yes</span></td>
+                <td><span class="badge badge-green">Yes</span></td>
+                <td><span class="badge badge-red">No</span></td>
+                <td><span class="badge badge-red">No</span></td>
+            </tr>
+            <tr>
+                <td>Receive cascade alerts</td>
+                <td><span class="badge badge-green">Yes</span></td>
+                <td><span class="badge badge-green">Yes</span></td>
+                <td><span class="badge badge-red">No</span></td>
+                <td><span class="badge badge-red">No</span></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- FAQ -->
+    <div class="card">
+        <h2><span class="icon">❓</span> Common Questions</h2>
+
+        <h3>Q: What if the new owner already has a portal account?</h3>
+        <p>
+            That's fine. The transfer request references their existing user ID. On approval, their
+            account is linked to the unit with role <code>owner</code> and their role in the system
+            is upgraded if they were previously a tenant or guest.
+        </p>
+
+        <h3>Q: What if there were arrears before settlement?</h3>
+        <p>
+            The system snapshots the previous owner's outstanding balance and records it in
+            <code>arrears_metadata</code> on the unit. The Arrears Recovery page shows this as
+            inherited arrears. Whether the debt follows the outgoing owner or transfers to the new
+            owner is a legal question — the strata manager should confirm this with the conveyancer.
+            The system does NOT automatically zero out the arrears; it only labels their provenance.
+        </p>
+
+        <h3>Q: Can I undo an approved transfer?</h3>
+        <p>
+            Not automatically. You would need to manually re-edit the unit record (Pathway 1),
+            deactivate the new owner's unit link in the database, and re-activate the old one.
+            Contact your system administrator if this situation arises.
+        </p>
+
+        <h3>Q: What if the AGM is next week and the proxy notification fires?</h3>
+        <p>
+            The notification is advisory only — the proxy is NOT voided automatically. You must
+            go to <strong>AGM Management → Attendance</strong> and remove or re-assign the proxy
+            before the meeting commences.
+        </p>
+
+        <h3>Q: Does the feature toggle affect this workflow?</h3>
+        <p>
+            The <strong>Owner Transfers</strong> page is gated by the <code>owner_transfers</code>
+            feature toggle. If the page is inaccessible, a Super Admin can enable it via
+            <strong>Dashboard → Feature Toggles</strong>.
+        </p>
+    </div>
+
+    <footer>
+        <p>
+            <span data-bldg="name">your building</span> | Executive Committee | Strata Manager<br/>
+            E: <span data-bldg="contact_email">contact email</span> / ec@ |
+            P: (02) 6285 0325 / 1300 724 256<br/>
+            W: your building portal
+        </p>
+        <p style="margin-top:0.5rem; color:#9CA3AF;">
+            Guide version: 2026-04-04. For your building — this guide applies to all buildings on this platform.
+        </p>
+    </footer>
+
+</div>
+<script src="building-config.js"></script>
+</body>
+</html>

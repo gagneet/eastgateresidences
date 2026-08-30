@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Management Entity Configuration Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform</div>
+            </div>
+        </div>
+        <div class="badge">User Guide</div>
+    </div>
+</header>
+
+<main style="display:block">
+    <article class="content">
+
+        <h1>Management Entity Configuration Guide</h1>
+        <p>This guide is for <strong>Strata Admins</strong>. It explains what a management entity is, how to
+            create one, and how to use entities to organise your portfolio of buildings into logical groups.</p>
+
+        <h2>What Is a Management Entity?</h2>
+        <p>A <strong>management entity</strong> is a team or office within your strata management company.
+            Think of it as a sub-division of your company that is responsible for a specific group of buildings.</p>
+        <p>For example, a company with offices in multiple locations might have:</p>
+        <ul>
+            <li>One entity for the Canberra office, managing ACT buildings.</li>
+            <li>One entity for the Sydney office, managing NSW buildings.</li>
+            <li>One entity for a specialist commercial team, managing commercial strata buildings.</li>
+        </ul>
+        <p>Entities help you organise reporting, assign managers efficiently, and track performance by team
+            — rather than looking at all buildings as one undifferentiated list.</p>
+
+        <div class="card callout success">
+            <strong>Tip:</strong> If your company is small with one office, you only need one management entity.
+            You can always add more entities later as your portfolio grows.
+        </div>
+
+        <h2>Creating a Management Entity</h2>
+        <ol>
+            <li>Log in as a strata admin and go to <strong>Admin → Management Entities</strong>.</li>
+            <li>Click <strong>New Entity</strong>.</li>
+            <li>Enter a name for the entity (for example, "ACT Residential" or "Northern Suburbs Office").</li>
+            <li>Optionally, enter a description and a team lead contact name.</li>
+            <li>Click <strong>Create Entity</strong>.</li>
+        </ol>
+        <p>The entity is created immediately. It will appear in your entities list and in the building
+            assignment screen.</p>
+
+        <h2>Assigning Buildings to the Entity</h2>
+        <p>After creating an entity, assign buildings to it:</p>
+        <ol>
+            <li>Open the entity from <strong>Admin → Management Entities</strong>.</li>
+            <li>Go to the <strong>Buildings</strong> tab.</li>
+            <li>Click <strong>Add Buildings</strong> and select the buildings you want to assign to this entity
+                from your company's portfolio list.</li>
+            <li>Click <strong>Save</strong>.</li>
+        </ol>
+        <p>A building can only belong to one entity at a time. If you need to reassign a building to a
+            different entity (for example, after a team restructure), simply move it from one entity to another —
+            no data is lost in the process.</p>
+
+        <div class="card callout warn">
+            <strong>Important:</strong> Reassigning a building to a new entity does not change its appointed
+            strata manager. If you also want to change the manager, do that separately from the building's
+            Management tab.
+        </div>
+
+        <h2>Appointing Managers to Buildings Within the Entity</h2>
+        <p>Once buildings are assigned to an entity, you can appoint individual strata managers to each building:</p>
+        <ol>
+            <li>Open the entity and go to the <strong>Buildings</strong> tab.</li>
+            <li>Click on a building name to open its management detail.</li>
+            <li>Go to the <strong>Manager Appointment</strong> section.</li>
+            <li>Select the strata manager from your company's staff list. Only managers who are members of
+                your company appear in this list.</li>
+            <li>Enter the contract start date and confirm the appointment.</li>
+        </ol>
+        <p>The appointed manager immediately sees the building in their portfolio and can begin work. Owners
+            and EC members in the building will see the manager's name and contact details update automatically.</p>
+
+        <div class="card callout success">
+            <strong>Tip:</strong> A strata manager can be appointed to buildings in different entities —
+            for example, if a manager covers buildings across two offices. The manager sees all their
+            buildings in one portfolio view regardless of which entity each building belongs to.
+        </div>
+
+        <h2>Viewing Entity-Level Analytics</h2>
+        <p>Each entity has its own analytics view, which aggregates performance data for all buildings in
+            the entity. Access it from <strong>Admin → Management Entities → [Entity Name] → Analytics</strong>.</p>
+        <p>The entity analytics view shows:</p>
+        <ul>
+            <li><strong>Portfolio health</strong> — the distribution of green, amber, and red buildings
+                within this entity.</li>
+            <li><strong>Levy collection rate</strong> — the average collection rate across all buildings
+                in the entity for the current quarter.</li>
+            <li><strong>Arrears total</strong> — the combined outstanding levy balance for buildings in
+                this entity.</li>
+            <li><strong>Compliance status</strong> — how many compliance items are current, due soon, or
+                overdue across the entity's buildings.</li>
+            <li><strong>Maintenance SLA performance</strong> — average resolution time and breach count
+                across the entity.</li>
+            <li><strong>Manager workload</strong> — a breakdown of how many buildings each manager in the
+                entity is responsible for, and their individual performance metrics.</li>
+        </ul>
+        <p>Use this view for team-level performance reviews and to identify whether a manager is overloaded
+            or whether specific buildings need a change in approach.</p>
+
+    </article>
+</main>
+
+<footer>
+    <span data-bldg="name">your building</span> | Executive Committee | Strata Manager &nbsp;·&nbsp; E: <a
+        data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC email</a>
+    &nbsp;·&nbsp; P: <span data-bldg="contact_phone">(contact number)</span>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

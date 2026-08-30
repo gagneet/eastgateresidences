@@ -1,0 +1,106 @@
+{
+  "_meta": {
+    "jurisdiction": "NT",
+    "primary_legislation": "Unit Titles Act 1975 (NT)",
+    "trust_law": "Unit Titles Act 1975 (NT); manager contract dependent",
+    "last_reviewed": "2026-08-03"
+  },
+  "max_interest_rate_pa": {
+    "value": 10,
+    "unit": "percent",
+    "legislation": "Unit Titles Act 1975 (NT); corporation resolution dependent",
+    "effective": "1975-01-01",
+    "notes": "Operational default pending scheme-law review; production levy interest must use the approved rule."
+  },
+  "interest_grace_period_days": {
+    "value": 0,
+    "unit": "days",
+    "legislation": "Unit Titles Act 1975 (NT) s.36",
+    "effective": "1975-01-01",
+    "notes": "No generic grace period encoded."
+  },
+  "trial_balance_deadline_days": {
+    "value": 30,
+    "unit": "calendar_days",
+    "legislation": "Unit Titles Act 1975 (NT); manager contract dependent",
+    "effective": "1975-01-01",
+    "notes": "Operational default for managed schemes; confirm against manager contract."
+  },
+  "min_withholding_pct_no_abn": {
+    "value": 47,
+    "unit": "percent",
+    "legislation": "ITAA 1997 (Commonwealth) s.12-190",
+    "effective": "2000-07-01",
+    "notes": "ATO PAYG withholding: 47% on payments to suppliers without ABN."
+  },
+  "agm_notice_days": {
+    "value": 14,
+    "unit": "days",
+    "legislation": "Unit Titles Act 1975 (NT)",
+    "effective": "1975-01-01",
+    "notes": "Meeting notice control used as conservative workflow default; articles and legal review remain authoritative."
+  },
+  "capital_funding_standard_notice_days": {
+    "value": null,
+    "unit": "days",
+    "legislation": "Unit Titles Act 1975 (NT) ss.36, 40",
+    "effective": "1975-01-01",
+    "notes": "No verified generic capital-funding levy payment period is encoded. Contributions and borrowing must follow corporation approval."
+  },
+  "capital_funding_emergency_notice_days": {
+    "value": null,
+    "unit": "days",
+    "legislation": "Unit Titles Act 1975 (NT) ss.36, 40",
+    "effective": "1975-01-01",
+    "notes": "No shorter generic emergency period is encoded."
+  },
+  "capital_funding_notice_period_verified": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "Unit Titles Act 1975 (NT) ss.36, 40",
+    "effective": "1975-01-01",
+    "notes": "Payment-period validation must rely on legal-review evidence and approved motion text, not a generic platform default."
+  },
+  "capital_funding_resolution_required": {
+    "value": "corporation_resolution",
+    "unit": "enum",
+    "legislation": "Unit Titles Act 1975 (NT) ss.36, 40",
+    "effective": "1975-01-01",
+    "notes": "The corporation determines contributions and may borrow money under statutory power; meeting material must retain the approved motion text."
+  },
+  "capital_funding_allocation_basis": {
+    "value": "unit_entitlement",
+    "unit": "enum",
+    "legislation": "Unit Titles Act 1975 (NT) s.36",
+    "effective": "1975-01-01",
+    "notes": "Contributions are proportionate to unit entitlement."
+  },
+  "capital_funding_benefit_principle_available": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "Unit Titles Act 1975 (NT) s.36",
+    "effective": "1975-01-01",
+    "notes": "No generic benefit-principle allocator is enabled; class-based allocation needs legal review."
+  },
+  "capital_funding_tenant_consultation_required": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "Unit Titles Act 1975 (NT)",
+    "effective": "1975-01-01",
+    "notes": "Tenant consultation is not a default contribution-approval condition."
+  },
+  "capital_funding_hardship_notice_required": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "Unit Titles Act 1975 (NT)",
+    "effective": "1975-01-01",
+    "notes": "No NT-specific hardship notice requirement is encoded; hardship workflows should remain available by policy."
+  },
+  "capital_funding_hybrid_legal_review_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "Unit Titles Act 1975 (NT); lender/legal-advice dependent",
+    "effective": "1975-01-01",
+    "notes": "Hybrid owner-funded and loan-funded structures require recorded legal approval before notices or credits are issued."
+  }
+}

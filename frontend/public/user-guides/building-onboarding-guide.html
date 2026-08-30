@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Building Onboarding Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .step-badge {
+            display: inline-block;
+            background: #2F4F4F;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 13px;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .step-row {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+
+        .step-content h3 {
+            margin: 0 0 4px 0;
+            font-size: 15px;
+        }
+
+        .step-content p {
+            margin: 0;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .xp-badge {
+            display: inline-block;
+            background: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .required-badge {
+            display: inline-block;
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+
+        .callout-info {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .callout-warn {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← User Guides</a>
+        <h1>Building Onboarding Guide</h1>
+        <p>How to add a new building to the platform using the 8-step onboarding wizard and the current SM-organisation onboarding flow.</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2>Who can onboard a building?</h2>
+        <p>Only <strong>Super Admins</strong>, <strong>Strata Admins</strong>, and <strong>Strata Managers</strong> can
+            access the building onboarding form. Owners, EC members, and tenants do not have access to this workflow.</p>
+        <p>Navigate to: <strong>Dashboard → Admin → Buildings → Add New Building</strong></p>
+    </section>
+
+    <section>
+        <h2>What the wizard does</h2>
+        <p>The 8-step wizard collects all the information needed to bring a new strata scheme into the platform. When
+            you click <strong>Create Building</strong> at the end, the system will:</p>
+        <ul>
+            <li>Create the building record in the database</li>
+            <li>Assign or invite the strata manager (if provided)</li>
+            <li>Create the executive committee roster (CHAIRMAN is required)</li>
+            <li>Start a scheme onboarding session for the selected SM organisation tenant</li>
+            <li>Record an audit log entry for compliance</li>
+        </ul>
+        <div class="callout-info">
+            <strong>Multi-building platform:</strong> Each building is fully isolated by its Unit Plan number. Data from
+            one building never crosses into another.
+        </div>
+    </section>
+
+    <section>
+        <h2>The 8 steps</h2>
+
+        <div class="step-row">
+            <div class="step-badge">1</div>
+            <div class="step-content">
+                <h3>Building Identity <span class="xp-badge">+10 XP</span> <span class="required-badge">Required</span>
+                </h3>
+                <p><strong>Unit Plan Number</strong> — enter the full plan number (e.g. <code>your unit plan</code> or
+                    <code>your-plan-number</code>). The numeric portion becomes the building's system ID. The
+                    <code>UP</code> or <code>SP</code> prefix is stripped automatically.</p>
+                <p><strong>Building Name</strong> — the display name used throughout the platform.</p>
+                <p>Both fields are required to advance.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">2</div>
+            <div class="step-content">
+                <h3>Location &amp; Physical Details <span class="xp-badge">+15 XP</span> <span class="required-badge">Required</span>
+                </h3>
+                <p>Enter the street address, suburb, state, and postcode. The <strong>State</strong> field determines
+                    the applicable jurisdiction for compliance rules (e.g. ACT, NSW, VIC).</p>
+                <p>Street address is required to advance.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">3</div>
+            <div class="step-content">
+                <h3>Lot &amp; Unit Configuration <span class="xp-badge">+20 XP</span> <span class="required-badge">Required</span>
+                </h3>
+                <p>Select at least one <strong>Lot Type</strong> present in the scheme (apartment, townhouse, villa,
+                    commercial, carpark, storage). This drives levy entitlements and compliance obligations.</p>
+                <p>For ACT schemes, you can specify the <strong>Class A / Class B</strong> demarcation. Class A covers
+                    multi-storey apartments; Class B covers ground-level townhouses.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">4</div>
+            <div class="step-content">
+                <h3>Financial &amp; Legal Configuration <span class="xp-badge">+20 XP</span> <span
+                        class="required-badge">Required</span></h3>
+                <p><strong>Total Lots/Units</strong> — the total number of lots in the scheme (required for levy
+                    calculations).</p>
+                <p><strong>Financial Year End Month</strong> — default is June (month 6). Changes this field if your
+                    scheme runs a different FY calendar.</p>
+                <p><strong>Levy Due Months</strong> — the months when levy notices are generated (default: March, June,
+                    September, December).</p>
+                <p>Total lots is required to advance.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">5</div>
+            <div class="step-content">
+                <h3>Assign Strata Manager <span class="xp-badge">+20 XP</span></h3>
+                <p>Optional but recommended. You can either:</p>
+                <ul>
+                    <li><strong>Search existing users</strong> — find a strata manager already registered in the system
+                    </li>
+                    <li><strong>Invite by email</strong> — send an invitation to a new strata manager</li>
+                    <li><strong>Skip for now</strong> — assign later via the Users or Settings section</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">6</div>
+            <div class="step-content">
+                <h3>Executive Committee <span class="xp-badge">+25 XP</span> <span class="required-badge">CHAIRMAN required</span>
+                </h3>
+                <p>Add EC members. At least one member with the <strong>CHAIRMAN</strong> position is mandatory — the
+                    form will not advance without it.</p>
+                <p>For each member, either search for an existing user or enter their name and email to invite them. You
+                    can add TREASURER, SECRETARY, and MEMBER positions as needed.</p>
+                <div class="callout-warn">
+                    The CHAIRMAN row is highlighted in rose — fill in their full name and email before clicking
+                    Continue.
+                </div>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">7</div>
+            <div class="step-content">
+                <h3>Import Existing Data <span class="xp-badge">+10 XP</span></h3>
+                <p>Optional. If you have existing levy records, unit lists, or owner registers from another system, this
+                    step lets you flag that data import is needed so the follow-up scheme setup can cover lots,
+                    members, and opening data in the organisation detail workflow.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">8</div>
+            <div class="step-content">
+                <h3>Review &amp; Launch</h3>
+                <p>Review a summary of all entered data, including building identity, total lots, strata manager, and EC
+                    members. The review panel shows a tick or cross against each required item.</p>
+                <p>Click <strong>Create Building</strong> to finalise. You will see a success confirmation and be taken
+                    to the SM organisation detail view to continue member, lot, and fund setup.</p>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>The XP progress system</h2>
+        <p>Each step awards XP points as you complete it. The total XP shown in the header tracks your progress through
+            the wizard. This is a visual guide only — there is no penalty for incomplete optional steps.</p>
+        <table>
+            <tr>
+                <th>Step</th>
+                <th>XP awarded</th>
+            </tr>
+            <tr>
+                <td>Step 1 — Identity</td>
+                <td>10 XP</td>
+            </tr>
+            <tr>
+                <td>Step 2 — Location</td>
+                <td>15 XP</td>
+            </tr>
+            <tr>
+                <td>Step 3 — Lots</td>
+                <td>20 XP</td>
+            </tr>
+            <tr>
+                <td>Step 4 — Financial</td>
+                <td>20 XP</td>
+            </tr>
+            <tr>
+                <td>Step 5 — Manager</td>
+                <td>20 XP</td>
+            </tr>
+            <tr>
+                <td>Step 6 — Committee</td>
+                <td>25 XP</td>
+            </tr>
+            <tr>
+                <td>Step 7 — Import</td>
+                <td>10 XP</td>
+            </tr>
+            <tr>
+                <td>Total possible</td>
+                <td>120 XP</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2>After the building is created</h2>
+        <p>Once the building is created, continue setup from the SM organisation detail view:</p>
+        <ul>
+            <li>Review the scheme record created for the selected tenant</li>
+            <li>Add or confirm scheme members</li>
+            <li>Complete lot and ownership setup</li>
+            <li>Capture opening balances and other follow-up onboarding data</li>
+        </ul>
+        <p>Access the follow-up flow at: <strong>Dashboard → Admin → SM Organisations → [Organisation]</strong></p>
+        <div class="callout-info">
+            <strong>Switching buildings:</strong> Use the building switcher in the header to move between buildings.
+            Your role and permissions are evaluated per-building.
+        </div>
+    </section>
+
+    <section>
+        <h2>Troubleshooting</h2>
+        <table>
+            <tr>
+                <th>Issue</th>
+                <th>Solution</th>
+            </tr>
+            <tr>
+                <td>Form shows "Access restricted"</td>
+                <td>Your account role is not Super Admin or Strata Manager. Contact your platform administrator.</td>
+            </tr>
+            <tr>
+                <td>"Building already exists" error</td>
+                <td>The unit plan number you entered is already registered. Check the Buildings list or use a different
+                    plan number.
+                </td>
+            </tr>
+            <tr>
+                <td>Cannot advance past Step 6</td>
+                <td>Ensure the CHAIRMAN row has both a full name and an email address (or an existing user selected).
+                </td>
+            </tr>
+            <tr>
+                <td>Cannot advance past Step 4</td>
+                <td>Ensure the Total Lots/Units field contains a positive number.</td>
+            </tr>
+        </table>
+    </section>
+
+</main>
+
+<footer>
+    <p>Strata Management Platform — User Guides</p>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

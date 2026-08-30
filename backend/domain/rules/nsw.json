@@ -1,0 +1,410 @@
+{
+  "_meta": {
+    "jurisdiction": "NSW",
+    "primary_legislation": "Strata Schemes Management Act 2015 (NSW)",
+    "trust_law": "Property and Stock Agents Act 2002 (NSW); PSA Regulation 2022",
+    "last_reviewed": "2026-04-25"
+  },
+  "max_interest_rate_pa": {
+    "value": 10,
+    "unit": "percent",
+    "legislation": "SSMA 2015 s.85",
+    "effective": "2016-11-30",
+    "notes": "Simple interest on overdue levies: 10% per annum (SSMA s.85)."
+  },
+  "max_interest_rate_pa_by_special_resolution": {
+    "value": 10,
+    "unit": "percent",
+    "legislation": "SSMA 2015 s.85",
+    "effective": "2016-11-30",
+    "notes": "NSW does not permit a higher rate by special resolution — 10% is the ceiling."
+  },
+  "interest_grace_period_days": {
+    "value": 30,
+    "unit": "days",
+    "legislation": "SSMA 2015 s.85",
+    "effective": "2016-11-30",
+    "notes": "One-month grace period before interest accrues on overdue levies."
+  },
+  "can_transfer_between_funds": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "SSMA 2015 s.76",
+    "effective": "2016-11-30",
+    "notes": "Inter-fund transfers permitted with 3-month notice of motion at general meeting."
+  },
+  "inter_fund_transfer_resolution_required": {
+    "value": "general_meeting",
+    "unit": "enum",
+    "legislation": "SSMA 2015 s.76",
+    "effective": "2016-11-30",
+    "notes": "General meeting resolution required; 3-month notice of motion. Allowed values: none, ordinary, general_meeting, special, prohibited."
+  },
+  "overbudget_threshold_pct": {
+    "value": 10.0,
+    "unit": "percent",
+    "legislation": "SSMA 2015 s.102",
+    "effective": "2016-11-30",
+    "notes": "Invoices that would push a budget line more than 10% over cap require general meeting approval."
+  },
+  "overbudget_requires_resolution_above_pct": {
+    "value": 10.0,
+    "unit": "percent",
+    "legislation": "SSMA 2015 s.102",
+    "effective": "2016-11-30",
+    "notes": "General meeting resolution required for any spend exceeding the approved budget line by more than 10%."
+  },
+  "trust_withdrawal_authority_roles": {
+    "value": [
+      "class_1_lic"
+    ],
+    "excluded": [],
+    "unit": "roles",
+    "legislation": "Property and Stock Agents Regulation 2022 (NSW)",
+    "effective": "2022-09-01",
+    "notes": "Only a Class 1 Licensee-in-Charge may authorise trust withdrawals per PSA Regulation 2022."
+  },
+  "trial_balance_deadline_days": {
+    "value": 21,
+    "unit": "calendar_days",
+    "legislation": "Property and Stock Agents Regulation 2022 (NSW) reg 30",
+    "effective": "2022-09-01",
+    "notes": "Trial balance must be prepared within 21 days after month-end."
+  },
+  "audit_deadline": {
+    "value": "30 September",
+    "unit": "date",
+    "legislation": "Property Stock and Agents Act 2002 (NSW)",
+    "effective": "2002-01-01",
+    "notes": "Trust account audit must be completed by 30 September each year."
+  },
+  "pooled_trust_permitted": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "PSAA 2002 (NSW)",
+    "effective": "2002-01-01",
+    "notes": "Pooled trust accounts are permitted as the default arrangement."
+  },
+  "interest_belongs_to": {
+    "value": "statutory_account",
+    "unit": "enum",
+    "legislation": "SSMA 2015 s.90",
+    "effective": "2016-11-30",
+    "notes": "Interest on pooled trust accounts must be paid into a statutory interest account (s.90), not distributed to the scheme. Allowed values: scheme, statutory_account, body_corporate."
+  },
+  "committee_spending_cap_formula": {
+    "value": null,
+    "unit": "formula",
+    "legislation": null,
+    "effective": null,
+    "notes": "NSW does not impose a per-lot committee spending cap formula."
+  },
+  "min_withholding_pct_no_abn": {
+    "value": 47,
+    "unit": "percent",
+    "legislation": "ITAA 1997 (Commonwealth) s.12-190",
+    "effective": "2000-07-01",
+    "notes": "ATO PAYG withholding: 47% on payments to suppliers without ABN."
+  },
+  "agm_notice_days": {
+    "value": 7,
+    "unit": "days",
+    "legislation": "SSMA 2015 s.18",
+    "effective": "2016-11-30",
+    "notes": "Minimum 7 clear days notice for general meetings."
+  },
+  "strata_hub_report_months": {
+    "value": 3,
+    "unit": "months",
+    "legislation": "SSMA 2015 s.20 (amended 2023)",
+    "effective": "2023-07-01",
+    "notes": "Annual report to Strata Hub due within 3 months of AGM."
+  },
+  "agent_report_frequency_months": {
+    "value": 6,
+    "unit": "months",
+    "legislation": "PSABAA 2002 Reg",
+    "effective": "2016-11-30",
+    "notes": "Strata managing agent must report every 6 months to OC."
+  },
+  "levy_notice_hardship_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "SSMA 2015 s.79 (2025 amendment)",
+    "effective": "2025-02-01",
+    "notes": "Levy notices must include Financial Hardship Information Statement."
+  },
+  "capital_works_fund_plan_years": {
+    "value": 10,
+    "unit": "years",
+    "legislation": "SSMA 2015 s.75",
+    "effective": "2016-11-30",
+    "notes": "Capital works fund plan must cover at least 10 years."
+  },
+  "capital_works_fund_plan_deadline": {
+    "value": "2026-04-01",
+    "unit": "date",
+    "legislation": "SSMA 2015 (2025 reform)",
+    "effective": "2025-02-01",
+    "notes": "Standard form capital works fund plan required by April 2026."
+  },
+  "insurance_quotes_minimum": {
+    "value": 3,
+    "unit": "count",
+    "legislation": "PSABAA 2002 s.47",
+    "effective": "2016-11-30",
+    "notes": "Agent must obtain at least 3 quotes per insurance type; written reasons if fewer."
+  },
+  "insurance_commission_disclosure_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "PSABAA 2002 s.47",
+    "effective": "2016-11-30",
+    "notes": "Insurance quotation must itemise commissions, broker fees, taxes."
+  },
+  "evoting_notice_days": {
+    "value": 7,
+    "unit": "days",
+    "legislation": "SSMA 2015 Sch.1",
+    "effective": "2016-11-30",
+    "notes": "Electronic ballot must be accessible at least 7 days before meeting."
+  },
+  "record_retention_years": {
+    "value": 7,
+    "unit": "years",
+    "legislation": "SSMA 2015 s.185",
+    "effective": "2016-11-30",
+    "notes": "Records retention minimum 7 years."
+  },
+  "levy_interest_rate_default_percent": {
+    "value": 10,
+    "unit": "percent",
+    "legislation": "SSMA 2015 s.85",
+    "effective": "2016-11-30",
+    "notes": "Default simple interest on unpaid levies: 10% per annum."
+  },
+  "levy_interest_rate_max_percent": {
+    "value": 10,
+    "unit": "percent",
+    "legislation": "SSMA 2015 s.85",
+    "effective": "2016-11-30",
+    "notes": "NSW ceiling is 10% — no higher rate by special resolution."
+  },
+  "levy_interest_rate_min_percent": {
+    "value": 0,
+    "unit": "percent",
+    "legislation": "SSMA 2015 s.85",
+    "effective": "2016-11-30",
+    "notes": "OC may resolve a lower rate."
+  },
+  "audit_threshold_budget_aud": {
+    "value": 250000,
+    "unit": "AUD",
+    "legislation": "SSMA 2015",
+    "effective": "2016-11-30",
+    "notes": "Mandatory audit trigger — consult scheme's by-laws and PSAA."
+  },
+  "audit_threshold_lots": {
+    "value": 100,
+    "unit": "count",
+    "legislation": "SSMA 2015",
+    "effective": "2016-11-30",
+    "notes": "Schemes with 100+ lots have enhanced reporting obligations."
+  },
+  "record_inspection_days": {
+    "value": 10,
+    "unit": "days",
+    "legislation": "SSMA 2015 s.182",
+    "effective": "2016-11-30",
+    "notes": "Records must be made available for inspection within 10 days of request."
+  },
+  "public_liability_minimum_aud": {
+    "value": 20000000,
+    "unit": "AUD",
+    "legislation": "SSMA 2015 s.160",
+    "effective": "2016-11-30",
+    "notes": "Minimum $20M public liability insurance for NSW schemes."
+  },
+  "building_insurance_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "SSMA 2015 s.160",
+    "effective": "2016-11-30",
+    "notes": "Building insurance at replacement value — mandatory."
+  },
+  "sinking_fund_review_years": {
+    "value": 10,
+    "unit": "years",
+    "legislation": "SSMA 2015 s.75",
+    "effective": "2016-11-30",
+    "notes": "Capital works fund plan must be reviewed every 10 years."
+  },
+  "manager_contract_max_years": {
+    "value": 3,
+    "unit": "years",
+    "legislation": "SSMA 2015 s.49",
+    "effective": "2016-11-30",
+    "notes": "Strata management contracts may not exceed 3 years."
+  },
+  "agm_notice_period_days": {
+    "value": 7,
+    "unit": "days",
+    "legislation": "SSMA 2015 s.18",
+    "effective": "2016-11-30",
+    "notes": "Minimum 7 clear days notice required for all general meetings (AGMs and EGMs)."
+  },
+  "proxy_cap_scheme_pct": {
+    "value": 5,
+    "unit": "percent",
+    "legislation": "SSMA 2015 s.60",
+    "effective": "2016-11-30",
+    "notes": "No single person may hold proxies representing more than 5% of lots in a scheme of 20+ lots."
+  },
+  "proxy_cap_small_scheme_lots": {
+    "value": 1,
+    "unit": "count",
+    "legislation": "SSMA 2015 s.60",
+    "effective": "2016-11-30",
+    "notes": "In schemes of fewer than 20 lots, a person may hold at most 1 proxy."
+  },
+  "proxy_cap_scheme_size_threshold": {
+    "value": 20,
+    "unit": "lots",
+    "legislation": "SSMA 2015 s.60",
+    "effective": "2016-11-30",
+    "notes": "Threshold below which the 1-proxy cap applies; at or above, 5% scheme cap applies."
+  },
+  "building_manager_duties_register_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "SSMA 2015 s.46B",
+    "effective": "2016-11-30",
+    "notes": "Strata managing agent must maintain a register of duties delegated to building managers. Penalty: up to $5,500."
+  },
+  "building_manager_duties_register_penalty_aud": {
+    "value": 5500,
+    "unit": "AUD",
+    "legislation": "SSMA 2015 s.46B(5)",
+    "effective": "2016-11-30",
+    "notes": "Penalty for failing to maintain building manager duties register."
+  },
+  "initial_maintenance_schedule_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "SSMA 2015 s.80 + Schedule 3",
+    "effective": "2016-11-30",
+    "notes": "Owners corporation must prepare and maintain an initial maintenance schedule for common property."
+  },
+  "initial_maintenance_schedule_deadline_months": {
+    "value": 6,
+    "unit": "months",
+    "legislation": "SSMA 2015 s.80(1)",
+    "effective": "2016-11-30",
+    "notes": "If the developer did not provide the IMS, the OC must prepare one within 6 months of plan registration."
+  },
+  "initial_maintenance_schedule_review_frequency": {
+    "value": "annually_at_agm",
+    "unit": "enum",
+    "legislation": "SSMA 2015 s.80(5)",
+    "effective": "2016-11-30",
+    "notes": "The IMS must be reviewed at each AGM."
+  },
+  "manager_report_period_months": {
+    "value": 6,
+    "unit": "months",
+    "legislation": "SSMA 2015 s.58; PSABAA 2002 Reg",
+    "effective": "2016-11-30",
+    "notes": "Strata managing agent must provide the OC with a financial report every 6 months."
+  },
+  "manager_report_retention_years": {
+    "value": 10,
+    "unit": "years",
+    "legislation": "SSMA 2015 s.184A",
+    "effective": "2016-11-30",
+    "notes": "6-monthly manager reports must be retained for at least 10 years."
+  },
+  "evoting_permitted": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "SSMA 2015 s.253B (2022 amendment)",
+    "effective": "2022-11-01",
+    "notes": "Electronic voting is permitted for strata scheme general meetings in NSW from November 2022."
+  },
+  "evoting_platform_must_be_approved": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "SSMA 2015 s.253B",
+    "effective": "2022-11-01",
+    "notes": "NSW does not require use of an approved platform; any electronic method acceptable."
+  },
+  "privacy_dsar_response_days": {
+    "value": 30,
+    "unit": "days",
+    "legislation": "Privacy Act 1988 (Cth) APP 12",
+    "effective": "1988-01-01",
+    "notes": "Response to Data Subject Access Request must be provided within 30 days under APP 12."
+  },
+  "capital_funding_standard_notice_days": {
+    "value": 30,
+    "unit": "days",
+    "legislation": "SSMA 2015 s.83; NSW Government levy guidance",
+    "effective": "2016-11-30",
+    "notes": "Standard contribution notices generally require at least 30 days before payment is due."
+  },
+  "capital_funding_emergency_notice_days": {
+    "value": 14,
+    "unit": "days",
+    "legislation": "SSMA 2015 s.83; NSW Government emergency repair levy guidance",
+    "effective": "2025-02-01",
+    "notes": "Emergency repair levy notices may use a 14-day payment period when the statutory criteria are met."
+  },
+  "capital_funding_notice_period_verified": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "SSMA 2015 s.83",
+    "effective": "2025-02-01",
+    "notes": "Standard and emergency levy payment periods are encoded from NSW legislation and official guidance."
+  },
+  "capital_funding_resolution_required": {
+    "value": "ordinary_general_meeting",
+    "unit": "enum",
+    "legislation": "SSMA 2015 ss.79-83",
+    "effective": "2016-11-30",
+    "notes": "Annual and special levies are set by owners corporation resolution at a general meeting."
+  },
+  "capital_funding_allocation_basis": {
+    "value": "unit_entitlement",
+    "unit": "enum",
+    "legislation": "SSMA 2015 s.83",
+    "effective": "2016-11-30",
+    "notes": "Contributions are levied in proportion to each lot's unit entitlement unless a specific statutory exception applies."
+  },
+  "capital_funding_benefit_principle_available": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "SSMA 2015 s.83",
+    "effective": "2016-11-30",
+    "notes": "Default NSW contribution allocation is unit entitlement; mixed-use exceptions require legal review and approved resolution text."
+  },
+  "capital_funding_tenant_consultation_required": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "SSMA 2015",
+    "effective": "2016-11-30",
+    "notes": "Tenant notice is not a default levy-approval condition; works access and by-law impacts must be handled separately."
+  },
+  "capital_funding_hardship_notice_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "SSMA 2015 s.79; NSW Government hardship guidance",
+    "effective": "2025-02-01",
+    "notes": "Special levy workflows should include financial hardship information and payment-plan channels."
+  },
+  "capital_funding_hybrid_legal_review_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "SSMA 2015; lender/legal-advice dependent",
+    "effective": "2016-11-30",
+    "notes": "Hybrid owner-funded and loan-funded structures require recorded legal approval before notices or credits are issued."
+  }
+}

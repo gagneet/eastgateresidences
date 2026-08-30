@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Management Hierarchy – StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">StrataOS</div>
+            <div class="sub">Technical Documentation · Management Hierarchy</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Feature Domains</div>
+            <a class="active" data-page="management-hierarchy.html" href="management-hierarchy.html"><span class="icon">🏢</span> Management Hierarchy</a>
+            <a data-page="management-hierarchy-api.html" href="management-hierarchy-api.html"><span class="icon">🔌</span> Hierarchy API</a>
+            <a data-page="sm-organisations-api.html" href="sm-organisations-api.html"><span class="icon">🏛️</span> SM Organisations API</a>
+            <a data-page="manager-contracts-api.html" href="manager-contracts-api.html"><span class="icon">📄</span> Manager Contracts API</a>
+            <a data-page="trust-accounting.html" href="trust-accounting.html"><span class="icon">🏦</span> Trust Accounting</a>
+            <a data-page="feature-toggles.html" href="feature-toggles.html"><span class="icon">🎛️</span> Feature Toggles</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#overview">Overview</a>
+            <a href="#model">Data Model</a>
+            <a href="#management-modes">Management Modes</a>
+            <a href="#access-scopes">Access Scopes</a>
+            <a href="#postgres-tables">PostgreSQL Tables</a>
+            <a href="#migrations">Migrations</a>
+            <a href="#security">Security Model</a>
+            <a href="#feature-toggle">Feature Toggle</a>
+            <a href="#roles">Roles</a>
+            <a href="#appointment-types">Appointment Types</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <h1>Management Hierarchy</h1>
+        <p>
+            The management hierarchy feature provides a unified abstraction for representing how a strata scheme is
+            professionally managed — covering agency management, self-managed owner corporations, independent
+            managers, and transitional/unknown states. It was introduced in PR #452 (Alembic 0056–0057).
+        </p>
+        <div class="callout">
+            <strong>PostgreSQL only.</strong> All management hierarchy data is Postgres-native
+            (<code>core</code> schema). There is no MongoDB collection for this feature. The feature is
+            gated by the <code>management_hierarchy_enabled</code> toggle.
+        </div>
+
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>
+                A strata management company (the <em>agency</em>) may manage many buildings. Within an agency, one or
+                more <em>management entities</em> group buildings. Individual managers are then <em>appointed</em> to
+                specific schemes. This three-level hierarchy replaces the previous flat agency→building direct link.
+            </p>
+            <pre><code>core.tenants (agency/org)
+  └── core.management_entities  (entity_type: agency | self_managed_oc | independent_manager | unknown)
+        └── core.scheme_management_assignments  (is_primary=TRUE, status='active')
+              └── core.schemes  (a single strata scheme / building)
+                    └── core.scheme_manager_appointments  (individual user appointment)
+                          └── core.users  (the appointed manager)</code></pre>
+            <p>
+                The pre-existing <code>core.agencies</code> table is not removed. Existing agency rows are
+                cross-referenced via <code>management_entities.source_agency_id</code>.
+            </p>
+        </section>
+
+        <section id="model">
+            <h2>Data Model</h2>
+            <p>
+                Resolution precedence — to answer "who manages this building", walk:
+            </p>
+            <ol>
+                <li><code>core.scheme_management_assignments</code> WHERE <code>is_primary = TRUE AND status = 'active'</code></li>
+                <li>Join to <code>core.management_entities</code> — check <code>entity_type</code></li>
+                <li>For <code>entity_type = 'agency'</code>, cross-reference <code>core.agencies</code> via <code>source_agency_id</code></li>
+                <li>For individual managers, check <code>core.scheme_manager_appointments</code> WHERE <code>status = 'active'</code></li>
+            </ol>
+            <div class="callout">
+                <strong>Unique constraint.</strong> Only one active primary assignment per scheme is permitted
+                (enforced by <code>uq_sma_scheme_primary_active</code> on <code>(scheme_id, is_primary, status)</code>).
+            </div>
+        </section>
+
+        <section id="management-modes">
+            <h2>Management Modes</h2>
+            <p>
+                The <code>mode</code> field on <code>EnsureHierarchyRequest</code> drives entity creation.
+                Valid values:
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mode</th>
+                        <th>entity_type created</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>agency_managed</code></td>
+                        <td><code>agency</code></td>
+                        <td>A licensed strata management agency manages the building. Requires <code>source_agency_id</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>self_managed</code></td>
+                        <td><code>self_managed_oc</code></td>
+                        <td>The owners corporation manages itself — no external agency. <code>is_self_managed = TRUE</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>independent_manager</code></td>
+                        <td><code>independent_manager</code></td>
+                        <td>Sole-trader or unlicensed-entity manager. <code>is_independent = TRUE</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>unknown</code></td>
+                        <td><code>unknown</code></td>
+                        <td>Transitional/placeholder state. Entity status is set to <code>pending</code>.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="access-scopes">
+            <h2>Access Scopes</h2>
+            <p>
+                The service function <code>require_management_hierarchy_access()</code> in
+                <code>backend/services/management_hierarchy_service.py</code> resolves a caller's
+                <em>access scope</em> and enforces read/write gates. Scopes in order of privilege:
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Scope</th>
+                        <th>Who</th>
+                        <th>Sensitive fields returned</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>platform</code></td>
+                        <td>super_admin</td>
+                        <td>Full (ABN, email, phone, legal_name)</td>
+                    </tr>
+                    <tr>
+                        <td><code>agency</code></td>
+                        <td>Caller is an admin of the agency that owns the entity</td>
+                        <td>Full</td>
+                    </tr>
+                    <tr>
+                        <td><code>management_entity</code></td>
+                        <td>Caller has explicit management entity membership</td>
+                        <td>Full</td>
+                    </tr>
+                    <tr>
+                        <td><code>scheme</code></td>
+                        <td>Caller is an assigned strata_manager for the scheme</td>
+                        <td>Limited (name, entity_type, status)</td>
+                    </tr>
+                    <tr>
+                        <td><code>building</code></td>
+                        <td>EC member of the scheme</td>
+                        <td>Limited (name, entity_type, status)</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>
+                Scopes <code>platform | agency | management_entity</code> receive full entity fields.
+                Scopes <code>scheme | building</code> receive filtered fields only (ABN, email, phone,
+                legal_name are omitted).
+            </p>
+        </section>
+
+        <section id="postgres-tables">
+            <h2>PostgreSQL Tables</h2>
+            <p>All tables are in the <code>core</code> schema.</p>
+
+            <h3>core.management_entities</h3>
+            <p>Migration: <code>0056_management_entity_model</code></p>
+            <table>
+                <thead>
+                    <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>management_entity_id</code></td><td>UUID PK</td><td>gen_random_uuid()</td></tr>
+                    <tr><td><code>tenant_id</code></td><td>UUID nullable</td><td>NULL = platform-level entity (e.g. an agency)</td></tr>
+                    <tr><td><code>entity_type</code></td><td>TEXT NOT NULL</td><td>agency | self_managed_oc | independent_manager | owners_corporation | platform_demo | unknown</td></tr>
+                    <tr><td><code>name</code></td><td>TEXT NOT NULL</td><td>Display name</td></tr>
+                    <tr><td><code>legal_name</code></td><td>TEXT nullable</td><td>Sensitive — filtered by scope</td></tr>
+                    <tr><td><code>abn</code></td><td>TEXT nullable</td><td>Sensitive — filtered by scope</td></tr>
+                    <tr><td><code>email</code></td><td>TEXT nullable</td><td>Sensitive — filtered by scope</td></tr>
+                    <tr><td><code>phone</code></td><td>TEXT nullable</td><td>Sensitive — filtered by scope</td></tr>
+                    <tr><td><code>status</code></td><td>TEXT DEFAULT 'active'</td><td>active | inactive | pending | archived</td></tr>
+                    <tr><td><code>is_system_generated</code></td><td>BOOLEAN DEFAULT FALSE</td><td>TRUE when created by ensure_scheme_management_hierarchy</td></tr>
+                    <tr><td><code>is_self_managed</code></td><td>BOOLEAN DEFAULT FALSE</td><td>TRUE for self-managed OC entities</td></tr>
+                    <tr><td><code>is_independent</code></td><td>BOOLEAN DEFAULT FALSE</td><td>TRUE for independent sole-trader managers</td></tr>
+                    <tr><td><code>source</code></td><td>TEXT DEFAULT 'manual'</td><td>manual | auto_agency_sync | onboarding | migration</td></tr>
+                    <tr><td><code>source_agency_id</code></td><td>UUID nullable</td><td>FK → core.agencies when entity_type='agency'</td></tr>
+                    <tr><td><code>created_at</code></td><td>TIMESTAMPTZ</td><td></td></tr>
+                    <tr><td><code>updated_at</code></td><td>TIMESTAMPTZ</td><td></td></tr>
+                    <tr><td><code>archived_at</code></td><td>TIMESTAMPTZ nullable</td><td></td></tr>
+                    <tr><td><code>is_test_data</code></td><td>BOOLEAN DEFAULT FALSE</td><td>Filtered from production queries; swept by pytest teardown</td></tr>
+                </tbody>
+            </table>
+            <p><strong>Indexes:</strong> <code>entity_type</code>, <code>status</code>, <code>source_agency_id</code> (partial, WHERE NOT NULL).</p>
+            <p><strong>Unique constraint:</strong> <code>uq_management_entities_agency (source_agency_id)</code> — one active entity per agency.</p>
+
+            <h3>core.scheme_management_assignments</h3>
+            <p>Migration: <code>0056_management_entity_model</code></p>
+            <table>
+                <thead>
+                    <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>assignment_id</code></td><td>UUID PK</td><td>gen_random_uuid()</td></tr>
+                    <tr><td><code>scheme_id</code></td><td>UUID NOT NULL</td><td>FK → core.schemes</td></tr>
+                    <tr><td><code>management_entity_id</code></td><td>UUID NOT NULL</td><td>FK → core.management_entities</td></tr>
+                    <tr><td><code>assignment_type</code></td><td>TEXT NOT NULL</td><td>agency_managed | self_managed | independent_manager | ec_internal_manager | caretaker | contractor | unknown</td></tr>
+                    <tr><td><code>start_date</code></td><td>DATE DEFAULT CURRENT_DATE</td><td></td></tr>
+                    <tr><td><code>end_date</code></td><td>DATE nullable</td><td></td></tr>
+                    <tr><td><code>status</code></td><td>TEXT DEFAULT 'active'</td><td>active | inactive | terminated | superseded</td></tr>
+                    <tr><td><code>is_primary</code></td><td>BOOLEAN DEFAULT TRUE</td><td>TRUE = primary management assignment for this scheme</td></tr>
+                    <tr><td><code>created_at</code></td><td>TIMESTAMPTZ</td><td></td></tr>
+                    <tr><td><code>updated_at</code></td><td>TIMESTAMPTZ</td><td></td></tr>
+                    <tr><td><code>is_test_data</code></td><td>BOOLEAN DEFAULT FALSE</td><td></td></tr>
+                </tbody>
+            </table>
+            <p><strong>Indexes:</strong> <code>scheme_id</code>, <code>management_entity_id</code>, <code>status</code>.</p>
+            <p><strong>Unique constraint:</strong> <code>uq_sma_scheme_primary_active (scheme_id, is_primary, status)</code> — at most one active primary assignment per scheme.</p>
+
+            <h3>core.scheme_manager_appointments</h3>
+            <p>Migration: <code>0057_scheme_manager_appointments</code></p>
+            <table>
+                <thead>
+                    <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>appointment_id</code></td><td>UUID PK</td><td>gen_random_uuid()</td></tr>
+                    <tr><td><code>scheme_id</code></td><td>UUID NOT NULL</td><td>FK → core.schemes</td></tr>
+                    <tr><td><code>user_id</code></td><td>UUID NOT NULL</td><td>FK → core.users — the appointed manager</td></tr>
+                    <tr><td><code>management_entity_id</code></td><td>UUID NOT NULL</td><td>FK → core.management_entities — organisational context</td></tr>
+                    <tr><td><code>appointment_type</code></td><td>TEXT NOT NULL</td><td>CHECK constraint — see Appointment Types below</td></tr>
+                    <tr><td><code>role_title</code></td><td>TEXT NOT NULL</td><td>Human-readable title e.g. 'Strata Manager'</td></tr>
+                    <tr><td><code>start_date</code></td><td>DATE DEFAULT CURRENT_DATE</td><td></td></tr>
+                    <tr><td><code>end_date</code></td><td>DATE nullable</td><td></td></tr>
+                    <tr><td><code>status</code></td><td>TEXT DEFAULT 'active'</td><td>active | inactive | terminated | expired</td></tr>
+                    <tr><td><code>appointed_by</code></td><td>UUID nullable</td><td>FK → core.users — who created the appointment</td></tr>
+                    <tr><td><code>approved_by_ec</code></td><td>BOOLEAN DEFAULT FALSE</td><td>TRUE when EC quorum has approved; required before is_active</td></tr>
+                    <tr><td><code>approval_reference</code></td><td>TEXT nullable</td><td>Meeting minute reference or motion number</td></tr>
+                    <tr><td><code>created_at</code></td><td>TIMESTAMPTZ</td><td></td></tr>
+                    <tr><td><code>updated_at</code></td><td>TIMESTAMPTZ</td><td></td></tr>
+                    <tr><td><code>is_test_data</code></td><td>BOOLEAN DEFAULT FALSE</td><td></td></tr>
+                </tbody>
+            </table>
+            <p><strong>Indexes:</strong> <code>scheme_id</code>, <code>user_id</code>.</p>
+            <p><strong>Check constraint:</strong> <code>ck_sma_appointment_type</code> — enforces valid appointment_type values.</p>
+        </section>
+
+        <section id="migrations">
+            <h2>Migrations</h2>
+            <table>
+                <thead>
+                    <tr><th>Revision</th><th>File</th><th>What it adds</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>0056_management_entity_model</code></td>
+                        <td><code>backend/alembic/versions/0056_management_entity_model.py</code></td>
+                        <td>
+                            Creates <code>core.management_entities</code> and
+                            <code>core.scheme_management_assignments</code>.
+                            Also adds <code>management_entity_id</code> column to
+                            <code>analytics.dim_building</code>.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>0057_scheme_manager_appointments</code></td>
+                        <td><code>backend/alembic/versions/0057_scheme_manager_appointments.py</code></td>
+                        <td>
+                            Creates <code>core.scheme_manager_appointments</code> with check constraint on
+                            appointment_type. Unique constraint: one active appointment per
+                            <code>(scheme_id, user_id, appointment_type)</code>.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="security">
+            <h2>Security Model</h2>
+            <p>
+                <strong>UUIDs are identifiers, not authorisation.</strong> Knowing a <code>management_entity_id</code>
+                or <code>scheme_id</code> UUID does not grant access. Every endpoint calls
+                <code>require_management_hierarchy_access()</code> which enforces explicit scheme/entity/agency
+                membership before serving any data.
+            </p>
+            <p>Access is denied (HTTP 403) unless the caller satisfies one of:</p>
+            <ul>
+                <li>Is a <code>super_admin</code> (platform scope)</li>
+                <li>Is an admin of the agency that owns the management entity (agency scope)</li>
+                <li>Has explicit management entity membership (management_entity scope)</li>
+                <li>Is an assigned <code>strata_manager</code> for the scheme (scheme scope)</li>
+                <li>Is an <code>ec_member</code> of the scheme (building scope)</li>
+            </ul>
+            <p>
+                Write operations (<code>ensure</code>, <code>create_appointment</code>) additionally require
+                <code>strata_admin</code> or <code>super_admin</code> role — EC members and strata managers
+                cannot create hierarchy records.
+            </p>
+        </section>
+
+        <section id="feature-toggle">
+            <h2>Feature Toggle</h2>
+            <table>
+                <thead>
+                    <tr><th>Key</th><th>Default</th><th>Scope</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>management_hierarchy_enabled</code></td>
+                        <td>enabled</td>
+                        <td>Global (building_id = NULL). Per-building override supported.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>
+                When disabled, the <code>/management-hierarchy/*</code> endpoints return 403. The toggle is
+                seeded by <code>backend/seeds/feature_toggles.py</code> and resolvable via the standard
+                3-tier toggle resolution (user-level → building-level → global default).
+            </p>
+        </section>
+
+        <section id="roles">
+            <h2>Roles</h2>
+            <table>
+                <thead>
+                    <tr><th>Role</th><th>Scope</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>super_admin</code></td>
+                        <td>Platform</td>
+                        <td>Full read/write on all entities and appointments</td>
+                    </tr>
+                    <tr>
+                        <td><code>strata_admin</code></td>
+                        <td>Company-wide (tenant scope)</td>
+                        <td>Can ensure hierarchy and create appointments for schemes in their tenant</td>
+                    </tr>
+                    <tr>
+                        <td><code>strata_manager</code></td>
+                        <td>Allocated buildings only</td>
+                        <td>Read access to assigned schemes; cannot create hierarchy records</td>
+                    </tr>
+                    <tr>
+                        <td><code>ec_member</code></td>
+                        <td>Own scheme only</td>
+                        <td>Read access to scheme hierarchy; sensitive fields filtered</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>
+                Use <code>current_user.get("effective_role") or current_user.get("role", "guest")</code> —
+                never <code>current_user["role"]</code> directly. Raw role is <code>"owner"</code> for
+                temporarily elevated users; effective_role resolves the elevated value.
+            </p>
+        </section>
+
+        <section id="appointment-types">
+            <h2>Appointment Types</h2>
+            <p>
+                Valid values for <code>appointment_type</code> on <code>core.scheme_manager_appointments</code>
+                (enforced by CHECK constraint <code>ck_sma_appointment_type</code>):
+            </p>
+            <table>
+                <thead>
+                    <tr><th>Value</th><th>Description</th><th>Requires EC approval</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>agency_strata_manager</code></td><td>Manager employed by the managing agency</td><td>No</td></tr>
+                    <tr><td><code>independent_strata_manager</code></td><td>Sole-trader or unlicensed manager</td><td>No</td></tr>
+                    <tr><td><code>ec_internal_strata_manager</code></td><td>EC member acting as internal manager</td><td>Yes — approved_by_ec required</td></tr>
+                    <tr><td><code>owner_volunteer_manager</code></td><td>Owner volunteering management duties for one building</td><td>Yes — approved_by_ec required</td></tr>
+                    <tr><td><code>building_manager</code></td><td>On-site building manager (operational, not strata)</td><td>No</td></tr>
+                    <tr><td><code>caretaker</code></td><td>Caretaker with limited duties</td><td>No</td></tr>
+                </tbody>
+            </table>
+            <p>
+                EC-internal and volunteer appointment types require <code>approved_by_ec = true</code> before they
+                grant manager-level access. Agency and independent appointments take effect immediately.
+            </p>
+        </section>
+    </main>
+</div>
+</body>
+</html>

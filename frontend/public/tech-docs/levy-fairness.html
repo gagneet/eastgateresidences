@@ -1,0 +1,1103 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Levy Fairness Engine – Eastgate Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">East Gate Residences</div>
+            <div class="sub">Technical Documentation · Levy Fairness Engine</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+            <a class="active" data-page="levy-fairness.html" href="levy-fairness.html"><span class="icon">⚖️</span> Levy
+                Fairness</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#overview">Overview</a>
+            <a href="#architecture">Architecture</a>
+            <a href="#collections">Collections</a>
+            <a href="#services">Services</a>
+            <a href="#api">API Endpoints</a>
+            <a href="#algorithms">Algorithms</a>
+            <a href="#monte-carlo">Monte Carlo</a>
+            <a href="#transition">Transition Caps</a>
+            <a href="#frontend">Frontend</a>
+            <a href="#seeding">Seeding</a>
+            <a href="#enhancements">v2 Enhancements</a>
+            <a href="#new-api">New Endpoints</a>
+            <a href="#feature-toggles">Feature Toggles</a>
+            <a href="#new-collections">New Collections</a>
+            <a href="#new-frontend">New Components</a>
+            <a href="#agm-reports">AGM Reports</a>
+            <a href="#levy-stability">Levy Stability Score</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+            <a href="/user-guides/" target="_blank"><span class="icon">📖</span> User Guides</a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <h1 id="overview">Next-Generation Levy Fairness Engine</h1>
+        <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role lists on this page naming "chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+        <p>The Levy Fairness Engine is a facility-level cost-centre allocation system that replaces legacy
+            unit-entitlement (UOE) pro-rata levy distribution with an absolute dollar-value model. It is designed for
+            mixed-use strata complexes where different unit types derive different benefits from shared facilities
+            (e.g., only apartments benefit from lift maintenance; only garage holders benefit from carpark
+            lighting).</p>
+
+        <div class="callout warn">
+            <strong>Access restriction:</strong> The Levy Fairness page at
+            <code>/intelligence/levy-fairness</code> is accessible to roles: <code>ec_member</code>, <code>chairman</code>,
+            <code>strata_manager</code>, <code>super_admin</code>. Owners can view the read-only LEI/SEI summary via the
+            Owner Dashboard. Recompute and transition-cap controls require EC-level access or above.
+        </div>
+
+        <section id="architecture">
+            <h2>Architecture</h2>
+            <p>The engine is composed of four Python service modules that interact with three MongoDB collections and
+                produce a persisted result document used for all frontend reads.</p>
+            <pre><code>simulate_levy_fairness_v2()          ← orchestrator (levy_fairness_service.py)
+  ├─ get_unit_attributes()            ← facility_allocation_engine.py
+  ├─ calculate_facility_allocation()  ← facility_allocation_engine.py  (per facility)
+  ├─ apply_transition_caps()          ← levy_simulation_engine.py
+  └─ run_monte_carlo_levy_simulation() ← monte_carlo_engine.py
+
+Collections read:  units, facility_cost_centres, benefit_groups, unit_levy_ledger,
+                   unit_attributes, capital_replacement_schedule, financial_summary,
+                   facilities (fallback), building_assets (fallback)
+Collection written: levy_fairness_results_v2
+</code></pre>
+            <p>The orchestrator saves the full result to <code>levy_fairness_results_v2</code> via an upsert, keyed on
+                <code>building_id</code>. Subsequent GET requests read from this cache and only recompute when
+                explicitly triggered via the POST endpoint or when no cached result exists.</p>
+        </section>
+
+        <section id="collections">
+            <h2>MongoDB Collections</h2>
+
+            <h3>facility_cost_centres</h3>
+            <p>Primary input collection. Each document defines a named facility and its annual cost allocation
+                parameters.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>facility_id</code></td>
+                    <td>string</td>
+                    <td>Unique identifier for the facility</td>
+                </tr>
+                <tr>
+                    <td><code>facility_name</code></td>
+                    <td>string</td>
+                    <td>Human-readable name (e.g., "Lift Maintenance")</td>
+                </tr>
+                <tr>
+                    <td><code>annual_cost</code></td>
+                    <td>float</td>
+                    <td>Total annual cost in AUD to be allocated across eligible units</td>
+                </tr>
+                <tr>
+                    <td><code>benefit_group_id</code></td>
+                    <td>string | null</td>
+                    <td>References a benefit_groups document; null = ALL_LOTS</td>
+                </tr>
+                <tr>
+                    <td><code>allocation_driver</code></td>
+                    <td>string</td>
+                    <td>How to split cost: <code>unit_entitlement</code>, <code>equal_split</code>,
+                        <code>area_weighted</code>, <code>car_space_weighted</code>, <code>metered_usage</code>, <code>custom_weights</code>
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>enabled</code></td>
+                    <td>bool</td>
+                    <td>If false, facility is excluded from the calculation</td>
+                </tr>
+                <tr>
+                    <td><code>building_id</code></td>
+                    <td>string</td>
+                    <td>Strata plan ID (e.g., "13195")</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h3>benefit_groups</h3>
+            <p>Defines subsets of units that benefit from specific facilities. The allocation engine uses this to filter
+                eligible units before distributing costs.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>id</code></td>
+                    <td>string</td>
+                    <td>Unique identifier (referenced by facility_cost_centres.benefit_group_id)</td>
+                </tr>
+                <tr>
+                    <td><code>name</code></td>
+                    <td>string</td>
+                    <td>Named group — special values: <code>ALL_LOTS</code>, <code>APARTMENTS_ONLY</code>, <code>TOWNHOUSES_ONLY</code>,
+                        <code>GARAGE_USERS</code></td>
+                </tr>
+                <tr>
+                    <td><code>lot_numbers</code></td>
+                    <td>string[]</td>
+                    <td>Explicit list of unit_numbers in this group (takes priority over name-based filter)</td>
+                </tr>
+                <tr>
+                    <td><code>allocation_driver</code></td>
+                    <td>string</td>
+                    <td>Default driver if not overridden at facility level</td>
+                </tr>
+                <tr>
+                    <td><code>building_id</code></td>
+                    <td>string</td>
+                    <td>Strata plan ID</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h3>levy_fairness_results_v2</h3>
+            <p>Persisted output of the last computation run. Used as a read cache for all GET requests.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>building_id</code></td>
+                    <td>string</td>
+                    <td>Strata plan ID (upsert key)</td>
+                </tr>
+                <tr>
+                    <td><code>computed_at</code></td>
+                    <td>ISO8601 string</td>
+                    <td>UTC timestamp of last recompute</td>
+                </tr>
+                <tr>
+                    <td><code>total_budget</code></td>
+                    <td>float</td>
+                    <td>Sum of all enabled facility annual_costs</td>
+                </tr>
+                <tr>
+                    <td><code>lei_score</code></td>
+                    <td>float</td>
+                    <td>Levy Equity Index (0–100, scheme-wide)</td>
+                </tr>
+                <tr>
+                    <td><code>sei_scheme</code></td>
+                    <td>float</td>
+                    <td>Scheme-level Subsidy Exposure Index (0.0–1.0+)</td>
+                </tr>
+                <tr>
+                    <td><code>unit_impact</code></td>
+                    <td>object[]</td>
+                    <td>Per-unit breakdown (see below)</td>
+                </tr>
+                <tr>
+                    <td><code>simulation</code></td>
+                    <td>object | null</td>
+                    <td>Monte Carlo output (p50/p90/p95/special_levy_probability)</td>
+                </tr>
+                <tr>
+                    <td><code>facility_breakdown</code></td>
+                    <td>object[]</td>
+                    <td>List of facility names, costs, and benefit_group_id</td>
+                </tr>
+                </tbody>
+            </table>
+            <p><strong>unit_impact item fields:</strong> <code>unit_number</code>, <code>unit_type</code>, <code>owner_name</code>,
+                <code>current_levy</code>, <code>fair_levy</code>, <code>proposed_levy</code>, <code>change</code>,
+                <code>change_pct</code>, <code>lbfi</code>, <code>sei</code>, <code>drivers</code> (list — see v2
+                Enhancements).</p>
+            <p><strong>Top-level computed fields added in v2:</strong></p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>confidence</code></td>
+                    <td>object</td>
+                    <td>Model confidence score and band. Fields: <code>score</code> (0–100), <code>band</code>
+                        ("High"/"Medium"/"Low"), <code>factors</code> (string[]), <code>levy_coverage_pct</code>, <code>asset_data_score</code>,
+                        <code>group_granularity_score</code>.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>levy_distribution</code></td>
+                    <td>object</td>
+                    <td>Histogram for before/after levy distribution chart. Fields: <code>boundaries</code>, <code>current_counts</code>,
+                        <code>proposed_counts</code>, <code>current_stats</code>, <code>proposed_stats</code>, <code>equity_improvement</code>.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>cross_subsidy_report</code></td>
+                    <td>object</td>
+                    <td>Per-unit-type cross-subsidy summary. Fields: <code>group_rows</code> (one per unit type with
+                        role/net_subsidy/per_unit figures), <code>facility_rows</code> (facility cost/share breakdown),
+                        <code>total_current</code>, <code>total_fair</code>, <code>generated_at</code>.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <p><strong>Per-unit <code>drivers</code> field</strong> (inside each <code>unit_impact</code> entry): a list
+                of objects <code>{"facility_name": string, "facility_id": string, "amount": float}</code> showing which
+                facilities contributed to this unit's proposed levy and by how much. Built during allocation
+                accumulation in <code>simulate_levy_fairness_v2()</code>.</p>
+        </section>
+
+        <section id="services">
+            <h2>Service Files</h2>
+
+            <h3><code>backend/services/levy_fairness_service.py</code></h3>
+            <p>Main orchestrator. Exports <code>simulate_levy_fairness_v2(building_id, max_change_percent,
+                max_change_amount, run_monte_carlo)</code>. Execution flow:</p>
+            <ol>
+                <li>Load <code>units</code> (with building_id filter; fallback to all units if result is empty —
+                    supports legacy units that have no building_id field from Excel import).
+                </li>
+                <li>Load <code>facility_cost_centres</code>; if empty, derive virtual cost centres from the <code>facilities</code>
+                    + <code>building_assets</code> digital-twin collections (annualised replacement cost heuristic).
+                </li>
+                <li>Load <code>unit_levy_ledger</code> to get the current UOE-based levy per unit. Units with no ledger
+                    entry fall back to entitlement-proportional share of total_budget.
+                </li>
+                <li>For each facility, call <code>calculate_facility_allocation()</code> and accumulate per-unit benefit
+                    amounts.
+                </li>
+                <li>Call <code>apply_transition_caps()</code> to compute proposed levies subject to change limits.</li>
+                <li>Compute LBFI, SEI, LEI metrics per unit and scheme-wide.</li>
+                <li>Optionally run Monte Carlo simulation.</li>
+                <li>Upsert result to <code>levy_fairness_results_v2</code>.</li>
+            </ol>
+
+            <h3><code>backend/services/facility_allocation_engine.py</code></h3>
+            <p>Exports <code>calculate_facility_allocation(facility, units, benefit_groups, unit_attributes)</code> and
+                <code>get_unit_attributes(building_id)</code>.</p>
+            <p>Allocation driver logic:</p>
+            <ul>
+                <li><strong>unit_entitlement:</strong> <code>cost × (UOE_i / Σ UOE)</code> over eligible units.</li>
+                <li><strong>equal_split:</strong> <code>cost / N</code> where N = number of eligible units.</li>
+                <li><strong>area_weighted:</strong> <code>cost × (area_i / Σ area)</code> using <code>unit_attributes.internal_area</code>.
+                </li>
+                <li><strong>car_space_weighted:</strong> <code>cost × (spaces_i / Σ spaces)</code> using <code>unit_attributes.car_spaces</code>.
+                </li>
+                <li><strong>metered_usage:</strong> Weights from <code>unit_attributes.metered_usage</code>.</li>
+                <li><strong>custom_weights:</strong> Weights from <code>unit_attributes.custom_weight</code> (defaults
+                    to 1.0).
+                </li>
+            </ul>
+            <p>If a facility has zero cost or no eligible units, it returns an empty dict (no allocation).</p>
+
+            <h3><code>backend/services/levy_simulation_engine.py</code></h3>
+            <p>Exports <code>apply_transition_caps(fair_levies, current_levies, max_change_percent,
+                max_change_amount)</code>. Iterative redistribution algorithm (up to 10 iterations) that:</p>
+            <ol>
+                <li>Computes per-unit maximum allowed levy from the cap formula.</li>
+                <li>Identifies capped units and calculates total shortfall.</li>
+                <li>Redistributes shortfall proportionally across units that are increasing but not yet at their cap.
+                </li>
+                <li>Repeats until shortfall &lt; $0.01 or no redistribution capacity remains.</li>
+            </ol>
+            <p>If both caps are provided, the more restrictive (lower ceiling) applies. Units with decreasing levies are
+                never capped.</p>
+
+            <h3><code>backend/services/monte_carlo_engine.py</code></h3>
+            <p>Exports <code>run_monte_carlo_levy_simulation(annual_budget, current_reserve, capital_schedule_10y,
+                num_simulations=1000, years=10)</code>. Returns p50/p90/p95 reserve balances, special levy probability,
+                and a sampled distribution list.</p>
+        </section>
+
+        <section id="api">
+            <h2>API Endpoints</h2>
+            <p>All routes are under the <code>/api/intelligence</code> prefix (router: <code>backend/routers/intelligence.py</code>).
+            </p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Method</th>
+                    <th>Path</th>
+                    <th>Auth</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-fairness</code></td>
+                    <td>approved user</td>
+                    <td>Returns cached result from <code>levy_fairness_results_v2</code>; triggers recompute if no cache
+                        exists.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-model</code></td>
+                    <td>approved user</td>
+                    <td>Alias for the above.</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-fairness/demo</code></td>
+                    <td>approved user</td>
+                    <td>Always uses building_id <code>"13195"</code> (demonstration mode).</td>
+                </tr>
+                <tr>
+                    <td><code>POST</code></td>
+                    <td><code>/intelligence/levy-fairness/recompute</code></td>
+                    <td>ec_member+</td>
+                    <td>Force-recomputes with optional transition caps. Body: <code>{"max_change_percent": float,
+                        "max_change_amount": float, "run_monte_carlo": bool}</code>.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>POST</code></td>
+                    <td><code>/intelligence/levy-simulation</code></td>
+                    <td>ec_member+</td>
+                    <td>Alias for the above.</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-fairness/facilities</code></td>
+                    <td>approved user</td>
+                    <td>List all facility cost centres for the building.</td>
+                </tr>
+                <tr>
+                    <td><code>POST</code></td>
+                    <td><code>/intelligence/levy-fairness/facilities</code></td>
+                    <td>ec_member+</td>
+                    <td>Create a new facility cost centre.</td>
+                </tr>
+                <tr>
+                    <td><code>PUT</code></td>
+                    <td><code>/intelligence/levy-fairness/facilities/{facility_id}</code></td>
+                    <td>ec_member+</td>
+                    <td>Update facility cost centre fields.</td>
+                </tr>
+                <tr>
+                    <td><code>DELETE</code></td>
+                    <td><code>/intelligence/levy-fairness/facilities/{facility_id}</code></td>
+                    <td>ec_member+</td>
+                    <td>Disable (soft-delete) a facility cost centre.</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-fairness/groups</code></td>
+                    <td>approved user</td>
+                    <td>List all benefit groups for the building.</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-fairness/unit-impact</code></td>
+                    <td>approved user</td>
+                    <td>Return only the <code>unit_impact</code> array from the cached result.</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-fairness/agm-report.pdf</code></td>
+                    <td>ec_member+</td>
+                    <td>Generate and stream AGM PDF report.</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-fairness/agm-presentation.pptx</code></td>
+                    <td>ec_member+</td>
+                    <td>Generate and stream PPTX presentation.</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-fairness/impact.csv</code></td>
+                    <td>ec_member+</td>
+                    <td>Stream unit impact data as CSV.</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="algorithms">
+            <h2>Algorithms: LBFI, LEI, SEI</h2>
+            <p>All three metrics are derived from two quantities computed per unit: <code>Benefit_i</code> (fair share
+                of total costs based on facility usage) and <code>Levy_i</code> (proposed levy after transition caps).
+            </p>
+
+            <h3>LBFI — Levy Benefit Fairness Index</h3>
+            <pre><code>LBFI_i = Levy_i / Benefit_i       (Benefit_i > 0.01)
+LBFI_i = 1.0                       (Benefit_i ≤ 0.01, undefined — treated as fair)</code></pre>
+            <p>LBFI = 1.0 is perfectly fair. LBFI &gt; 1.0 means the unit is over-paying (cross-subsidising others).
+                LBFI &lt; 1.0 means the unit is under-paying (being cross-subsidised).</p>
+
+            <h3>SEI — Subsidy Exposure Index (per unit)</h3>
+            <pre><code>SEI_i = |Levy_i - Benefit_i| / Levy_i     (Levy_i > 0.01)
+SEI_i = 0.0                                (Levy_i ≤ 0.01)</code></pre>
+            <p>SEI ranges from 0.0 (no subsidy distortion) upward. A value of 0.25 means 25% of the unit's levy either
+                comes from or goes to cross-subsidies.</p>
+
+            <h3>SEI_scheme — Scheme-Level Subsidy Exposure</h3>
+            <pre><code>SEI_scheme = Σ |Levy_i - Benefit_i| / total_budget</code></pre>
+            <p>Represents total cross-subsidy as a fraction of the total budget. A perfectly fair allocation has
+                SEI_scheme = 0.</p>
+
+            <h3>LEI — Levy Equity Index</h3>
+            <pre><code>LEI = max(0, 100 × (1 - SEI_scheme))</code></pre>
+            <p>A score from 0 to 100. Eastgate's baseline (pure UOE allocation) typically produces LEI ≈ 80–85 due to
+                townhouses subsidising lift and rooftop costs. Introducing benefit groups and facility cost centres
+                pushes LEI toward 95+.</p>
+        </section>
+
+        <section id="monte-carlo">
+            <h2>Monte Carlo Simulation</h2>
+            <p>Runs <code>num_simulations</code> (default 1,000) independent 10-year projections. Each simulation
+                independently samples:</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Variable</th>
+                    <th>Distribution</th>
+                    <th>Parameters</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Inflation</td>
+                    <td>Triangular</td>
+                    <td>min=2%, mode=3%, max=5%</td>
+                </tr>
+                <tr>
+                    <td>Maintenance spike multiplier</td>
+                    <td>Lognormal</td>
+                    <td>mean=0, sigma=0.25</td>
+                </tr>
+                <tr>
+                    <td>Capital works overrun</td>
+                    <td>Triangular</td>
+                    <td>min=1.0, mode=1.15, max=1.40</td>
+                </tr>
+                <tr>
+                    <td>Insurance premium growth</td>
+                    <td>Normal</td>
+                    <td>mean=6%, std=3%</td>
+                </tr>
+                </tbody>
+            </table>
+            <p>For each year: <code>reserve_new = reserve_old + annual_budget - expenses</code>. A simulation "fails" if
+                reserve ever goes negative. The <strong>special_levy_probability</strong> is the fraction of failed
+                simulations × 100. Output: p50, p90, p95 final reserve balances and a sampled distribution list for
+                charting.</p>
+        </section>
+
+        <section id="transition">
+            <h2>Transition Caps</h2>
+            <p>The <code>apply_transition_caps()</code> function allows strata managers to model a phased rollout of the
+                fair levy model, protecting units from large sudden changes.</p>
+            <ul>
+                <li><strong>max_change_percent:</strong> No unit's levy can increase by more than X% of its current levy
+                    in one year.
+                </li>
+                <li><strong>max_change_amount:</strong> No unit's levy can increase by more than $X in one year.</li>
+                <li>When both are set, the <em>more restrictive</em> cap applies (lower of the two ceilings).</li>
+                <li><strong>Shortfall redistribution:</strong> Revenue neutrality is preserved — shortfall from capped
+                    units is redistributed across units that are increasing and below their own cap, weighted by their
+                    proportional fair increase. Up to 10 redistribution iterations are performed.
+                </li>
+                <li>If redistribution capacity is exhausted (all increasing units also hit their caps), the algorithm
+                    maintains the capped values even if total revenue falls short.
+                </li>
+            </ul>
+        </section>
+
+        <section id="frontend">
+            <h2>Frontend</h2>
+            <p>Page: <code>frontend/src/pages/dashboard/LevyFairnessPage.jsx</code></p>
+            <p>Route: <code>/intelligence/levy-fairness</code> (Next.js wrapper at <code>frontend/src/app/(dashboard)/intelligence/levy-fairness/page.tsx</code>).
+            </p>
+            <p>Key UI sections:</p>
+            <ul>
+                <li><strong>KPI Cards:</strong> LEI score, SEI scheme, total budget, special levy probability.</li>
+                <li><strong>Unit Impact Table:</strong> Per-unit current/fair/proposed levy, change %, LBFI, SEI
+                    columns. Sortable and filterable.
+                </li>
+                <li><strong>Facility Breakdown:</strong> List of cost centres, annual costs, and benefit groups.</li>
+                <li><strong>Monte Carlo Chart:</strong> 10-year reserve distribution with p50/p90/p95 bands.</li>
+                <li><strong>Recompute Panel:</strong> Inputs for max_change_percent and max_change_amount; triggers POST
+                    to <code>/intelligence/levy-fairness/recompute</code>.
+                </li>
+                <li><strong>Export Buttons:</strong> PDF AGM report, PPTX presentation, CSV unit impact.</li>
+            </ul>
+        </section>
+
+        <section id="seeding">
+            <h2>Seeding</h2>
+            <p>Use <code>scripts/db/seed_levy_fairness.py</code> to populate initial <code>facility_cost_centres</code>
+                and <code>benefit_groups</code> documents for the building:</p>
+            <pre><code>cd /home/gagneet/strata-management/backend
+venv/bin/python3 ../scripts/db/seed_levy_fairness.py</code></pre>
+            <p>The seed script creates representative facilities (lifts, pool, gym, carpark lighting, landscaping,
+                building insurance allocation, administration) and benefit groups (ALL_LOTS, APARTMENTS_ONLY,
+                TOWNHOUSES_ONLY, GARAGE_USERS). These can be edited via the Levy Fairness admin panel or directly in
+                MongoDB.</p>
+            <div class="callout info">
+                <strong>Fallback behaviour:</strong> If <code>facility_cost_centres</code> is empty for a given
+                building_id, the engine automatically derives virtual cost centres from the Digital Twin's <code>facilities</code>
+                and <code>building_assets</code> collections using an annualised replacement cost heuristic. This
+                provides a working result even before facilities are explicitly configured.
+            </div>
+        </section>
+
+        <section id="enhancements">
+            <h2>v2 Enhancements: Confidence, Distribution, Cross-Subsidy &amp; Drivers</h2>
+            <p>The following computed fields were added to <code>simulate_levy_fairness_v2()</code> output in the v2
+                enhancement pass. They are persisted alongside the existing fields in
+                <code>levy_fairness_results_v2</code>.</p>
+
+            <h3>Model Confidence (<code>_compute_model_confidence</code>)</h3>
+            <p>Scores data quality on three factors (each 0–100), averaged to a single <code>score</code>:</p>
+            <ol>
+                <li><strong>Levy data coverage</strong> — % of units with real ledger records (vs estimated via UOE
+                    share).
+                </li>
+                <li><strong>Asset data quality</strong> — <code>min(1, total_asset_budget / actual_total) × 100</code>.
+                    Zero when no asset data.
+                </li>
+                <li><strong>Benefit group granularity</strong> — <code>min(100, specific_group_count × 25)</code>. Four
+                    or more specific groups = 100.
+                </li>
+            </ol>
+            <p>Band thresholds: <code>score ≥ 75</code> → <strong>High</strong>; <code>50–74</code> →
+                <strong>Medium</strong>; <code>&lt; 50</code> → <strong>Low</strong>. The <code>factors</code> array
+                contains human-readable explanations of any detected deficiencies.</p>
+
+            <h3>Levy Distribution Histogram (<code>_build_distribution_histogram</code>)</h3>
+            <p>Builds a 10-bucket histogram over the range <code>[min(current ∪ proposed), max(current ∪
+                proposed)]</code>. Returns <code>boundaries</code> (11 values), <code>current_counts</code> and <code>proposed_counts</code>
+                (10 values each), plus summary stats (<code>mean</code>, <code>median</code>, <code>stdev</code>) and
+                <code>equity_improvement = current_stdev − proposed_stdev</code>. A positive equity_improvement means
+                the proposed model reduces levy spread. Empty unit_impact returns empty bucket structures.</p>
+
+            <h3>Cross-Subsidy Report (<code>_build_cross_subsidy_report</code>)</h3>
+            <p>Groups units by <code>unit_type</code> and computes per-group totals. Each row in <code>group_rows</code>
+                contains:</p>
+            <ul>
+                <li><code>group</code> — unit type string (e.g., "Apartment", "Townhouse")</li>
+                <li><code>current_total</code>, <code>fair_total</code>, <code>proposed_total</code> — summed levies
+                </li>
+                <li><code>current_share_pct</code>, <code>fair_share_pct</code> — % of scheme total</li>
+                <li><code>net_subsidy</code> — <code>current_total − fair_total</code> (positive = over-paying)</li>
+                <li><code>net_subsidy_per_unit</code> — per-unit average cross-subsidy</li>
+                <li><code>role</code> — "Contributor" (net_subsidy &gt; 50), "Recipient" (net_subsidy &lt; −50),
+                    "Neutral"
+                </li>
+            </ul>
+            <p><code>facility_rows</code> lists each facility with its annual cost and % of total, sorted descending by
+                cost. The full report can be downloaded as CSV via <code>GET
+                    /intelligence/levy-fairness/cross-subsidy-report.csv</code>.</p>
+
+            <h3>Per-Unit Drivers</h3>
+            <p>During facility allocation accumulation, the orchestrator builds a <code>unit_drivers</code> map keyed by
+                unit_number. Each entry is a list of <code>{"facility_name": ..., "facility_id": ..., "amount":
+                    ...}</code> dicts, one per facility that allocates cost to that unit. This list is attached as
+                <code>drivers</code> on each <code>unit_impact</code> entry and is also returned by the per-unit explain
+                endpoint.</p>
+        </section>
+
+        <section id="new-api">
+            <h2>New API Endpoints (v2)</h2>
+            <p>All routes are under <code>/api/intelligence</code>. Router: <code>backend/routers/intelligence.py</code>.
+            </p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Method</th>
+                    <th>Path</th>
+                    <th>Auth</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-fairness/unit/{unit_number}/explain</code></td>
+                    <td>approved user (owner: own unit only)</td>
+                    <td>Returns the full <code>unit_impact</code> entry for the given unit, including the
+                        <code>drivers</code> list. Owners are restricted to their own unit (403 for other units).
+                        Returns 404 if no model or unit not in model.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>POST</code></td>
+                    <td><code>/intelligence/levy-fairness/snapshots</code></td>
+                    <td>super_admin</td>
+                    <td>Creates a named snapshot of the current <code>levy_fairness_results_v2</code> document. Body:
+                        <code>{"name": string, "description": string}</code>. Returns snapshot metadata (without full
+                        data blob). Writes an audit record.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-fairness/snapshots</code></td>
+                    <td>approved user</td>
+                    <td>Lists all snapshots for the building (metadata only, no data blobs).</td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-fairness/snapshots/{snapshot_id}</code></td>
+                    <td>approved user</td>
+                    <td>Returns a specific snapshot including full data. Returns 404 if not found.</td>
+                </tr>
+                <tr>
+                    <td><code>DELETE</code></td>
+                    <td><code>/intelligence/levy-fairness/snapshots/{snapshot_id}</code></td>
+                    <td>super_admin</td>
+                    <td>Permanently deletes a snapshot.</td>
+                </tr>
+                <tr>
+                    <td><code>POST</code></td>
+                    <td><code>/intelligence/levy-fairness/snapshots/{snapshot_id}/restore</code></td>
+                    <td>super_admin</td>
+                    <td>Copies snapshot data back to <code>levy_fairness_results_v2</code> (upsert). Sets <code>restored_from_snapshot</code>
+                        field. Writes an audit record.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-fairness/audit</code></td>
+                    <td>super_admin, strata_manager</td>
+                    <td>Returns audit log records from <code>levy_fairness_audit</code>, sorted by timestamp descending.
+                        Returns 403 for other roles.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/intelligence/levy-fairness/cross-subsidy-report.csv</code></td>
+                    <td>approved user</td>
+                    <td>Streams the <code>cross_subsidy_report.group_rows</code> as a CSV download. Returns 404 if no
+                        model or no cross-subsidy data.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="feature-toggles">
+            <h2>Feature Toggles</h2>
+            <p>Six new toggles were added to <code>backend/seeds/feature_toggles.py</code> (total: 45 as of this
+                session). All default to <code>enabled: true</code>.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Feature Key</th>
+                    <th>Controls</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>levy_fairness_explain</code></td>
+                    <td>Per-unit explain drawer (click unit row → UnitExplainDrawer)</td>
+                </tr>
+                <tr>
+                    <td><code>levy_fairness_confidence</code></td>
+                    <td>Model Confidence Badge (ModelConfidenceBadge component)</td>
+                </tr>
+                <tr>
+                    <td><code>levy_fairness_distribution</code></td>
+                    <td>Distribution tab and histogram (LevyDistributionHistogram)</td>
+                </tr>
+                <tr>
+                    <td><code>levy_fairness_snapshots</code></td>
+                    <td>Scenario Snapshots panel (ScenarioSnapshotPanel — Super Admin only)</td>
+                </tr>
+                <tr>
+                    <td><code>levy_fairness_audit</code></td>
+                    <td>Audit Log tab (FairnessAuditLog — Super Admin + Strata Manager)</td>
+                </tr>
+                <tr>
+                    <td><code>levy_fairness_cross_subsidy</code></td>
+                    <td>Cross-Subsidy tab and CSV download (CrossSubsidyTable)</td>
+                </tr>
+                </tbody>
+            </table>
+            <p>To seed toggles on a fresh database: <code>cd backend &amp;&amp; venv/bin/python3
+                seeds/feature_toggles.py</code>.</p>
+        </section>
+
+        <section id="new-collections">
+            <h2>New MongoDB Collections</h2>
+
+            <h3>levy_fairness_audit</h3>
+            <p>Immutable audit trail for all levy fairness model changes. Written by <code>_log_fairness_audit()</code>
+                in <code>backend/services/levy_fairness_service.py</code>.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>action</code></td>
+                    <td>string</td>
+                    <td>Action type: <code>recompute</code>, <code>snapshot_created</code>,
+                        <code>snapshot_restored</code>, <code>group_created</code>, <code>group_updated</code>, <code>group_deleted</code>
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>performed_by</code></td>
+                    <td>string</td>
+                    <td>Email of the user who triggered the action</td>
+                </tr>
+                <tr>
+                    <td><code>role</code></td>
+                    <td>string</td>
+                    <td>Role of the performing user</td>
+                </tr>
+                <tr>
+                    <td><code>building_id</code></td>
+                    <td>string</td>
+                    <td>Strata plan ID</td>
+                </tr>
+                <tr>
+                    <td><code>details</code></td>
+                    <td>object</td>
+                    <td>Action-specific metadata (e.g., snapshot_id, transition cap values)</td>
+                </tr>
+                <tr>
+                    <td><code>timestamp</code></td>
+                    <td>ISO8601 string</td>
+                    <td>UTC timestamp of the action</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h3>levy_fairness_snapshots</h3>
+            <p>Named snapshots of the <code>levy_fairness_results_v2</code> document, created via the Super Admin
+                snapshot panel.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>snapshot_id</code></td>
+                    <td>string</td>
+                    <td>Unique identifier, format <code>snap-{10 hex chars}</code></td>
+                </tr>
+                <tr>
+                    <td><code>name</code></td>
+                    <td>string</td>
+                    <td>Human-readable snapshot name</td>
+                </tr>
+                <tr>
+                    <td><code>description</code></td>
+                    <td>string</td>
+                    <td>Optional description</td>
+                </tr>
+                <tr>
+                    <td><code>building_id</code></td>
+                    <td>string</td>
+                    <td>Strata plan ID</td>
+                </tr>
+                <tr>
+                    <td><code>created_by</code></td>
+                    <td>string</td>
+                    <td>Email of creating user</td>
+                </tr>
+                <tr>
+                    <td><code>created_at</code></td>
+                    <td>ISO8601 string</td>
+                    <td>UTC creation timestamp</td>
+                </tr>
+                <tr>
+                    <td><code>data</code></td>
+                    <td>object</td>
+                    <td>Full copy of <code>levy_fairness_results_v2</code> at time of snapshot (not returned in list
+                        endpoints)
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="new-frontend">
+            <h2>New Frontend TypeScript Components</h2>
+            <p>All components live in <code>frontend/src/components/levy/</code>. They are imported and rendered by
+                <code>frontend/src/pages/dashboard/LevyFairnessPage.jsx</code>. Each component is guarded by its
+                corresponding feature toggle via the <code>useFeatureToggle</code> hook.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Toggle</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>UnitExplainDrawer.tsx</code></td>
+                    <td><code>levy_fairness_explain</code></td>
+                    <td>Slide-over drawer showing facility-by-facility drivers for a selected unit. Triggered by
+                        clicking a unit row in the impact table. Fetches from <code>GET
+                            /intelligence/levy-fairness/unit/{unit}/explain</code>.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>ModelConfidenceBadge.tsx</code></td>
+                    <td><code>levy_fairness_confidence</code></td>
+                    <td>Badge component (High/Medium/Low with colour coding) rendered near the LEI KPI card. Accepts the
+                        <code>confidence</code> object from the top-level result. Expands to show individual factor
+                        scores on hover/click.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>LevyDistributionHistogram.tsx</code></td>
+                    <td><code>levy_fairness_distribution</code></td>
+                    <td>Bar chart comparing current vs proposed levy distribution across all units, using Recharts.
+                        Rendered in the Distribution tab. Displays <code>equity_improvement</code> as a callout figure.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>ScenarioSnapshotPanel.tsx</code></td>
+                    <td><code>levy_fairness_snapshots</code></td>
+                    <td>Panel for Super Admins to create, list, and restore named model snapshots. Calls <code>POST
+                        /snapshots</code>, <code>GET /snapshots</code>, and <code>POST /snapshots/{id}/restore</code>.
+                        Only rendered when role is <code>super_admin</code>.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>FairnessAuditLog.tsx</code></td>
+                    <td><code>levy_fairness_audit</code></td>
+                    <td>Table showing audit trail records from <code>GET /intelligence/levy-fairness/audit</code>.
+                        Accessible to <code>super_admin</code> and <code>strata_manager</code> roles. Rendered in the
+                        Audit tab.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>CrossSubsidyTable.tsx</code></td>
+                    <td><code>levy_fairness_cross_subsidy</code></td>
+                    <td>Table and summary cards from <code>cross_subsidy_report.group_rows</code>. Includes a "Download
+                        CSV" button that calls <code>GET /intelligence/levy-fairness/cross-subsidy-report.csv</code>.
+                        Role badges (Contributor/Recipient/Neutral) use colour coding.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <p><strong>LevyFairnessPage.jsx changes:</strong> Four new tabs added — Distribution, Cross-Subsidy, Save
+                Snapshot (was "Scenarios"), Audit. Unit rows in the impact table are now clickable and open <code>UnitExplainDrawer</code>.
+                The page header row now includes <code>ModelConfidenceBadge</code> adjacent to the LEI score card. The
+                "Scenarios" tab (transition caps) now renders a detailed year-by-year per-group impact table after
+                running.</p>
+        </section>
+
+        <section id="agm-reports">
+            <h2>AGM Report Generation (PDF / PPTX / CSV)</h2>
+            <p>Service: <code>backend/services/levy_fairness_pdf_service.py</code>. Three exported async functions:</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Function</th>
+                    <th>Returns</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>generate_agm_report_pdf(building_id)</code></td>
+                    <td><code>bytes | None</code></td>
+                    <td>8-section ReportLab A4 PDF. Returns None if no cached result exists.</td>
+                </tr>
+                <tr>
+                    <td><code>generate_agm_presentation(building_id)</code></td>
+                    <td><code>bytes | None</code></td>
+                    <td>8-slide python-pptx PPTX. Returns None if no result or python-pptx not installed. Guarded by
+                        <code>PPTX_AVAILABLE</code> flag.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>generate_impact_csv(building_id)</code></td>
+                    <td><code>str</code></td>
+                    <td>CSV string with header row + one row per unit. Returns empty string if no result or no
+                        unit_impact data.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <h3>PDF Sections (in order)</h3>
+            <ol>
+                <li>Cover page with building ID, report date, title</li>
+                <li>Executive Summary — 10-row stats table (LBFI score, SEI, subsidy flow, special levy probability,
+                    P50/P75/P90/P95 reserves)
+                </li>
+                <li>LBFI Gauge Summary with band interpretation and model comparison table</li>
+                <li>Cross-Subsidy Analysis — group table (Apartments vs Townhouses) and net subsidy flows</li>
+                <li>Facility Cost Allocation Centres — three-tier model (Global / Apartment-Only / Townhouse-Only)</li>
+                <li>Predictive Financial Risk — Monte Carlo probability + reserve percentile table</li>
+                <li>Per-Lot Impact Table — first 50 units, colour-coded rows (green = decrease, red = increase)</li>
+                <li>Legal Pathway Options + AGM Action Plan + Disclaimer footer</li>
+            </ol>
+            <h3>PPTX Slides (in order)</h3>
+            <ol>
+                <li>Title slide — dark background, building ID, generation date</li>
+                <li>Agenda — 7 items</li>
+                <li>LBFI Explanation — score box, Gini interpretation</li>
+                <li>Cross-Subsidy Analysis — per-group cards with net subsidy</li>
+                <li>Facility Cost Allocation — three-tier breakdown</li>
+                <li>Per-Lot Highlights — stats (lots lower/same/higher, avg saving/increase, top 5 savers/movers)</li>
+                <li>Predictive Financial Risk — Monte Carlo probability + reserve percentiles</li>
+                <li>Legal Pathways + Action Plan</li>
+            </ol>
+            <div class="callout info">
+                <strong>python-pptx dependency:</strong> PPTX generation requires <code>python-pptx</code> in the venv.
+                If not installed, <code>PPTX_AVAILABLE = False</code> and <code>generate_agm_presentation()</code>
+                returns <code>None</code>. Install with <code>pip install python-pptx</code>.
+            </div>
+            <h3>API Endpoints</h3>
+            <pre><code>GET /intelligence/levy-fairness/agm-report.pdf     → 200 application/pdf | 404
+GET /intelligence/levy-fairness/agm-presentation.pptx → 200 application/vnd.openxmlformats-officedocument.presentationml.presentation | 404
+GET /intelligence/levy-fairness/impact.csv         → 200 text/csv | 404
+</code></pre>
+            <h3>Tests</h3>
+            <p>Test file: <code>tests/backend/test_levy_fairness_pdf_service.py</code> — 15 tests across 3 classes:
+                <code>TestGenerateAgmReportPdf</code> (6), <code>TestGenerateAgmPresentation</code> (5), <code>TestGenerateImpactCsv</code>
+                (4). All patch <code>services.levy_fairness_pdf_service.db</code>.</p>
+        </section>
+
+        <section id="levy-stability">
+            <h2>Levy Stability Score Engine</h2>
+            <p>Service: <code>backend/services/levy_stability_service.py</code>. Computes a composite 0–100 stability
+                score from four weighted components. Cached in <code>levy_stability_results</code> collection.</p>
+
+            <h3>Score Components</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>Component</th>
+                    <th>Weight</th>
+                    <th>Data Source</th>
+                    <th>Algorithm</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Reserve Adequacy</td>
+                    <td>35%</td>
+                    <td>sinking_fund_plan, unit_levy_ledger</td>
+                    <td>SFAR = (current_reserve + projected_levies_3yr) / planned_capital_3yr. Capped 0–100.</td>
+                </tr>
+                <tr>
+                    <td>Capital Shock Risk</td>
+                    <td>30%</td>
+                    <td>capital_replacement_schedule, capital_shock_risks</td>
+                    <td>Inverse of CSI severity. High CSI in next 5yr = lower score.</td>
+                </tr>
+                <tr>
+                    <td>Levy Volatility</td>
+                    <td>20%</td>
+                    <td>unit_levy_ledger (multi-year)</td>
+                    <td>CV (coefficient of variation) of annual levy totals over last 5yr. Lower CV = higher score.</td>
+                </tr>
+                <tr>
+                    <td>Funding Sufficiency</td>
+                    <td>15%</td>
+                    <td>budgets, unit_levy_ledger</td>
+                    <td>Actual levy income / budget requirement. Fully funded = 100, under-funded proportionally
+                        lower.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h3>API Endpoints</h3>
+            <pre><code>GET  /intelligence/levy-stability            → LevyStabilityResult (cached)
+POST /intelligence/levy-stability/recompute  → LevyStabilityResult (fresh calculation)
+POST /intelligence/levy-stability/what-if    → LevyStabilityWhatIfResult
+     Body: { sinking_fund_increase: float, capital_deferral_years: int,
+             loan_amount: float, loan_rate: float, loan_term_years: int }
+</code></pre>
+
+            <h3>LevyStabilityResult Schema</h3>
+            <pre><code>{
+  "lss_score": float,            // 0–100 composite
+  "reserve_adequacy": float,     // 0–100
+  "capital_shock_risk": float,   // 0–100
+  "levy_volatility": float,      // 0–100
+  "funding_sufficiency": float,  // 0–100
+  "group_scores": {
+    "apartments": { "lss": float, "reserve": float, "shock": float, "volatility": float, "sufficiency": float },
+    "townhouses": { ... }
+  },
+  "computed_at": "ISO8601",
+  "building_id": "13195"
+}
+</code></pre>
+
+            <h3>Frontend Page</h3>
+            <p>File: <code>frontend/src/pages/dashboard/LevyStabilityPage.jsx</code><br>
+                Route wrapper:
+                <code>frontend/src/app/(dashboard)/intelligence/levy-stability/page.tsx</code><br>
+                Nav item: "Levy Stability Score" under Intelligence group in <code>DashboardLayout.tsx</code> (Shield
+                icon, manager+ only).</p>
+            <p>UI sections:</p>
+            <ul>
+                <li>Score ring gauge + 4 component KPI cards</li>
+                <li>Radar chart (recharts) with baseline vs what-if overlay</li>
+                <li>Group bar chart (Apartments vs Townhouses) + GroupScoreCard grid</li>
+                <li>What-If Modelling panel: sinking fund increase slider, capital deferral slider, loan financing
+                    inputs
+                </li>
+                <li>LSS Methodology explainer card</li>
+            </ul>
+        </section>
+    </main>
+</div>
+</body>
+</html>

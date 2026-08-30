@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Onboarding Financial Pipeline - Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">Strata Management Platform</div>
+            <div class="sub">Onboarding Financial Pipeline · The ONE Path (Evidence Gateway → PG Ledger → UI)</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin / Strata Admin</span>
+</header>
+
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">Docs</span> Overview</a>
+            <a data-page="bank-feeds-demo-bank.html" href="bank-feeds-demo-bank.html"><span class="icon">Bank</span> Demo Bank Sync</a>
+            <a data-page="historical-reconstruction.html" href="historical-reconstruction.html"><span class="icon">Batch</span> Historical Reconstruction</a>
+            <a class="active" data-page="onboarding-financial-pipeline.html" href="onboarding-financial-pipeline.html"><span class="icon">Flow</span> Onboarding Financial Pipeline</a>
+            <a data-page="onboarding-workflow.html" href="onboarding-workflow.html"><span class="icon">Onboard</span> Onboarding Workflow</a>
+            <a data-page="trust-accounting.html" href="trust-accounting.html"><span class="icon">Trust</span> Trust Accounting</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">Back</span> Dashboard</a>
+            <a href="/dashboard/admin/financial-onboarding" target="_blank"><span class="icon">App</span> Open In App</a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <h1>Onboarding Financial Pipeline — the ONE Path</h1>
+        <p style="color:var(--muted);font-size:15px;margin-bottom:24px">
+            How every financial fact for an onboarded building reaches the screen through exactly one path:
+            <strong>sources → Financial Evidence Gateway ("Demo Bank") → <code>financial_core</code> GL posting →
+            PostgreSQL <code>finance.*</code> ledger → read services → UI</strong>. Grounded in the controlling
+            contract <code>docs/architecture/financial-summary-analysis-of-issues.md</code>, the canonical narrative
+            <code>docs/architecture/onboarding/04_onboarding_financial_data_flow.md</code>, and the workflow spec
+            <code>docs/finances/onboarding-reconstruction-workflow-canonical-spec.md</code>. This page documents the
+            <strong>future-state target</strong> and flags clearly which parts are shipped vs planned.
+        </p>
+
+        <div class="callout warn">
+            <strong>Nothing constructs financial truth outside this path.</strong> No frontend, importer, one-off
+            script, or report computes collection rate / arrears / fund balance / levy allocation independently, and
+            none posts to the GL except through the Gateway → <code>financial_core</code> posting service. A bespoke
+            "read a source document and post straight to the GL" script is the banned pattern (real incident: two
+            disconnected 2021–2025 expense totals — $415,031.21 staged vs $1,502,451.24 GL-posted — diverged 3.6×
+            because one bypassed the Gateway).
+        </div>
+
+        <h2>1. The One Pipeline (end to end)</h2>
+        <pre><code>  SOURCES  ──▶  FINANCIAL EVIDENCE GATEWAY  ──▶  GL POSTING  ──▶  POSTGRESQL LEDGER  ──▶  READ SVCS  ──▶  UI
+ (portal      (typed evidence records, a.k.a.    (financial_core   (finance.* tables:      (one canonical   (frontend
+  scrape,      "Demo Bank" intake — see §3)       posting service,  journals, levy_items,   figure per        renders
+  AGM PDF,                                        with historical   receipts, allocations,  metric, with      backend
+  budget                                          authorisation)    funds, periods)         basis/source)     view models)
+  page,
+  CSV,
+  real bank)
+                          ▲
+         PORTAL SNAPSHOT ─┘  = VERIFICATION SIGNAL ONLY. Compared against the GL-computed balance.
+                             NEVER a journal source. NEVER overwrites a derived field.</code></pre>
+
+        <p>Two entry scenarios feed <strong>one</strong> pipeline: a <strong>new building</strong> for a Strata
+            Manager (no prior StrataOS data), and an <strong>existing building migrating</strong> to StrataOS (its
+            data lives in the manager's system / portal). Both converge on the same Gateway. The code is
+            <strong>building-agnostic</strong>; per-Strata-Manager scrapers are input <strong>adapters</strong>, not
+            business logic (East Gate / Civium are <em>inputs</em>, never logic).</p>
+
+        <h2>2. The CREATE → DISPLAY → RECONCILE lifecycle</h2>
+        <p>Every onboarded financial fact moves through three stages. The pipeline supports all three; we do
+            <strong>not</strong> wait for perfect source data.</p>
+        <table>
+            <thead>
+            <tr><th>Stage</th><th>What happens</th><th>Key rule</th></tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><strong>CREATE</strong></td>
+                <td>From whatever we can pull (portal current-state, AGM PDF, CSV, the budget page), CREATE derived
+                    historical Levy + Expense transactions tagged <code>reconstructed_historical</code>. This alone is
+                    enough to start displaying a complete financial view.</td>
+                <td>Derived is an <strong>assumption</strong>, not evidence — the derivation assumes every unit paid
+                    exactly its levy, on time, every period. Each row carries an "assumed, not verified" quality flag.</td>
+            </tr>
+            <tr>
+                <td><strong>DISPLAY</strong></td>
+                <td>The PostgreSQL <code>finance.*</code> ledger, built from those derived transactions, serves the UI
+                    immediately.</td>
+                <td>Frontends render backend-calculated view models — they never compute accounting results
+                    independently. Missing ≠ zero.</td>
+            </tr>
+            <tr>
+                <td><strong>RECONCILE</strong></td>
+                <td>When <em>real</em> data later arrives (Bank/Trust feed, a fresh scrape, or a PDF/CSV), reconcile
+                    ONLY the transactions we ourselves derived: adjust a date, adjust an amount (interest, fees,
+                    rounding), and upgrade provenance — one derived transaction at a time, idempotently, never
+                    double-counting.</td>
+                <td>Forward, not repair: we CREATE a coherent derived truth and reconcile <em>that</em> — we do not
+                    forensically repair a source system's corrupted records. Un-derivable data is SURFACED as a
+                    bounded exception, never silently "fixed."</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="callout warn">
+            <strong>The portal is a verification signal, never a source.</strong> The portal exposes only the
+            <em>current net</em> per unit — not the transactions behind it. A scrape is compared against the
+            GL-calculated balance; it never overwrites a journal or a derived ledger field. An unexplained variance is
+            a visible reconciliation exception, never force-matched. Posting a portal-derived value as a journal is
+            the banned "old wrong path" that once produced a <strong>$1.77M duplicate credit</strong>.
+        </div>
+
+        <h2>3. Typed evidence records (the controlled vocabulary)</h2>
+        <p>The Gateway ("Demo Bank" in shorthand) is <strong>not</strong> just bank lines — it is a set of
+            <strong>typed evidence records</strong>, each converted to <strong>integer cents at ingestion</strong> and
+            posted to the GL by <code>financial_core</code>. All inputs use the same envelope but retain their correct
+            accounting meaning. This is the authoritative vocabulary from the controlling contract's evidence-type
+            table:</p>
+        <table>
+            <thead>
+            <tr><th>Evidence type</th><th>Example</th><th>Accounting treatment</th></tr>
+            </thead>
+            <tbody>
+            <tr><td><code>bank_receipt</code></td><td>Real owner payment</td><td>Bank transaction → allocation → receipt journal</td></tr>
+            <tr><td><code>bank_payment</code></td><td>Supplier payment</td><td>Bank transaction → AP/expense allocation</td></tr>
+            <tr><td><code>reconstructed_receipt</code></td><td>Modelled 2021 owner payment</td><td>Synthetic bank evidence → historical authorisation → journal</td></tr>
+            <tr><td><code>reconstructed_expense_payment</code></td><td>Historical category paid</td><td>Synthetic bank evidence → historical expense posting</td></tr>
+            <tr><td><code>accrued_expense</code></td><td>Year-end category expense without a payment date</td><td>Expense/AP journal; not falsely presented as a confirmed bank movement</td></tr>
+            <tr><td><code>budget_approval</code></td><td>AGM-approved category budget</td><td>Budget ledger, <strong>not</strong> GL cash</td></tr>
+            <tr><td><code>levy_charge</code></td><td>Quarterly Admin/Sinking levy</td><td>Owner AR and levy-income journal (a charge is not a fake bank line)</td></tr>
+            <tr><td><code>portal_balance_snapshot</code></td><td>Scraped lot balance</td><td>External reconciliation evidence; <strong>never</strong> a journal by itself</td></tr>
+            <tr><td><code>opening_balance</code></td><td>Onboarding position (per lot/fund)</td><td>Authorised opening-balance journal; <strong>never</strong> back-solved from the portal</td></tr>
+            <tr><td><code>adjustment</code></td><td>Correction after reconciliation</td><td>Explicit, dated, dual-control adjustment/reversal — never a silent overwrite</td></tr>
+            </tbody>
+        </table>
+        <p style="color:var(--muted);font-size:14px">
+            The onboarding narrative (§2 of <code>04_onboarding_financial_data_flow.md</code>) uses the
+            onboarding-specific subset of these — <code>budget_approval</code>, <code>levy_charge</code>,
+            <code>reconstructed_receipt</code>, <code>reconstructed_expense</code>, <code>opening_balance</code>,
+            <code>portal_balance_snapshot</code>, <code>adjustment</code> — with provenance tags
+            (<code>document_derived</code>, <code>reconstructed_historical</code>,
+            <code>strata_web_portal_scrape</code>, <code>portal_reconciliation</code>).
+        </p>
+        <div class="callout success">
+            <strong>Amounts are paid == charged by construction on the levy side.</strong> The payment amount is
+            <em>copied</em> from the charge's <code>total_cents</code> (GST-inclusive), never re-derived — this is what
+            kills the recurring ~10% GST-mismatch bug. Cents are the only ledger truth, converted once at the
+            ingestion boundary (<code>demo_bank/ingestion.py</code>'s <code>amount_cents</code>), never re-derived ad
+            hoc at each call site and never inside <code>backend/domain/</code> (float-banned there, test-enforced).
+        </div>
+
+        <h2>4. Phase 1 (derived) → Phase 2 (real feed supersession by tag)</h2>
+        <p>The core invariant: <strong>a reconstructed (derived) transaction is an assumption, not evidence, until a
+            real Bank/Trust feed confirms it.</strong> The derivation cannot distinguish a unit that paid on schedule
+            (derived = real) from one that paid late / short / over / not at all (derived ≠ real). Those mismatched
+            units cannot be resolved by re-deriving — only a real feed (or per-payment history we do not have) turns
+            them from <em>assumed</em> into <em>evidenced</em>.</p>
+        <table>
+            <thead>
+            <tr><th>Phase</th><th>Goal</th><th>Provenance</th><th>Prerequisite?</th></tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><strong>Phase 1 — derived</strong></td>
+                <td>Perfect the historical derived pipeline with no Bank/Trust involved: annual Admin/Sinking fund
+                    totals (±GST) per year, UOE per unit per year, payment periods per year, and current per-unit
+                    status → a fully-tagged <code>reconstructed_historical</code> ledger in PG (mirrored to Mongo).</td>
+                <td>Every row tagged <code>reconstructed_historical</code>; <code>source</code> tag mandatory on every
+                    row so Phase 2 is a <code>WHERE source=…</code> supersede, not a forensic exercise.</td>
+                <td>Ships <strong>now</strong> on honest synthetic data — self-sufficient, never depends on the portal
+                    scraper, never reconciles against Mongo.</td>
+            </tr>
+            <tr>
+                <td><strong>Phase 2 — real feed supersession</strong></td>
+                <td>Once a connected Trust/Bank account carries historical records (may be none, or partial),
+                    reconcile the derived ledger against it. A highest-trust evidence source that
+                    <strong>supersedes</strong> the derived layer for the transactions it covers.</td>
+                <td><code>bank_reconciled</code> supersedes <code>reconstructed_historical</code> for covered
+                    periods; derived rows stay authoritative everywhere the feed is silent. Supersession is
+                    <strong>reverse-then-replace</strong>, never in-place mutation (keeps audit + GL clean).</td>
+                <td><strong>Not</strong> a prerequisite for Phase 1 going live. A real Bank/Trust connector is simply
+                    another evidence source on the same evidence → reconcile-derived → supersede path — no pipeline
+                    rework when connectivity lands.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2>5. Definition of "done" — two anchors, not one</h2>
+        <p>A building is <strong>onboarded</strong> when its reconstructed financials pass reconciliation
+            <em>evidence</em>, not when code runs (four states: understood → implemented → verified → promoted).
+            Phase-1 done =</p>
+        <ol>
+            <li><strong>Gross levied</strong> per year/fund <strong>== the period-aware approved GST-inclusive
+                budget</strong> — full annual budget for closed years; budget prorated to periods-charged-to-date for
+                the current year. (<code>unit_levy_ledger.total_levied</code> is <strong>YTD-charged-to-date by
+                design</strong>, not the full annual levy — mid-year it is ~half the annual budget because ~half the
+                quarters are charged. This "exactly 2.0000× / halved!" observation is NOT a bug; do not re-chase it.)</li>
+            <li>The derived ledger's <strong>net balance reconciles to the portal</strong> (best external anchor, or
+                the manually-entered current balance for portal-less buildings).</li>
+            <li>Every row is tagged <code>reconstructed_historical</code>.</li>
+            <li>Internal invariants hold: integer cents, balanced journals, idempotent replay, single intake path.</li>
+            <li>Any residual per-unit variance against the anchor is captured as <strong>one bounded, tagged
+                <code>portal_reconciliation</code> adjustment</strong> — a residual larger than ~one period's levy is
+                a signal of a systematic bug: <strong>halt and flag, do not auto-post.</strong></li>
+        </ol>
+        <div class="callout danger">
+            <strong>Mongo is a downstream mirror, never a reconciliation source and never a promotion gate.</strong>
+            "Done" is NOT "matches Mongo," NOT "matches per-payment reality," and NOT net-reconciliation alone. Never
+            treat one store's stored/computed value as ground truth — both were derived from CSV/PDF imports and can
+            independently drift.
+        </div>
+
+        <h2>6. FUTURE STATE — the target architecture</h2>
+        <p>These are the deliberate end-state commitments (not all shipped — see §7):</p>
+        <ul>
+            <li><strong>PostgreSQL is the serving source of record.</strong> The frontend reads the PostgreSQL
+                <code>finance.*</code> ledger tables to display financials. PG-primary <em>reads</em> flip only when
+                reconciliation is clean — the schema existing is not the same as reads being promoted.</li>
+            <li><strong>MongoDB becomes a DR-only mirror.</strong> A scheduled (≈daily) sync propagates PG → Mongo via
+                the outbox relay / change-stream workers, so Mongo staleness can't recur silently. Mongo is never a
+                reconciliation source and never a promotion gate.</li>
+            <li><strong>Portal snapshots are first-class PG reconciliation controls.</strong> Per-unit portal-vs-ledger
+                variance is a first-class, bounded, interest-aware control (a net-credit unit accrues no interest
+                adjustment) — surfaced as visible exceptions, routed to the sanctioned resolution
+                (reverse-then-regenerate / matching), never a new portal-derived journal.</li>
+            <li><strong>Fund-level bank reconciliation is a first-class PG control.</strong> Admin + Capital
+                Works/Sinking fund balances reconcile against real bank/trust movements once a feed connects, per
+                fund, with GST components where the OC is GST-registered.</li>
+            <li><strong>Provenance tags are a controlled vocabulary.</strong> <span class="badge">SHIPPED
+                2026-08-10</span> Every row carries a mandatory <code>transaction_origin</code> / <code>source</code>
+                tag from a fixed, CHECK-constrained set (<code>document_derived</code>,
+                <code>reconstructed_historical</code>, <code>strata_web_portal_scrape</code>,
+                <code>portal_reconciliation</code>, <code>bank_reconciled</code>, and others), enforced
+                <code>NOT NULL</code> on <code>finance.bank_transactions</code> (migration <code>0085</code>) — every
+                row across all schemes backfilled and validated live — so Phase 2 supersession is a precedence rule,
+                not a forensic exercise.</li>
+            <li><strong>Every financial API response states its <code>basis</code></strong> (numerator/denominator),
+                <code>source</code>, <code>as_of</code>, and quality/reconciliation status. Collection Rate, Fund
+                Health, and Collected-in-Advance stay three distinct metrics with three labels — never collapsed.</li>
+        </ul>
+
+        <h2>7. Shipped vs Planned — the gap register (G1–G8)</h2>
+        <div class="callout success">
+            <strong>Updated 2026-08-10 — finance reads ARE mostly promoted to PostgreSQL now.</strong>
+            Live-verified for East Gate: <code>finance.arrears_detail</code>, <code>finance.levy_kpi</code>,
+            <code>finance.summary</code>, and <code>finance.unit_dashboard_overview</code> all serve
+            <strong>PostgreSQL</strong>. <code>finance.building_overview</code> remains on Mongo — correctly, for a
+            real, tracked, open product decision (does PG's collected figure include unapplied/credit-ahead cash the
+            way Mongo's does — <code>GAP-FIN-056</code> Item 2a), not a readiness gap. The 2026-08-09 promotion
+            session also made an explicit architectural call: Mongo disagreeing with PG is <strong>no longer</strong>
+            treated as evidence PG is wrong (PG is the system of record); a route promotes once it has a real,
+            substantively-verified comparator on an explicit allowlist, domain mode, and the feature toggle — not
+            once Mongo happens to agree.
+        </div>
+        <div class="callout danger">
+            <strong>The PG→Mongo DR-mirror sync is currently broken (GAP-FIN-061, HIGH, found 2026-08-10).</strong>
+            The transactional outbox relay (<code>workers/outbox_relay.py</code>) has 15,256 permanently
+            dead-lettered events since 2026-05-04 (all <code>"Authentication required."</code>) — PostgreSQL's own
+            data is <strong>not</strong> affected (the outbox writes after the authoritative commit), but Mongo
+            <code>events_archive</code> / the Redis event streams have not received these events. "MongoDB becomes a
+            DR-only mirror" is the stated end-state, but the actual sync mechanism needs this incident resolved
+            first before that goal is genuinely met.
+        </div>
+        <table>
+            <thead>
+            <tr><th>Gap</th><th>What</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><strong>G1</strong></td>
+                <td>Expense categorization + per-invoice GST resolution. Itemized manifest is shipped (#576); the
+                    closed loop (per-invoice fund/category mapping, GST-inclusive-or-not, exceptions surface, prior-year
+                    posting) is not.</td>
+                <td><span class="badge">Partial — manifest SHIPPED, loop OPEN</span></td>
+            </tr>
+            <tr>
+                <td><strong>G2</strong></td>
+                <td>Single approved-budget control. Exactly one of (AGM PDF, <code>/dashboard/financial-projections</code>)
+                    must be the authoritative <code>budget_approval</code> per (year, fund); the other is a cross-check.</td>
+                <td><span class="badge">PLANNED (open)</span></td>
+            </tr>
+            <tr>
+                <td><strong>G3</strong></td>
+                <td>Opening-balance evidence source. Reconstruction needs a first-year opening per lot/fund from an
+                    explicit <code>opening_balance</code> source (AGM opening figures) — never back-solved from the
+                    portal.</td>
+                <td><span class="badge">PLANNED (open)</span></td>
+            </tr>
+            <tr>
+                <td><strong>G4</strong></td>
+                <td>Per-manager portal adapter abstraction. A <code>PortalAdapter</code> protocol emits the canonical
+                    typed <code>PortalBalanceSnapshot</code> into <code>staging_strata_web_snapshots</code>; Civium is
+                    the first concrete adapter; selection is per-building via the provider registry.</td>
+                <td><span class="badge">SHIPPED (RESOLVED 2026-08-06, GAP-ONBOARD-003)</span></td>
+            </tr>
+            <tr>
+                <td><strong>G5</strong></td>
+                <td>Reconciliation residual handling (Workstream C). Bounded (residual &gt; ~one period ⇒ halt/flag),
+                    interest-aware, routes real paid-gaps to reverse-then-regenerate / matching — never a new
+                    portal-derived journal. Engine <code>portal_ledger_reconciliation_service.py</code> exists (corrects
+                    chain breaks by re-chaining).</td>
+                <td><span class="badge">Partial — classifier SHIPPED 2026-08-10 (<code>bounded_portal_reconciliation_engine.py</code>,
+                    live-verified for East Gate: 83 reconciled / 3 credit / 1 debit / 0 halted); the posting
+                    orchestrator that calls the two existing debit/credit posting mechanisms for the classifier's
+                    decisions is NOT yet wired</span></td>
+            </tr>
+            <tr>
+                <td><strong>G6</strong></td>
+                <td>Real-feed supersession. When a real Bank/Trust feed arrives for a reconstructed period it must
+                    supersede the reconstructed evidence (provenance upgrade to <code>bank_reconciled</code>, or
+                    reverse-then-replace) without double-counting.</td>
+                <td><span class="badge">PLANNED (design now, before it boxes us in)</span></td>
+            </tr>
+            <tr>
+                <td><strong>G7</strong></td>
+                <td>Enforce single intake — no bespoke "read a source document and post straight to the GL" script.
+                    Ongoing discipline.</td>
+                <td><span class="badge">Ongoing discipline</span></td>
+            </tr>
+            <tr>
+                <td><strong>G8</strong></td>
+                <td>Cutover last mile. Finance <em>reads</em> promoted per-route once each has a real,
+                    substantively-verified comparator — not a Mongo-agreement gate.</td>
+                <td><span class="badge">Mostly SHIPPED — verified live 2026-08-10 (4/5 major routes on PostgreSQL; the
+                    5th correctly blocked on a real, tracked product decision, not a readiness gap)</span></td>
+            </tr>
+            <tr>
+                <td><strong>G9</strong> <em>(new, 2026-08-10)</em></td>
+                <td>Fund-level Admin+Sinking bank-reconciliation control — first-class opening→movements→closing
+                    bridge per fund/year, populated from GL-posted receipts/expenses.</td>
+                <td><span class="badge">SHIPPED — <code>fund_bank_reconciliation_engine.py</code>, live-applied for
+                    East Gate 2021-2026. <code>external_balance_cents</code> stays NULL until a real external anchor
+                    is wired (B2b)</span></td>
+            </tr>
+            <tr>
+                <td><strong>G10</strong> <em>(new, 2026-08-10)</em></td>
+                <td>Portal snapshots dual-written to PostgreSQL (<code>finance.portal_balance_snapshots</code>),
+                    alongside the existing Mongo staging write.</td>
+                <td><span class="badge">SHIPPED (write side) — reads still on Mongo deliberately, pending a soak
+                    period</span></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2>8. GST is a rule, not just a manual flag</h2>
+        <p>An Owners Corporation is a non-profit body, so GST registration is <strong>compulsory when annual (ex-GST)
+            income is $150,000 or more</strong>, and voluntary below it. When registered, GST (10%) is added to levies
+            and to each owner's due amount. Canonical determination point:
+            <code>backend/services/gst_service.py::parse_levy_gst_settings</code> — today it reads a manual
+            <code>gst_registered</code> flag (default True) and the $150k threshold is <strong>NOT yet applied</strong>
+            (a gap). The rule to codify:
+            <code>gst_registered = (annual_ex_gst_income_cents &gt;= 15_000_000) OR manual_gst_registered_flag</code>,
+            returning a <code>gst_registration_compulsory</code> flag + basis so a threshold-driven change is surfaced,
+            never silent.</p>
+
+        <h2>Related</h2>
+        <ul>
+            <li><code>docs/architecture/financial-summary-analysis-of-issues.md</code> — the controlling Evidence
+                Gateway contract (64 numbered rules, evidence-type table, canonical flow, 6-phase programme).</li>
+            <li><code>docs/architecture/onboarding/04_onboarding_financial_data_flow.md</code> — canonical narrative +
+                gap register + "settled, do not re-litigate" list.</li>
+            <li><code>docs/finances/onboarding-reconstruction-workflow-canonical-spec.md</code> — per-workstream build
+                spec, red-team findings, two-anchor "done" definition.</li>
+            <li><a href="historical-reconstruction.html">Historical Reconstruction</a> — the reconstruction-batch
+                review/approval workflow and GST-aware levy regeneration endpoints.</li>
+            <li><a href="bank-feeds-demo-bank.html">Demo Bank Sync</a> — Demo Bank provider staging and bank-feed
+                sync/rematch.</li>
+            <li>FeatureTrace mindmap: <code>docs/architecture/mindmap/featuretrace/financial-onboarding.md</code>
+                (future-state dependency chain).</li>
+        </ul>
+    </main>
+</div>
+</body>
+</html>

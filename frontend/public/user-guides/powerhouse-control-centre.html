@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Powerhouse Status & Control Centre Guide</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fcfbf7;
+        }
+        h1, h2, h3 {
+            color: #2F4F4F;
+            font-family: 'Manrope', sans-serif;
+        }
+        h1 {
+            border-bottom: 2px solid #E07A5F;
+            padding-bottom: 10px;
+        }
+        .role-badge {
+            background-color: #F2CC8F;
+            color: #2F4F4F;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.9em;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+        .mode-box {
+            background-color: #e1f5fe;
+            border-left: 4px solid #0288d1;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .warn-box {
+            background-color: #fff3e0;
+            border-left: 4px solid #f57c00;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Powerhouse Status & Control Centre Operator's Guide</h1>
+    <div class="role-badge">Audience: Strata Managers & Technical Administrators</div>
+
+    <p>Welcome to the <strong>Powerhouse Status & Control Centre</strong>. This operational console provides managers and super-admins with a completely transparent, real-time diagnostic view of the multi-tenant StrataOS communications and workflow automation platform.</p>
+
+    <h2>1. Introduction to Cutover Statuses</h2>
+    <p>Powerhouse is transitioning its transactional engine from MongoDB to a high-fidelity PostgreSQL relational schema. To ensure zero-downtime and 100% data honesty, the migration is partitioned into individual <strong>Cutover Modes</strong> per building domain:</p>
+
+    <div class="mode-box">
+        <h3>Current Operational Modes</h3>
+        <ul>
+            <li><strong>mongo_primary</strong>: All data is read from and written to MongoDB. This is the default, fully tested production state.</li>
+            <li><strong>postgres_shadow</strong>: Reads and writes continue to use MongoDB as primary, but reads are duplicated to PostgreSQL in the background. The Shadow Comparator compares both payloads and records any mismatches (divergences) to our quality ledger.</li>
+            <li><strong>postgres_read</strong>: Relational PostgreSQL reads are activated. MongoDB remains the target of writes.</li>
+            <li><strong>postgres_write</strong>: Primary reads and writes are fully relocated to PostgreSQL. MongoDB acts as a read-only historical archive.</li>
+        </ul>
+    </div>
+
+    <h2>2. Viewing the Control Centre Page</h2>
+    <p>Authorized strata managers and administrators can navigate to <code>/dashboard/powerhouse</code> to access the live status console. This page fetches the status payload from the <code>GET /api/powerhouse/status</code> API.</p>
+
+    <h3>Expected Status Response Structure</h3>
+    <pre><code>{
+  "building_id": "13195",
+  "domains": {
+    "powerhouse_conversations": {
+      "mode": "mongo_primary",
+      "read_source": "mongo",
+      "write_source": "mongo",
+      "readiness_status": "ready_for_shadow",
+      "postgres_rows": 0,
+      "unresolved_differences": 0,
+      "last_compared_at": null
+    },
+    "powerhouse_workflows": {
+      "mode": "mongo_primary",
+      "read_source": "mongo",
+      "write_source": "mongo",
+      "readiness_status": "unknown"
+    }
+  }
+}</code></pre>
+
+    <h2>3. Managing Divergence Logs</h2>
+    <p>In <code>postgres_shadow</code> mode, any mismatched query results between MongoDB and PostgreSQL are logged. Strata managers can view the differences at <code>/api/powerhouse/status/divergences</code>.</p>
+    <div class="warn-box">
+        <strong>Important safety protocol:</strong> Divergences are typical during schema transition due to timing gaps or un-backfilled legacy keys. If unresolved differences are high, the domain must remain in shadow mode. Do not promote any domain to <code>postgres_read</code> until unresolved differences have been verified as minor/immaterial or corrected to 0.
+    </div>
+
+    <h2>4. Write Safety & Role Gating</h2>
+    <ul>
+        <li><strong>Resident Scope</strong>: Owners and Tenants can access their own building threads, messages, and workflow timelines cleanly, but are strictly hidden from control-plane diagnostics, inbox configurations, and divergence logs.</li>
+        <li><strong>Write Safety Guard</strong>: Write actions (creating threads, posting notes, assigning tasks) unconditionally target MongoDB during this phase. Attempts to write directly to PostgreSQL will return a clean <code>503 Service Unavailable</code> error, preserving SOT boundaries.</li>
+    </ul>
+
+    <p>For more deep technical details, please refer to the <a href="../tech-docs/powerhouse-coexistence.md">Powerhouse Coexistence Tech Doc</a>.</p>
+</body>
+</html>

@@ -1,0 +1,1066 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Frontend – Eastgate Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad: true, theme: 'dark', securityLevel: 'strict'});</script>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">East Gate Residences</div>
+            <div class="sub">Technical Documentation · Frontend</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a class="active" data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#stack">Tech Stack</a>
+            <a href="#routing">Routing</a>
+            <a href="#authcontext">AuthContext</a>
+            <a href="#typescript">TypeScript Types</a>
+            <a href="#pages">Page Inventory</a>
+            <a href="#components">Components</a>
+            <a href="#feature-toggles">Feature Toggles</a>
+            <a href="#design">Design System</a>
+            <a href="#add-page">Adding a Page</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <div style="background:#3a2418;border:1px solid #c2410c;color:#fed7aa;padding:12px 16px;border-radius:8px;margin-bottom:20px;">
+            <strong>⚠ Doc refresh in progress (2026-04-30):</strong>
+            The frontend is now Next.js App Router (not React Router v7). Package versions and route
+            layout described below are stale. See the <a href="AUDIT_ADDENDUM_2026-04-30.html"
+                                                         style="color:#fed7aa;text-decoration:underline;">2026-04-30
+            audit addendum</a>.
+        </div>
+        <h1>Frontend Architecture</h1>
+        <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role lists/code samples on this page naming "chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+        <p>React 19 single-page application with React Router v7, shadcn/ui components, and Tailwind CSS v4. The
+            application is built with <strong>TypeScript</strong> for improved type safety and maintainability.</p>
+
+        <section id="stack">
+            <h2>Technology Stack</h2>
+            <div class="two-col">
+                <div class="card">
+                    <h3>Core</h3>
+                    <ul>
+                        <li><strong>React 19.2.3</strong> — UI component framework</li>
+                        <li><strong>TypeScript 5.9</strong> — Type-safe development</li>
+                        <li><strong>React Router v7.5.1</strong> — Client-side routing</li>
+                        <li><strong>Next.js 16.1.6</strong> — Build tooling (migrated from CRA)</li>
+                        <li><strong>Tailwind CSS v4</strong> — Utility-first CSS</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>UI Components</h3>
+                    <ul>
+                        <li><strong>shadcn/ui</strong> — Component library built on Radix UI</li>
+                        <li><strong>Radix UI</strong> — Accessible primitives (Dialog, Select, etc.)</li>
+                        <li><strong>Recharts 3.7</strong> — Chart visualisations</li>
+                        <li><strong>Tremor 3.18</strong> — Dashboard metrics components</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Data &amp; State</h3>
+                    <ul>
+                        <li><strong>Axios</strong> — HTTP client with JWT interceptor</li>
+                        <li><strong>React Context API</strong> — Global auth state</li>
+                        <li><strong>React Hook Form 7.56</strong> — Form handling</li>
+                        <li><strong>Zod 3.24</strong> — Schema validation for forms</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Payments &amp; Rich Text</h3>
+                    <ul>
+                        <li><strong>Stripe React 5.6</strong> — Payment form components</li>
+                        <li><strong>TipTap 3.20</strong> — Rich text editor (notices, blog)</li>
+                        <li><strong>Sonner</strong> — Toast notifications</li>
+                        <li><strong>date-fns</strong> — Date formatting utilities</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="routing">
+            <h2>Routing Architecture</h2>
+            <p>The app uses the <strong>Next.js 16 App Router</strong> (migrated from CRA). Dashboard routes live under
+                <code>frontend/src/app/(dashboard)/dashboard/</code>. The root <code>/dashboard</code> page dispatches
+                to a role-specific sub-dashboard component based on the authenticated user's role.</p>
+
+            <h3>Dashboard Role Dispatch</h3>
+            <p>File: <code>frontend/src/app/(dashboard)/dashboard/page.tsx</code></p>
+            <pre><code>// Role dispatch logic in page.tsx
+const showManagement = isAdmin() || isManager() || isECMember();
+
+// Roles → showManagement=true: super_admin, chairman, strata_manager, ec_member
+// Roles → showManagement=false: owner, tenant, guest
+
+{showManagement
+  ? &lt;ManagementDashboard data={data} /&gt;   // Building-wide KPIs, finance, arrears
+  : isTenant
+    ? &lt;TenantDashboard data={data} /&gt;      // Tenant-specific view
+    : &lt;OwnerDashboard data={data} /&gt;       // Personal unit, levy status, market pulse
+}</code></pre>
+
+            <div class="callout warning">
+                <strong>⚠ Critical pattern — named exports:</strong>
+                <code>ManagementDashboard</code>, <code>OwnerDashboard</code>, and <code>TenantDashboard</code> all use
+                <strong>named exports</strong> (<code>export function X</code>). They <strong>must</strong> be imported
+                as named imports: <code>import { ManagementDashboard } from "./ManagementDashboard"</code>.
+                Using a default import resolves to <code>undefined</code>, causing a blank page with no console error.
+                (Fixed in Session 57 — commit d3f3a15.)
+            </div>
+
+            <h3>My Property View — <code>/owner-view</code></h3>
+            <p>File: <code>frontend/src/app/(dashboard)/owner-view/page.tsx</code></p>
+            <p>Shown in the "Overview" sidebar group for <code>chairman</code>, <code>ec_member</code>, <code>strata_manager</code>
+                roles. Renders the <code>OwnerDashboard</code> for management users who also own a unit (shows a "Back
+                to Management View" button). Falls back to the full <code>DashboardPage</code> for management users
+                without an assigned unit.</p>
+
+            <h4>OwnerDashboard — Component Files</h4>
+            <p>Two files are involved in the personal property view for management users:</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Purpose</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>app/(dashboard)/dashboard/OwnerDashboard.tsx</code></td>
+                        <td>Main TypeScript component. Fetches <code>/owners-units/{unit}</code>,
+                            <code>/levy-status</code>, <code>/payment-history</code>. Computes <code>amountDue</code>
+                            from <code>ownerUnit?.next_payment_adjusted</code> (Session-53 algorithm). Passes <code>remainingLabel="Next
+                                Estimated Payment"</code> to <code>FinancialHero</code>. Admin/Sinking health fallback
+                            is <code>0</code> (not a misleading hardcoded value).
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>components/dashboard/premium/FinancialHero.tsx</code></td>
+                        <td>Hero card displaying the primary financial metric. Accepts a <code>remainingLabel</code>
+                            prop (string) that overrides the default heading. Default is "Next Estimated Payment" (was
+                            previously "Total Remaining").
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>Next Estimated Payment — <code>next_payment_adjusted</code></h4>
+            <p>The <strong>primary amount</strong> shown in the FinancialHero card is sourced from <code>ownerUnit?.next_payment_adjusted</code>,
+                which is populated by the <strong>Session-53 algorithm</strong> in <code>backend/server.py</code> (both
+                the <code>/owners-units</code> list endpoint and the <code>/owners-units/{unit}</code> single-unit
+                endpoint):</p>
+            <pre><code>// Session-53 next_payment_adjusted algorithm (backend)
+net_credit       = effective_total_paid - opening_arrears
+periods_funded   = floor(max(0, net_credit) / period_levy)
+outstanding      = (periods_funded + 1) × period_levy - net_credit
+
+// Before grace (due_date + 14 days):
+next_payment = outstanding_current
+next_due     = due_dates[periods_funded]
+
+// After grace:
+next_payment = period_levy + outstanding_current
+next_due     = due_dates[periods_funded + 1]
+
+// Fully paid:
+next_payment = 0.0, next_due = None</code></pre>
+            <p>This means advance payments are reflected automatically — a user who pays 3 quarters in advance sees only
+                the next instalment amount, not the full-year balance (<code>balance_due</code> is NOT used as the
+                primary display value).</p>
+
+            <div class="callout warning">
+                <strong>Do not use <code>levyStatus?.balance_due</code> for the "amount due" hero metric.</strong>
+                <code>balance_due</code> is the full-year remaining balance and overstates the amount for users who have
+                made advance payments. Always use <code>ownerUnit?.next_payment_adjusted</code> (with <code>levyStatus?.amount_due</code>
+                as fallback only).
+            </div>
+
+            <h4><code>regular/page.tsx</code> — <code>selectedBuilding</code> Dependency Fix</h4>
+            <p>The <code>fetchData</code> <code>useCallback</code> in <code>regular/page.tsx</code> includes <code>selectedBuilding?.id</code>
+                in its dependency array. This ensures the personal dashboard re-fetches when the active building context
+                changes (e.g., multi-building strata managers switching buildings). Without this dependency, the
+                dashboard would display stale data from the previously selected building.</p>
+            <pre><code>// regular/page.tsx — correct dependency array
+const fetchData = useCallback(async () => {
+  // ... fetch /owners-units/{unit}, /levy-status ...
+}, [selectedBuilding?.id]);  // ← required for multi-building support</code></pre>
+
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    graph TB
+                    LOGIN["User Login<br/>JWT issued + building_id resolved"] --> DASH["/dashboard<br/>page.tsx"]
+                    DASH --> MGMT{"isAdmin() or<br/>isManager()?<br/>(includes ec_member,<br/>strata_manager,
+                    chairman)"}
+                    MGMT -- Yes --> MDB["ManagementDashboard<br/>Building-wide KPIs"]
+                    MGMT -- No --> TENANT{"role === tenant?"}
+                    TENANT -- Yes --> TDB["TenantDashboard"]
+                    TENANT -- No --> ODB["OwnerDashboard<br/>Personal unit view"]
+
+                    SIDE["Sidebar: My Property View"] --> REG["/owner-view<br/>regular/page.tsx"]
+                    REG --> HASUNIT{"user has<br/>unit_number?"}
+                    HASUNIT -- Yes --> ODB2["OwnerDashboard.tsx<br/>+ Back button"]
+                    HASUNIT -- No --> ODB
+                    ODB2 --> API["/owners-units/{unit}<br/>(next_payment_adjusted,<br/>next_due_date)"]
+                    API --> HERO["FinancialSummaryCard.jsx<br/>next_due_date priority:<br/>next_due_date ??
+                    period_status"]
+                </div>
+                <div class="diagram-caption">Dashboard role routing — isManager() includes ec_member (Session 65)</div>
+            </div>
+
+            <h3>Sidebar Navigation — navGroups</h3>
+            <p>File: <code>frontend/src/components/layout/DashboardLayout.tsx</code></p>
+            <p>When the <code>sidebar</code> feature toggle is enabled, navigation items are rendered in collapsible
+                groups (<code>navGroups</code> array). Each item must appear in <strong>both</strong> the flat <code>navItems</code>
+                array (for <code>show</code> logic) <strong>and</strong> the relevant <code>navGroup</code> (for grouped
+                rendering). Items present only in <code>navItems</code> are invisible in the grouped sidebar.</p>
+            <pre><code>// isApproved auto-bypass roles (do NOT need is_approved=true in DB):
+const isApproved = user?.is_approved
+  || user?.role === 'guest'
+  || ['super_admin', 'strata_admin', 'ec_member', 'strata_manager', 'reception'].includes(user?.role)
+  || isImpersonating;
+
+// IMPORTANT: strata_manager is in this list (added Session 57).
+// Previously missing, which could hide all nav items if is_approved was falsy.</code></pre>
+
+            <h3>ProtectedRoute Component</h3>
+            <pre><code>// ProtectedRoute checks:
+// 1. Is user authenticated? → redirect to /login if not
+// 2. Does user have the required permission? (optional)
+// 3. Is the user's role in allowRoles? (optional)
+// 4. Is the feature toggle enabled? (optional featureKey prop)
+
+&lt;ProtectedRoute
+  permission="can_manage_users"            // optional: permission check
+  allowRoles={['super_admin']}             // optional: role whitelist
+  featureKey="user_management"             // optional: feature toggle key
+&gt;
+  &lt;UsersPage /&gt;
+&lt;/ProtectedRoute&gt;</code></pre>
+        </section>
+
+        <section id="authcontext">
+            <h2>AuthContext — Global Auth State</h2>
+            <p><code>frontend/src/contexts/AuthContext.tsx</code> — wraps the entire app and provides auth state to all
+                components with strict TypeScript interfaces.</p>
+            <pre><code>// What AuthContext provides (AuthContextType):
+const {
+  // State
+  user,             // { id, email, full_name, role, unit_number, permissions, ... }
+  isAuthenticated,  // boolean
+  loading,          // boolean — true during initial token validation
+  token,            // JWT string
+  selectedBuilding, // active building context (multi-tenant)
+  availableBuildings, // list of memberships for building switcher
+
+  // Auth actions
+  login(email, password),   // → sets user + token, stores in localStorage
+  logout(),                 // → clears state + localStorage
+  register(userData),       // → POSTs to /api/auth/register
+  switchBuilding(buildingId), // → POST /auth/switch-building, refresh context
+
+  // Permission checks
+  hasPermission(permission),           // e.g. hasPermission("can_view_finances")
+  isAdmin(),                           // super_admin or chairman
+  isManager(),                         // admin | chairman | strata_manager | ec_member
+  hasFeatureAccess(featureKey),        // checks feature_toggles for this key
+
+  // Notifications (polled every 30s)
+  notifications,             // array of user notifications
+  unreadCount,               // integer badge count
+  pendingApprovalsCount,     // integer — for tenant approval badge
+  markNotificationRead(id),
+  markAllRead(),
+} = useAuth();</code></pre>
+
+            <div class="callout">
+                <strong>Axios interceptor:</strong> The AuthContext configures an Axios instance that automatically
+                attaches <code>Authorization: Bearer &lt;token&gt;</code> to every request, and handles <code>401</code>
+                responses by calling <code>logout()</code>.
+            </div>
+            <div class="callout info">
+                <strong>Building switcher:</strong> When <code>availableBuildings</code> has multiple entries, the
+                header renders a building selector that calls <code>switchBuilding</code> and refreshes the dashboard
+                with the new tenant context.
+            </div>
+            <div class="callout warn">
+                <strong>UUID vs plan-number — switch-building loop guard (commit b9bc1a0c):</strong>
+                The <code>Building</code> interface has two distinct ID fields:
+                <ul>
+                    <li><code>id</code> — the UUID (e.g. <code>"abc-123-scheme-uuid-east-gate"</code>). Used as the
+                        primary key in Postgres <code>core.schemes</code> and sent in the
+                        <code>POST /auth/switch-building</code> request body.
+                    </li>
+                    <li><code>building_id</code> — the human-readable plan number (e.g. <code>"13195"</code>). This
+                        is what <code>create_token()</code> encodes in the JWT <code>building_id</code> claim.
+                    </li>
+                </ul>
+                <code>AuthContext.fetchUser</code> guards against infinite loops by comparing
+                <code>jwtBuildingId</code> (decoded from the JWT <code>building_id</code> claim) against
+                <code>currentBuildingId</code> (<code>selectedBuilding.building_id</code> — the plan number).
+                Previously the code compared against <code>currentId</code> (UUID), which was never equal to
+                the JWT claim, triggering a switch call every render → new token → re-render loop.
+                Always use <code>building_id</code> (plan number) for loop-guard comparisons and
+                <code>id</code> (UUID) for API calls to <code>/auth/switch-building</code>.
+            </div>
+        </section>
+
+        <section id="typescript">
+            <h2>TypeScript Type Definitions</h2>
+            <p>All domain types are defined in <code>frontend/src/types/</code>. The migration from <code>any</code> to
+                strict interfaces was completed on branch <code>ts-core-migration</code>, achieving zero TypeScript
+                compilation errors.</p>
+
+            <h3>Type Modules</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Key Interfaces</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>types/auth.ts</code></td>
+                        <td><code>User</code>, <code>AuthContextValue</code>, <code>AuthNotification</code>, <code>RegisterRequest</code>
+                        </td>
+                        <td><code>notifications</code> typed as <code>AuthNotification[]</code>;
+                            <code>login</code>/<code>register</code>/<code>updateProfile</code>/<code>fetchPendingApprovalsCount</code>
+                            fully return-typed
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>types/communication.ts</code></td>
+                        <td><code>AnnouncementResponse</code>, <code>NoticeResponse</code>, <code>CommunicationHistoryEntry</code>,
+                            <code>NoticeAttachment</code></td>
+                        <td><code>history</code> and <code>attachments</code> arrays replaced <code>any[]</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>types/maintenance.ts</code></td>
+                        <td><code>MaintenanceRequestResponse</code>, <code>MaintenanceApprovalEntry</code>, <code>MaintenanceNote</code>
+                        </td>
+                        <td><code>approval_history</code> and <code>notes</code> arrays replaced <code>any[]</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>types/next-auth.d.ts</code></td>
+                        <td>NextAuth <code>Session</code> / <code>JWT</code> module augmentation</td>
+                        <td>Adds <code>accessToken</code> and <code>user.data</code> fields; removes <code>as any</code>
+                            casts in AuthContext
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>types/finance.ts</code></td>
+                        <td><code>FinanceEntry</code>, <code>LevyStatus</code>, <code>BudgetCategory</code></td>
+                        <td><code>EXPENSE_COLORS</code> / <code>INCOME_COLORS</code> typed as <code>string[]</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>types/feature_toggle.ts</code></td>
+                        <td><code>FeatureToggle</code>, <code>FeatureAccessEntry</code></td>
+                        <td>Used in AuthContext feature-access loop instead of <code>any</code></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>AuthContext Type Improvements</h3>
+            <p><code>frontend/src/contexts/AuthContext.tsx</code> was hardened as part of the migration:</p>
+            <ul>
+                <li>SSR fallback replaced <code>as any as AuthContextValue</code> with a fully typed
+                    <code>ssrFallback</code> constant
+                </li>
+                <li>Impersonation handler gained runtime validation guarding against malformed API responses</li>
+                <li>NextAuth session casts use the module-augmented <code>Session</code> type instead of <code>as
+                    any</code></li>
+                <li><code>updateProfile</code> return type corrected to <code>Promise&lt;User | undefined&gt;</code>
+                </li>
+            </ul>
+
+            <h3>Next.js "use client" Directive</h3>
+            <p>All components that use React hooks (<code>useState</code>, <code>useEffect</code>,
+                <code>useCallback</code>, <code>useRouter</code>, <code>usePathname</code>, etc.) or browser APIs
+                <strong>must</strong> include <code>"use client";</code> as the very first line. Without it, Next.js App
+                Router treats the file as a Server Component and throws at runtime when hooks are called.</p>
+            <p>Files requiring this directive:</p>
+            <ul>
+                <li><code>components/layout/DashboardLayout.tsx</code></li>
+                <li><code>pages/dashboard/*.tsx</code> — all page components that use hooks</li>
+                <li>Any <code>.tsx</code> file outside <code>app/(dashboard)</code> that uses React state</li>
+            </ul>
+            <div class="callout">
+                <strong>Migration checklist:</strong> When renaming a <code>.jsx</code> file to <code>.tsx</code>,
+                verify the first line is <code>"use client";</code> if the component uses any React hook or browser API
+                (window, document, sessionStorage).
+            </div>
+
+            <h3>useEffect Dependency Array Rules</h3>
+            <p>When a <code>useCallback</code>-wrapped function's dependencies include values derived from context (e.g.
+                <code>hasPermission</code>, <code>canManage</code>), adding the function reference to a
+                <code>useEffect</code> dependency array creates an infinite re-render loop if the context value is not
+                memoised. Pattern to avoid this:</p>
+            <ul>
+                <li><strong>FinancePage:</strong> <code>useEffect(() =&gt; { fetchData(); }, [selectedYear,
+                    activeTab])</code> — use stable data values, not function refs
+                </li>
+                <li><strong>MaintenancePage:</strong> <code>useEffect(() =&gt; { fetchData(); }, [])</code> with <code>//
+                    eslint-disable-next-line react-hooks/exhaustive-deps</code> — run once on mount when the fetch
+                    depends on role-derived flags
+                </li>
+            </ul>
+
+            <div class="callout">
+                <strong>Rule:</strong> Never use <code>any[]</code> for API response arrays. Define a named interface
+                (e.g. <code>CommunicationHistoryEntry</code>) in the matching type module and use it. This makes unknown
+                API shapes explicit and catches field renames at compile time.
+            </div>
+        </section>
+
+        <section id="pages">
+            <h2>Page Inventory (40+ pages)</h2>
+            <h3>Public Pages — <code>src/pages/public/</code></h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Page</th>
+                        <th>Route</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>HomePage</td>
+                        <td><code>/</code></td>
+                        <td>Marketing landing page with feature highlights</td>
+                    </tr>
+                    <tr>
+                        <td>AboutPage</td>
+                        <td><code>/about</code></td>
+                        <td>About the strata community and EC</td>
+                    </tr>
+                    <tr>
+                        <td>BlogPage</td>
+                        <td><code>/blog</code></td>
+                        <td>Public community blog</td>
+                    </tr>
+                    <tr>
+                        <td>MarketplacePage</td>
+                        <td><code>/marketplace</code></td>
+                        <td>Public marketplace listings</td>
+                    </tr>
+                    <tr>
+                        <td>EmergencyServicesPage</td>
+                        <td><code>/emergency-services</code></td>
+                        <td>Emergency contact list</td>
+                    </tr>
+                    <tr>
+                        <td>PrivacyPolicyPage</td>
+                        <td><code>/privacy</code></td>
+                        <td>Privacy policy (CMS-editable)</td>
+                    </tr>
+                    <tr>
+                        <td>TermsOfUsePage</td>
+                        <td><code>/terms</code></td>
+                        <td>Terms of use (CMS-editable)</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Dashboard Pages — <code>src/pages/dashboard/</code></h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Page</th>
+                        <th>Route</th>
+                        <th>Roles</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>DashboardHome</td>
+                        <td><code>/dashboard</code></td>
+                        <td>All</td>
+                        <td>Overview with stats widgets</td>
+                    </tr>
+                    <tr>
+                        <td>FinancePage</td>
+                        <td><code>/financials</code></td>
+                        <td>Owner+</td>
+                        <td>Annual levy overview with year selector</td>
+                    </tr>
+                    <tr>
+                        <td>LevyPaymentPage</td>
+                        <td><code>/financials/levy-payments</code></td>
+                        <td>Owner+</td>
+                        <td>Levy status &amp; Stripe payment</td>
+                    </tr>
+                    <tr>
+                        <td>FinancialProjectionsPage</td>
+                        <td><code>/financials/projections</code></td>
+                        <td>Manager</td>
+                        <td>Multi-year forecasts &amp; projections</td>
+                    </tr>
+                    <tr>
+                        <td>FinanceIntelligencePage</td>
+                        <td><code>/financials/intelligence</code></td>
+                        <td>Manager</td>
+                        <td>Health score, anomalies, lot summaries</td>
+                    </tr>
+                    <tr>
+                        <td>MaintenancePage</td>
+                        <td><code>/maintenance</code></td>
+                        <td>All</td>
+                        <td>4-tab: Requests, Contractors, POs, Invoices</td>
+                    </tr>
+                    <tr>
+                        <td>ChatPage</td>
+                        <td><code>/community/chat</code></td>
+                        <td>All</td>
+                        <td>Community group chat</td>
+                    </tr>
+                    <tr>
+                        <td>PrivateMessagesPage</td>
+                        <td><code>/community/messages</code></td>
+                        <td>All</td>
+                        <td>Direct messaging</td>
+                    </tr>
+                    <tr>
+                        <td>DocumentsPage</td>
+                        <td><code>/documents</code></td>
+                        <td>All</td>
+                        <td>Document library (role-filtered)</td>
+                    </tr>
+                    <tr>
+                        <td>NoticeBoardPage</td>
+                        <td><code>/community/notices</code></td>
+                        <td>All</td>
+                        <td>Notice board with acknowledgments</td>
+                    </tr>
+                    <tr>
+                        <td>EventsCalendarPage</td>
+                        <td><code>/community/events</code></td>
+                        <td>All</td>
+                        <td>Community events calendar</td>
+                    </tr>
+                    <tr>
+                        <td>MeetingsPage</td>
+                        <td><code>/governance/meetings</code></td>
+                        <td>Owner+</td>
+                        <td>Committee meetings &amp; minutes</td>
+                    </tr>
+                    <tr>
+                        <td>AGMVotingPage</td>
+                        <td><code>/governance/agm</code></td>
+                        <td>Owner+</td>
+                        <td>AGM voting on motions</td>
+                    </tr>
+                    <tr>
+                        <td>TodosPage</td>
+                        <td><code>/governance/todos</code></td>
+                        <td>Manager</td>
+                        <td>Action items &amp; task tracking</td>
+                    </tr>
+                    <tr>
+                        <td>BookingsPage</td>
+                        <td><code>/community/bookings</code></td>
+                        <td>All</td>
+                        <td>Amenity bookings</td>
+                    </tr>
+                    <tr>
+                        <td>ParcelsPage</td>
+                        <td><code>/community/parcels</code></td>
+                        <td>All</td>
+                        <td>Parcel delivery log</td>
+                    </tr>
+                    <tr>
+                        <td>DefectsPage</td>
+                        <td><code>/maintenance/defects</code></td>
+                        <td>All</td>
+                        <td>Building defect reports</td>
+                    </tr>
+                    <tr>
+                        <td>CouncilRatesPage</td>
+                        <td><code>/financials/council-rates</code></td>
+                        <td>Owner+</td>
+                        <td>Council rate tracking</td>
+                    </tr>
+                    <tr>
+                        <td>WaterBillsPage</td>
+                        <td><code>/financials/water-bills</code></td>
+                        <td>Owner+</td>
+                        <td>Water utility bills</td>
+                    </tr>
+                    <tr>
+                        <td>SpendingCategoriesPage</td>
+                        <td><code>/financials/spending-categories</code></td>
+                        <td>Manager</td>
+                        <td>Budget category breakdown</td>
+                    </tr>
+                    <tr>
+                        <td>ResidentDirectoryPage</td>
+                        <td><code>/community/directory</code></td>
+                        <td>All</td>
+                        <td>Community directory (privacy-filtered)</td>
+                    </tr>
+                    <tr>
+                        <td>ProfilePage</td>
+                        <td><code>/profile</code></td>
+                        <td>All</td>
+                        <td>Edit profile, preferences</td>
+                    </tr>
+                    <tr>
+                        <td>CommunicationsWorkspacePage</td>
+                        <td><code>/my-communications</code></td>
+                        <td>All</td>
+                        <td>Email notification settings and Eastgate mail credentials</td>
+                    </tr>
+                    <tr>
+                        <td>CompliancePage</td>
+                        <td><code>/compliance</code></td>
+                        <td>Owner+</td>
+                        <td>Compliance checklist</td>
+                    </tr>
+                    <tr>
+                        <td>MyApprovalsPage</td>
+                        <td><code>/requests/my-approvals</code></td>
+                        <td>Owner+</td>
+                        <td>Invoice approval queue</td>
+                    </tr>
+                    <tr>
+                        <td>TenantApprovalsPage</td>
+                        <td><code>/requests/tenant-approvals</code></td>
+                        <td>Owner+</td>
+                        <td>Approve tenant/guest registrations</td>
+                    </tr>
+                    <tr>
+                        <td>MarketplacePage</td>
+                        <td><code>/community/marketplace</code></td>
+                        <td>All</td>
+                        <td>Community classifieds</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Admin Pages — <code>src/pages/dashboard/admin/</code></h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Page</th>
+                        <th>Route</th>
+                        <th>Roles</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>UsersPage</td>
+                        <td><code>/dashboard/admin/users</code></td>
+                        <td>Super Admin, Chairman</td>
+                    </tr>
+                    <tr>
+                        <td>OwnersUnitsPage</td>
+                        <td><code>/dashboard/admin/owners-units</code></td>
+                        <td>Super Admin, Chairman</td>
+                    </tr>
+                    <tr>
+                        <td>FeatureTogglesPage</td>
+                        <td><code>/admin/feature-toggles</code></td>
+                        <td>Super Admin</td>
+                    </tr>
+                    <tr>
+                        <td>UserPermissionsPage</td>
+                        <td><code>/admin/user-permissions</code></td>
+                        <td>Super Admin</td>
+                    </tr>
+                    <tr>
+                        <td>UserFeaturePermissionsPage</td>
+                        <td><code>/admin/user-feature-permissions</code></td>
+                        <td>Super Admin</td>
+                    </tr>
+                    <tr>
+                        <td>UserApprovalPage</td>
+                        <td><code>/dashboard/admin/user-approval</code></td>
+                        <td>Super Admin</td>
+                    </tr>
+                    <tr>
+                        <td>AuditLogPage</td>
+                        <td><code>/admin/audit-logs</code></td>
+                        <td>Super Admin, Manager</td>
+                    </tr>
+                    <tr>
+                        <td>FinancialDataManagementPage</td>
+                        <td><code>/admin/financial-data</code></td>
+                        <td>Super Admin</td>
+                    </tr>
+                    <tr>
+                        <td>OwnerTransfersPage</td>
+                        <td><code>/admin/owner-transfers</code></td>
+                        <td>Manager</td>
+                    </tr>
+                    <tr>
+                        <td>TenantRenewalsPage</td>
+                        <td><code>/admin/tenant-renewals</code></td>
+                        <td>Manager</td>
+                    </tr>
+                    <tr>
+                        <td>UnitChangeRequestsPage</td>
+                        <td><code>/admin/change-requests</code></td>
+                        <td>Manager</td>
+                    </tr>
+                    <tr>
+                        <td>ExpiredAccountsPage</td>
+                        <td><code>/admin/expired-accounts</code></td>
+                        <td>Manager</td>
+                    </tr>
+                    <tr>
+                        <td>ScraperSettingsPage</td>
+                        <td><code>/admin/scraper-settings</code></td>
+                        <td>Super Admin</td>
+                    </tr>
+                    <tr>
+                        <td>SettingsPage</td>
+                        <td><code>/dashboard/admin/settings</code></td>
+                        <td>Super Admin</td>
+                    </tr>
+                    <tr>
+                        <td>AdminCommunicationsPage</td>
+                        <td><code>/admin/communications</code></td>
+                        <td>Super Admin</td>
+                        <td>Manual email, provider configuration, and mail credential management</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="components">
+            <h2>Component Architecture</h2>
+            <div class="two-col">
+                <div class="card">
+                    <h3>Layout Components</h3>
+                    <ul>
+                        <li><code>DashboardLayout.jsx</code> — Sidebar nav (50+ items), grouped by category,
+                            feature-toggle-gated
+                        </li>
+                        <li><code>Header.jsx</code> — Public nav with login/register links</li>
+                        <li><code>Footer.jsx</code> — Site footer with links</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>UI Components (shadcn/ui)</h3>
+                    <p>Located in <code>src/components/ui/</code>:</p>
+                    <ul>
+                        <li>Button, Card, Dialog, Input, Select, Badge</li>
+                        <li>Avatar, Dropdown, Tabs, Table, Tooltip</li>
+                        <li>Sheet, Popover, Toast, Skeleton, Switch</li>
+                        <li>All fully accessible (ARIA-compliant)</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Finance Components</h3>
+                    <ul>
+                        <li><code>LevyOverviewCard</code> — Annual levy summary widget</li>
+                        <li><code>BudgetCategoryChart</code> — Pie/bar charts for budget</li>
+                        <li><code>FinancialHealthScore</code> — Score ring widget</li>
+                        <li><code>LevyCalculatorWidget</code> — Interactive calculator</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Payment Components</h3>
+                    <ul>
+                        <li><code>PaymentModal</code> — Stripe Elements payment form</li>
+                        <li><code>PaymentHistory</code> — Payment receipt list</li>
+                        <li>Stripe test mode — no real charges</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="feature-toggles">
+            <h2>Feature Toggles (32 Total)</h2>
+            <p>Feature toggles control which sections are visible in the sidebar and which routes are accessible.
+                Checked via <code>hasFeatureAccess(key)</code> from AuthContext.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th>Category</th>
+                        <th>Controls</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>finance</code></td>
+                        <td>Finance</td>
+                        <td>Finance page, levy payments</td>
+                    </tr>
+                    <tr>
+                        <td><code>financial_projections</code></td>
+                        <td>Finance</td>
+                        <td>Projections &amp; forecasting</td>
+                    </tr>
+                    <tr>
+                        <td><code>spending_categories</code></td>
+                        <td>Finance</td>
+                        <td>Budget category breakdown</td>
+                    </tr>
+                    <tr>
+                        <td><code>council_rates</code></td>
+                        <td>Finance</td>
+                        <td>Council rates tracking</td>
+                    </tr>
+                    <tr>
+                        <td><code>water_bills</code></td>
+                        <td>Finance</td>
+                        <td>Water bill management</td>
+                    </tr>
+                    <tr>
+                        <td><code>maintenance</code></td>
+                        <td>Facilities</td>
+                        <td>Maintenance request system</td>
+                    </tr>
+                    <tr>
+                        <td><code>bookings</code></td>
+                        <td>Facilities</td>
+                        <td>Amenity booking system</td>
+                    </tr>
+                    <tr>
+                        <td><code>schedule</code></td>
+                        <td>Facilities</td>
+                        <td>Service schedule</td>
+                    </tr>
+                    <tr>
+                        <td><code>parcels</code></td>
+                        <td>Facilities</td>
+                        <td>Parcel tracking</td>
+                    </tr>
+                    <tr>
+                        <td><code>defects</code></td>
+                        <td>Facilities</td>
+                        <td>Defect reporting</td>
+                    </tr>
+                    <tr>
+                        <td><code>chat</code></td>
+                        <td>Communication</td>
+                        <td>Community group chat</td>
+                    </tr>
+                    <tr>
+                        <td><code>announcements</code></td>
+                        <td>Communication</td>
+                        <td>Announcements feed</td>
+                    </tr>
+                    <tr>
+                        <td><code>notices</code></td>
+                        <td>Communication</td>
+                        <td>Notice board</td>
+                    </tr>
+                    <tr>
+                        <td><code>private_messages</code></td>
+                        <td>Communication</td>
+                        <td>Direct messaging</td>
+                    </tr>
+                    <tr>
+                        <td><code>documents</code></td>
+                        <td>Community</td>
+                        <td>Document library</td>
+                    </tr>
+                    <tr>
+                        <td><code>marketplace</code></td>
+                        <td>Community</td>
+                        <td>Classifieds marketplace</td>
+                    </tr>
+                    <tr>
+                        <td><code>directory</code></td>
+                        <td>Community</td>
+                        <td>Resident directory</td>
+                    </tr>
+                    <tr>
+                        <td><code>meetings</code></td>
+                        <td>Governance</td>
+                        <td>Committee meetings</td>
+                    </tr>
+                    <tr>
+                        <td><code>agm</code></td>
+                        <td>Governance</td>
+                        <td>AGM &amp; voting</td>
+                    </tr>
+                    <tr>
+                        <td><code>approval_queue</code></td>
+                        <td>Governance</td>
+                        <td>My approvals queue</td>
+                    </tr>
+                    <tr>
+                        <td><code>user_management</code></td>
+                        <td>Admin</td>
+                        <td>User directory &amp; CRUD</td>
+                    </tr>
+                    <tr>
+                        <td><code>owner_units_management</code></td>
+                        <td>Admin</td>
+                        <td>Units &amp; owners management</td>
+                    </tr>
+                    <tr>
+                        <td><code>owner_transfers</code></td>
+                        <td>Admin</td>
+                        <td>Ownership transfer workflow</td>
+                    </tr>
+                    <tr>
+                        <td><code>tenant_renewals</code></td>
+                        <td>Admin</td>
+                        <td>Lease renewal workflow</td>
+                    </tr>
+                    <tr>
+                        <td><code>change_requests</code></td>
+                        <td>Admin</td>
+                        <td>Administrative change requests</td>
+                    </tr>
+                    <tr>
+                        <td><code>expired_accounts</code></td>
+                        <td>Admin</td>
+                        <td>Expired account management</td>
+                    </tr>
+                    <tr>
+                        <td><code>audit_logs</code></td>
+                        <td>Admin</td>
+                        <td>Activity audit log</td>
+                    </tr>
+                    <tr>
+                        <td><code>user_guide</code></td>
+                        <td>Support</td>
+                        <td>User guide documentation</td>
+                    </tr>
+                    <tr>
+                        <td><code>compliance</code></td>
+                        <td>Support</td>
+                        <td>Compliance checklist</td>
+                    </tr>
+                    <tr>
+                        <td><code>notifications_management</code></td>
+                        <td>Support</td>
+                        <td>System broadcast notifications</td>
+                    </tr>
+                    <tr>
+                        <td><code>email_preferences</code></td>
+                        <td>Support</td>
+                        <td>Email notification preferences</td>
+                    </tr>
+                    <tr>
+                        <td><code>webmail</code></td>
+                        <td>Support</td>
+                        <td>Eastgate email access</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="design">
+            <h2>Design System</h2>
+            <div class="two-col">
+                <div class="card">
+                    <h3>Colour Palette</h3>
+                    <ul>
+                        <li><strong>Primary:</strong> <code>#2F4F4F</code> (dark teal)</li>
+                        <li><strong>Secondary:</strong> <code>#E07A5F</code> (warm coral)</li>
+                        <li><strong>Accent:</strong> <code>#F2CC8F</code> (golden)</li>
+                        <li>Light theme by default (dashboard)</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Typography</h3>
+                    <ul>
+                        <li><strong>Headings:</strong> Manrope</li>
+                        <li><strong>Body:</strong> Inter</li>
+                        <li><strong>Code:</strong> JetBrains Mono</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Layout Grids</h3>
+                    <ul>
+                        <li><strong>Marketing:</strong> 12-col Tetris Grid (<code>grid-cols-12</code>)</li>
+                        <li><strong>Dashboard:</strong> High-density 4-col (<code>grid-cols-4</code>)</li>
+                        <li><strong>Spacing:</strong> p-8, p-12, p-16 for sections</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Component Guidelines</h3>
+                    <ul>
+                        <li>Buttons: <code>rounded-full</code> with <code>active:scale-95</code></li>
+                        <li>Cards: <code>shadow-xl</code> (marketing), <code>border+shadow-sm</code> (dashboard)</li>
+                        <li>All interactive elements need <code>data-testid</code></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="add-page">
+            <h2>How to Add a New Page</h2>
+            <ol>
+                <li>Create the page component in <code>frontend/src/pages/dashboard/NewPage.jsx</code></li>
+                <li>Import it in <code>frontend/src/App.js</code></li>
+                <li>Add a route inside the dashboard routes block, wrapped in <code>ProtectedRoute</code></li>
+                <li>Add a sidebar link in <code>frontend/src/components/layout/DashboardLayout.jsx</code> — wrap with a
+                    feature toggle check if needed
+                </li>
+                <li>If it needs a feature toggle, add the key to <code>backend/seeds/feature_toggles.py</code> and run
+                    the seed
+                </li>
+            </ol>
+            <pre><code>// App.js — add inside dashboard routes
+import NewPage from './pages/dashboard/NewPage';
+
+&lt;Route path="new-feature" element={
+  &lt;ProtectedRoute featureKey="new_feature" allowRoles={['owner','ec_member','super_admin']}&gt;
+    &lt;NewPage /&gt;
+  &lt;/ProtectedRoute&gt;
+} /&gt;
+
+// DashboardLayout.jsx — add to relevant sidebar section
+{hasFeatureAccess('new_feature') &amp;&amp; (
+  &lt;SidebarItem href="/dashboard/new-feature" icon={&lt;IconName /&gt;} label="New Feature" /&gt;
+)}</code></pre>
+        </section>
+    </main>
+</div>
+<footer>East Gate Residences · Technical Documentation · Frontend · Super Admin Only · 2026 · A vision by: Silverfox
+    Technologies, Australia · Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+</body>
+</html>

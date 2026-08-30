@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Audit Addendum 2026-04-30 – Eastgate Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">Strata Management Platform</div>
+            <div class="sub">Technical Documentation · Audit Addendum 2026-04-30</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <h1>Audit Addendum — 2026-04-30</h1>
+        <p>This addendum lists the differences between this static documentation set and the live
+            application as of 2026-04-30. The HTML pages listed below are reference material that
+            predates the Next.js App Router migration and several major schema phases. They are
+            being refreshed in stages; until that work lands, treat the items below as authoritative.</p>
+
+        <section id="frontend">
+            <h2>Frontend reality</h2>
+            <ul>
+                <li>The frontend is <strong>Next.js App Router</strong> (React 19, NextAuth, Tailwind).
+                    Pages under <code>frontend/src/app/(dashboard)/**/page.tsx</code> often wrap legacy
+                    React components from <code>frontend/src/pages/**</code>. Both surfaces are live.
+                </li>
+                <li>Shared API access and tenant context flow through
+                    <code>frontend/src/contexts/AuthContext.tsx</code>. Use the <code>api</code> instance
+                    from <code>useAuth()</code> — its baseURL is
+                    <code>${NEXT_PUBLIC_BACKEND_URL}/api</code>, JWT auth is attached automatically,
+                    and <code>X-Building-ID</code> is injected on every request. <strong>Never</strong>
+                    prefix the path with <code>/api/</code> when calling through this instance — that
+                    produces <code>/api/api/...</code> 404s.
+                </li>
+                <li>Building context: super-admins switch buildings via the
+                    <code>X-Building-ID</code> header set by <code>AuthContext</code>. Direct
+                    <code>axios</code> imports bypass this header and produce wrong-tenant data.
+                </li>
+            </ul>
+        </section>
+
+        <section id="database">
+            <h2>Database reality</h2>
+            <ul>
+                <li>The live database has <strong>176 collections</strong> (254 logical registrations)
+                    with tenant-scoped, global, and audit-derived classifications in
+                    <code>backend/database.py</code>. The static page <code>database.html</code> still
+                    cites the older "49+" figure — ignore that count.
+                </li>
+                <li>Authoritative schema reference:
+                    <code>docs/architecture/database_schema_full_2026.json</code>.
+                </li>
+                <li><code>plan_id</code> is a legacy alias for <code>building_id</code>; new code must
+                    not write or compare <code>plan_id</code> directly.
+                </li>
+                <li><code>db.settings</code> (with <code>building_id</code>) holds levy/financial config.
+                    <code>db.site_settings</code> (id="rate_limits") is rate-limits only. Levy code that
+                    reads <code>site_settings</code> is a silent bug.
+                </li>
+            </ul>
+        </section>
+
+        <section id="api">
+            <h2>API reality</h2>
+            <ul>
+                <li>All API routes are mounted under <code>/api</code> via
+                    <code>api_router</code> in <code>backend/server.py</code>. Routers under
+                    <code>backend/routers/*.py</code> are registered with a try/except import pattern —
+                    a syntax error in a router file silently warns and skips registration.
+                </li>
+                <li>Building scoping is enforced by <code>get_current_building()</code> in
+                    <code>backend/utils/auth.py</code>. Endpoints that touch tenant collections must
+                    declare <code>building_id: str = Depends(get_current_building)</code>.
+                </li>
+                <li>Role guards must use <code>_effective_role(user)</code> (or the inline equivalent
+                    in router files) — the raw <code>user["role"]</code> field is wrong for users
+                    elevated to <code>ec_member</code> via temporary elevation.
+                </li>
+            </ul>
+        </section>
+
+        <section id="deployment">
+            <h2>Deployment reality</h2>
+            <ul>
+                <li>The canonical production scheduler is <strong>systemd timers</strong> installed by
+                    <code>deploy/install.sh</code>. The legacy
+                    <code>backend/cron/setup_cron_jobs.sh</code> crontab installer, the in-process
+                    APScheduler in <code>backend/workers/scheduler.py</code>, and the ARQ Redis queue in
+                    <code>backend/workers/arq_settings.py</code> are <strong>secondary</strong> — used
+                    for development or queue-based work, not as primary production schedulers.
+                </li>
+                <li>Backend startup creates a super-admin if none exists. This is intentional
+                    bootstrap behaviour and must not be removed.
+                </li>
+            </ul>
+        </section>
+
+        <section id="open-corrections">
+            <h2>Pages currently being refreshed</h2>
+            <ul>
+                <li><code>architecture.html</code> — top-level architecture diagram still shows the
+                    older Create-React-App / React Router model.
+                </li>
+                <li><code>frontend.html</code> — package versions and route layout are stale.</li>
+                <li><code>database.html</code> — collection count and classification model are stale.
+                </li>
+                <li><code>deployment.html</code> — does not yet differentiate canonical vs. legacy
+                    scheduling paths.
+                </li>
+            </ul>
+            <p>Tracker: <code>tasks/todo-gaps.md</code> — <strong>AUDIT-12</strong>.</p>
+        </section>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Financial System Upgrade — June 2026 | User Guide</title>
+    <script src="building-config.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #1e293b;
+            border-bottom: 3px solid #6366f1;
+            padding-bottom: 0.5rem;
+        }
+
+        h2 {
+            color: #6366f1;
+            margin-top: 2.5rem;
+        }
+
+        h3 {
+            color: #334155;
+            margin-top: 1.5rem;
+        }
+
+        .callout {
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 1rem 1.25rem;
+            border-radius: 0.5rem;
+            margin: 1.25rem 0;
+        }
+
+        .callout.green {
+            background: #f0fdf4;
+            border-left-color: #22c55e;
+        }
+
+        .callout.amber {
+            background: #fffbeb;
+            border-left-color: #f59e0b;
+        }
+
+        .badge {
+            display: inline-block;
+            border-radius: 9999px;
+            padding: 0.2rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .badge-new {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-improved {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-internal {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th {
+            background: #f8fafc;
+            text-align: left;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid #e2e8f0;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+
+        td {
+            padding: 0.6rem 0.75rem;
+            border: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+            vertical-align: top;
+        }
+
+        tr:hover td {
+            background: #f8fafc;
+        }
+
+        .phase-timeline {
+            display: flex;
+            gap: 0;
+            margin: 1.5rem 0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .phase-step {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .phase-step.active {
+            background: #6366f1;
+            color: #fff;
+        }
+
+        .phase-step.upcoming {
+            background: #e0e7ff;
+            color: #4338ca;
+        }
+
+        .phase-step.future {
+            background: #f1f5f9;
+            color: #94a3b8;
+        }
+
+        .check-list {
+            list-style: none;
+            padding: 0;
+            margin: 0.75rem 0;
+        }
+
+        .check-list li {
+            padding: 0.35rem 0;
+            padding-left: 1.75rem;
+            position: relative;
+        }
+
+        .check-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #22c55e;
+            font-weight: bold;
+        }
+
+        .faq-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            margin: 0.75rem 0;
+            overflow: hidden;
+        }
+
+        .faq-q {
+            background: #f8fafc;
+            padding: 0.85rem 1rem;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .faq-a {
+            padding: 0.85rem 1rem;
+            color: #475569;
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+<h1>💳 Financial System Upgrade — June 2026</h1>
+
+<p>
+    <strong>Audience:</strong> Strata managers, EC members, and building administrators.<br>
+    <strong>Building:</strong> <span data-bldg="name">your building</span>
+</p>
+
+<div class="callout green">
+    <strong>✅ Nothing changes for you today.</strong>
+    The financial system upgrade is happening behind the scenes.
+    All your dashboards, levy schedules, payment records, and reports continue to work exactly as before.
+    You do not need to take any action.
+</div>
+
+<div class="callout">
+    <strong>Current status - 24 July 2026.</strong>
+    East Gate now has real PostgreSQL shadow data for the ledger, bank transactions, receipts, levy items, evidence
+    documents, lots, parties, users, and ownership periods. Identity/ownership has moved to PostgreSQL read/write, but
+    finance, trust ledger, trust reconciliation, and governance are still in shadow mode. MongoDB remains the live
+    source for dashboards, reports, finance writes, and trust operations until the shadow-read checks are clean enough
+    to promote.
+</div>
+
+---
+
+<h2>What this means today</h2>
+<ul>
+    <li>Your portal screens, levy records, payment matching workflows, reports, and exports continue to behave as
+        before.</li>
+    <li>The platform is validating PostgreSQL in the background with the same East Gate tenant context used by the
+        backend.</li>
+    <li>Finance will not become PostgreSQL-primary until support and engineering can prove the shadow results match the
+        live MongoDB views.</li>
+    <li>No owner, EC member, strata manager, or admin user needs to change their workflow for this stage.</li>
+</ul>
+
+<h2>1. What is changing and why?</h2>
+
+<p>
+    The platform is upgrading its financial data engine from a document database (MongoDB) to a
+    specialised relational database (PostgreSQL). This is an infrastructure change only —
+    like replacing the engine in a car while keeping the same controls.
+</p>
+
+<h3>Why now?</h3>
+<ul>
+    <li><strong>Regulatory compliance.</strong> ACT 2026 legislation requires an auditable, double-entry
+        trust ledger with cryptographic integrity — a requirement that a relational database handles
+        natively and auditors can verify.
+    </li>
+    <li><strong>Audit trail.</strong> Every financial entry is now part of a tamper-evident hash chain.
+        If any record were altered, the chain would break — making the ledger suitable for
+        regulator or auditor inspection.
+    </li>
+    <li><strong>Accuracy.</strong> All money is stored as exact integer cents, eliminating floating-point
+        rounding errors that can appear in document databases.
+    </li>
+    <li><strong>Performance.</strong> Financial reports, levy summaries, and reconciliation queries are
+        significantly faster when run against a relational schema with proper indexes.
+    </li>
+</ul>
+
+---
+
+<h2>2. Rollout phases</h2>
+
+<div class="phase-timeline">
+    <div class="phase-step active">Phase 1<br>Schema built<br>✓ Done</div>
+    <div class="phase-step active">Phase 2<br>Service layer<br>✓ Done</div>
+    <div class="phase-step active">Phase 3<br>Foundation import<br>✓ Done</div>
+    <div class="phase-step active">Phase 4<br>Shadow reads<br>✓ Running</div>
+    <div class="phase-step upcoming">Phase 5<br>Full cutover<br>Per feature area</div>
+</div>
+
+<div class="callout">
+    <p><strong>Where this actually stands, as at 29 August 2026.</strong> Both databases are switched on and
+        they agree: an automatic overnight check now compares every lot in both systems and currently reports
+        <strong>all 87 lots matching, with a $0.00 difference</strong>. Nothing about your levies, payments or
+        balances changes as a result of this work.</p>
+    <p>The remaining work is unglamorous and internal — most of the new database's tables are still empty, so
+        each feature area moves across one at a time, and each one keeps the old system as an automatic fallback
+        while it does. <strong>If a feature area has not moved yet, you cannot tell from the outside, and that
+        is the point.</strong></p>
+    <p>One thing we have <em>not</em> finished, stated plainly: the new system can tell you that a lot has paid
+        an amount, but for part of the history it cannot yet say which specific levy each payment was applied
+        to. Until that is reconciled, the older system remains the one we quote arrears from. No figure you see
+        today depends on the unfinished part.</p>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>Phase</th>
+        <th>What happens</th>
+        <th>Impact on you</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td><strong>1. Schema built</strong> ✓</td>
+        <td>New PostgreSQL database structure created (migrations 0001–0009)</td>
+        <td>None — runs silently in the background</td>
+    </tr>
+    <tr>
+        <td><strong>2. Service layer</strong> ✓</td>
+        <td>New financial core service installed; feature flag is OFF</td>
+        <td>None — all writes still go to MongoDB</td>
+    </tr>
+    <tr>
+        <td><strong>3. Foundation import</strong> ✓</td>
+        <td>Portal snapshots, opening evidence, genesis entries, carry-forward journals, and payment receipts reconciled into PostgreSQL for validation</td>
+        <td>None — MongoDB remains authoritative for live finance screens</td>
+    </tr>
+    <tr>
+        <td><strong>4. Shadow reads (7 days)</strong></td>
+        <td>The platform compares MongoDB and PostgreSQL finance results without changing what users see</td>
+        <td>None — any discrepancy keeps the system on MongoDB while the cause is investigated</td>
+    </tr>
+    <tr>
+        <td><strong>5. Full cutover</strong></td>
+        <td>Reads switch to PostgreSQL only after seven consecutive days of zero discrepancy and explicit production approval</td>
+        <td>Financial reports and balances should load faster after cutover</td>
+    </tr>
+    </tbody>
+</table>
+
+---
+
+<h2>3. What improves after cutover</h2>
+
+<div class="callout">
+    <strong>Note:</strong> These improvements become available after Phase 5. No action required from managers.
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>Area</th>
+        <th>Before</th>
+        <th>After</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>Levy summaries</td>
+        <td>Aggregated from multiple Mongo collections — slower for large buildings</td>
+        <td>SQL aggregate query with indexed columns — sub-second for all buildings</td>
+    </tr>
+    <tr>
+        <td>Audit trail</td>
+        <td>Log entries in separate collection; not cryptographically linked</td>
+        <td>Hash-chained journal — tamper-evident; suitable for regulator submission</td>
+    </tr>
+    <tr>
+        <td>Trust account balance</td>
+        <td>Computed from multiple collections at query time</td>
+        <td>Maintained as a running balance in a dedicated ledger account</td>
+    </tr>
+    <tr>
+        <td>Reconciliation</td>
+        <td>Manual cross-referencing across 4–5 collections</td>
+        <td>Unified reconciliation run table with period-over-period comparison</td>
+    </tr>
+    <tr>
+        <td>ACT compliance exports</td>
+        <td>Assembled at report time from disparate sources</td>
+        <td>Structured disclosure events logged in real time (s.119 compliance)</td>
+    </tr>
+    <tr>
+        <td>Multi-building reporting</td>
+        <td>Sequential queries per building</td>
+        <td>Row-level security isolates tenants natively; cross-building admin reports possible</td>
+    </tr>
+    </tbody>
+</table>
+
+---
+
+<h2>4. What stays exactly the same</h2>
+
+<ul class="check-list">
+    <li>All existing dashboards — Finance, Trust Accounting, Collection Rate, Arrears</li>
+    <li>Levy schedules, payment history, owner statements</li>
+    <li>All API endpoints — no URL or response format changes</li>
+    <li>Document storage, maintenance records, communications — these never move to PostgreSQL</li>
+    <li>Your login, permissions, and building access</li>
+    <li>All historical financial data — nothing is deleted from MongoDB</li>
+    <li>PDF generation for levy notices, owner statements, rental certificates</li>
+</ul>
+
+---
+
+<h2>5. Rollback safety</h2>
+
+<p>
+    The upgrade is fully reversible at any point before cutover. If any discrepancy is detected
+    during the dual-write or reconciliation phase, the system automatically falls back to
+    MongoDB-only mode and sends an alert to the system administrator.
+</p>
+
+<div class="callout amber">
+    <strong>⚠ Rollback guarantee.</strong>
+    MongoDB financial collections are never deleted or made read-only until Phase 5 is complete
+    and validated. The cutover only proceeds after 7 consecutive days of zero divergence.
+</div>
+
+---
+
+<h2>6. Frequently asked questions</h2>
+
+<div class="faq-item">
+    <div class="faq-q">Will levy amounts or payment records change?</div>
+    <div class="faq-a">
+        No. All historical data is migrated using deterministic identifiers — the same record
+        produces the same PostgreSQL ID every time the migration runs. All financial figures
+        are preserved exactly, in integer cents.
+    </div>
+</div>
+
+<div class="faq-item">
+    <div class="faq-q">Do I need to re-enter any data?</div>
+    <div class="faq-a">No. The migration is fully automated. No manual data entry is required.</div>
+</div>
+
+<div class="faq-item">
+    <div class="faq-q">Will there be any downtime?</div>
+    <div class="faq-a">
+        No planned downtime. Each phase is deployed with the application running.
+        The cutover switch is a configuration change, not a restart.
+    </div>
+</div>
+
+<div class="faq-item">
+    <div class="faq-q">How do I know if something goes wrong?</div>
+    <div class="faq-a">
+        Divergence alerts are sent to the system administrator automatically.
+        If you notice any unexpected behaviour in financial figures, contact
+        your strata manager who can check the reconciliation reports in the admin panel.
+    </div>
+</div>
+
+<div class="faq-item">
+    <div class="faq-q">Does this affect the ACT audit submission?</div>
+    <div class="faq-a">
+        After cutover, the trust ledger will meet ACT 2026 requirements for a double-entry,
+        hash-chained audit trail. The existing audit export tools continue to work;
+        they will simply read from the new PostgreSQL ledger instead of MongoDB.
+    </div>
+</div>
+
+<div class="faq-item">
+    <div class="faq-q">What is a "feature flag"?</div>
+    <div class="faq-a">
+        A feature flag is an on/off switch in the system configuration. The
+        <code>financial_core_enabled</code> flag controls whether new financial writes go to
+        PostgreSQL. It is off by default and turned on per building only after the data migration
+        and validation phases are complete.
+    </div>
+</div>
+
+---
+
+<h2>7. Timeline</h2>
+
+<table>
+    <thead>
+    <tr>
+        <th>Milestone</th>
+        <th>Target</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>Schema deployed (migrations 0001–0009)</td>
+        <td>✓ Completed</td>
+    </tr>
+    <tr>
+        <td>Service layer installed, tests passing (35/35)</td>
+        <td>✓ Completed</td>
+    </tr>
+    <tr>
+        <td>PostgreSQL provisioned, <code>alembic upgrade head</code></td>
+        <td>Pending DATABASE_URL</td>
+    </tr>
+    <tr>
+        <td>Historical data migration — dry-run</td>
+        <td>After DB provisioning</td>
+    </tr>
+    <tr>
+        <td>Historical data migration — live</td>
+        <td>After dry-run validation</td>
+    </tr>
+    <tr>
+        <td>Dual-write phase begins (<code>financial_core_enabled = ON</code>)</td>
+        <td>After migration validation</td>
+    </tr>
+    <tr>
+        <td>Zero-divergence gate (7 days)</td>
+        <td>14+ days after dual-write</td>
+    </tr>
+    <tr>
+        <td>Full cutover — reads switch to PostgreSQL</td>
+        <td>After zero-divergence gate</td>
+    </tr>
+    </tbody>
+</table>
+
+---
+
+<footer>
+    <p>
+        <strong>Technical contact:</strong> Silverfox Technologies &nbsp;|&nbsp;
+        <strong>Spec:</strong> <code>docs/migration/05_refreshed_strategic_technology_and_architecture_review.md</code>
+        &nbsp;|&nbsp;
+        <strong>Architecture:</strong> <code>docs/architecture/postgresql_financial_core_architecture.md</code>
+    </p>
+    <p>Last updated: May 2026. This guide is building-agnostic and applies to all buildings on the StrataOS
+        platform.</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Super Admin Quick Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform
+                </div>
+            </div>
+        </div>
+        <div class="badge">Quick Guide</div>
+    </div>
+</header>
+
+<main style="display:block">
+
+    <article class="content">
+
+        <h1>Super Admin Quick Guide</h1>
+        <p>For system administrators with full access: approvals, users, settings, and global reports.</p>
+
+        <div class="card callout success">
+            <strong>You can do</strong>
+            <ul>
+                <li>Approve/reject registrations</li>
+                <li>Manage all users, roles, and permissions</li>
+                <li>Configure Financial Intelligence and Budget Projections</li>
+                <li>Full access to all modules and reporting</li>
+            </ul>
+        </div>
+
+        <div class="card callout danger">
+            <strong>You cannot</strong>
+            <ul>
+                <li>N/A (full access)</li>
+            </ul>
+        </div>
+
+        <h2>Top tasks (checklist)</h2>
+        <ul>
+            <li>Approve new users and verify unit ownership/tenancy</li>
+            <li>Maintain role assignments and deactivate inactive accounts</li>
+            <li>Create and manage staff accounts (Strata Manager, Real Estate Agent, Admin Staff)</li>
+            <li>Assign elevated roles (Owner, EC Member, Chairman, etc.) to staff users per building</li>
+            <li>Perform regular system checks and audit readiness</li>
+        </ul>
+
+        <h2>Key screens (where to click)</h2>
+        <ul>
+            <li>Users → Approvals / Role changes (amber ⚠ icon flags owner name mismatches)</li>
+            <li>Management → Staff User Management (<code>/dashboard/admin/staff-users</code>)</li>
+            <li>Management → Create Staff Account (<code>/dashboard/admin/create-staff-user</code>)</li>
+            <li>Settings → Site settings</li>
+            <li>Finance → Financial Intelligence / Budget Projections</li>
+            <li>Admin console (if enabled)</li>
+        </ul>
+
+        <h2 id="owner-name-verification">Owner Name Verification</h2>
+        <p>When an owner registers or is approved, the system automatically checks their <code>full_name</code> against
+            the strata roll using a 60 % token-overlap algorithm.</p>
+        <ul>
+            <li><strong>Visual flag:</strong> amber ⚠ (AlertTriangle) icon next to owner name in User Management (<code>/dashboard/users</code>)
+            </li>
+            <li><strong>Tooltip:</strong> <em>"Owner name mismatch. Strata roll: &lt;Primary Name&gt; / &lt;Secondary
+                Name&gt;"</em></li>
+            <li><strong>Stored fields:</strong> <code>user.is_name_flagged = true</code> and <code>user.flag_reason =
+                "name_mismatch"</code> in the database
+            </li>
+            <li><strong>Notification:</strong> approving admin + all Strata Managers receive bell notification + email
+                titled <em>"⚠ Owner Name Mismatch — Unit XX: Name"</em></li>
+            <li><strong>Joint ownership:</strong> flag is cleared if name matches either <code>owner_name</code> or
+                <code>owner_name_b</code> from the strata roll
+            </li>
+            <li><strong>Clearing the flag:</strong> correct <code>full_name</code> in user record → re-approve → flag
+                clears automatically
+            </li>
+            <li><strong>Feature toggle:</strong> <code>owner_name_verification</code> in Feature Toggles (Governance
+                category); disable to suppress all flags and notifications
+            </li>
+        </ul>
+
+        <h2 id="debt-recovery">Debt Recovery Board</h2>
+        <p>Access the Debt Recovery Board at <code>/dashboard/arrears</code> to manage units with outstanding levy
+            arrears.</p>
+
+        <h3>Recovery Actions</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Action</th>
+                <th>Effect</th>
+                <th>What changes in the UI</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><strong>Send Notice</strong></td>
+                <td>Generates Section 83 PDF arrears notice; records first_notice_sent_at on first call</td>
+                <td>Notice Sent column shows date; PDF downloads automatically</td>
+            </tr>
+            <tr>
+                <td><strong>Refer DCA</strong></td>
+                <td>Sets dca_status = "referred" AND legal_referral_status = "referred"</td>
+                <td>Recovery Status → "DCA REFERRED"; Legal/Plan → "LEGAL ACTION"</td>
+            </tr>
+            <tr>
+                <td><strong>Update DCA Status</strong></td>
+                <td>Manually move through: eligible → referred → recovering → resolved → recalled</td>
+                <td>Recovery Status badge updates</td>
+            </tr>
+            <tr>
+                <td><strong>Add Contact Log</strong></td>
+                <td>Records communication (email, phone, letter, meeting)</td>
+                <td>Contact Log dialog shows new entry</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>Column meanings</h3>
+        <ul>
+            <li><strong>Recovery Status</strong>: tracks DCA escalation state
+                (none/eligible/referred/recovering/resolved)
+            </li>
+            <li><strong>Legal/Plan</strong>: shows "PAYMENT PLAN" if unit has active plan, "LEGAL ACTION" if
+                legal_referral_status = referred, otherwise "NO PLAN"
+            </li>
+            <li><strong>Notice Sent</strong>: date of first Section 83 notice (on unit detail page)</li>
+        </ul>
+
+        <h3>Sync arrears after data import</h3>
+        <p>After uploading a new CSV or Excel financial import, run the bulk sync to keep dashboard figures
+            accurate:</p>
+        <pre><code>POST /api/owners-units/sync-arrears</code></pre>
+        <p>This reconciles <code>units.opening_arrears</code> → <code>unit_levy_ledger</code> opening balances. Super
+            Admin only.</p>
+
+        <h2 id="staff-user-management">Staff User Management</h2>
+        <p>Super Admins have a dedicated interface to manage professional staff accounts and their building-level role
+            assignments.</p>
+
+        <h3>Creating Staff Accounts</h3>
+        <p>Navigate to <strong>Management → Create Staff Account</strong>
+            (<code>/dashboard/admin/create-staff-user</code>) to directly create active accounts for:</p>
+        <ul>
+            <li><strong>Strata Manager</strong> — full building management access (finance, compliance, governance,
+                communications)
+            </li>
+            <li><strong>Real Estate Agent</strong> — OwnerHub access to manage properties, tenancies, inspections and
+                rent ledger
+            </li>
+            <li><strong>Admin Staff</strong> — front-desk access (notices, parcels, requests, directory, maintenance)
+            </li>
+        </ul>
+        <p>Accounts created this way are immediately active (no approval flow). An optional welcome email with
+            credentials is sent to the new staff member.</p>
+
+        <h3>Viewing &amp; Managing Staff Users</h3>
+        <p>Navigate to <strong>Management → Staff User Management</strong> (<code>/dashboard/admin/staff-users</code>)
+            to:</p>
+        <ul>
+            <li>See all staff users across all buildings with search and role filters</li>
+            <li>View statistics: total staff, breakdown by type, number with elevated roles</li>
+            <li>Click any staff member to open their <strong>detail page</strong></li>
+        </ul>
+
+        <h3>Staff User Detail &amp; Role Elevation</h3>
+        <p>The detail page (<code>/dashboard/admin/staff-users/{id}</code>) shows:</p>
+        <ul>
+            <li><strong>Profile:</strong> name, email, role badge, organisation, licence, status, last login</li>
+            <li><strong>Building Assignments:</strong> which buildings this staff member has access to</li>
+            <li><strong>Elevated Role Assignments:</strong> additional roles granted per building (Owner, EC Member,
+                Secretary, Treasurer, Chairman)
+            </li>
+        </ul>
+        <p>Use the <strong>Assign Role</strong> button to grant a staff member an additional governance or ownership
+            role for a specific building. Fields include:</p>
+        <ul>
+            <li>Role (Owner / EC Member / Secretary / Treasurer / Chairman)</li>
+            <li>Building (dropdown of all active buildings)</li>
+            <li>Start and end dates (optional — for time-bounded committee terms)</li>
+            <li>Notes (e.g. "Elected at AGM 2026")</li>
+        </ul>
+        <div class="card callout info">
+            <strong>Data isolation guarantee:</strong> Role assignments are always scoped to a specific building. A
+            staff member with roles in Building A cannot access data from Building B. The backend validates the
+            building_id before any write.
+        </div>
+        <div class="card callout success">
+            <strong>EC position sync:</strong> Assigning a governance role (Chairman, Treasurer, Secretary, EC Member)
+            also updates the legacy <code>ec_position</code> field on the user, ensuring full backward compatibility
+            with existing governance checks.
+        </div>
+
+        <h3>Revoking Roles</h3>
+        <p>Click the trash icon next to any role assignment to revoke it. The assignment record is preserved for audit
+            purposes but is no longer active. If the user held no other EC roles, their <code>ec_position</code> field
+            is cleared automatically.</p>
+
+        <h2>Advanced Financial Enhancements</h2>
+        <ul>
+            <li><strong>Debt Recovery Board</strong> — 4-tier arrears board (Monitor / Contacted / DCA Eligible / DCA
+                Referred). Nightly cron auto-promotes eligible units.
+            </li>
+            <li><strong>Section 83 Notices</strong> — Generate formal ACT demand letter PDFs for arrears units.</li>
+            <li><strong>DCA Referral</strong> — Refer units (&gt;$1,500, 14+ days post-notice) to Debt Collection
+                Agency.
+            </li>
+            <li><strong>Payment Plans</strong> — Create and monitor structured instalment arrangements.</li>
+            <li><strong>Special Levies</strong> — One-off building charges split by UOE, with per-unit payment tracking.
+            </li>
+            <li><strong>Bank Reconciliation</strong> — Monthly bank statement verification for admin and sinking funds.
+            </li>
+            <li><strong>Expenses &amp; Income</strong> — Full transaction ledger for building expenses and non-levy
+                income.
+            </li>
+            <li><strong>Financial Health Score</strong> — 0–100 composite score across 7 components for at-a-glance
+                financial health.
+            </li>
+            <li><strong>True Cost of Ownership</strong> — Per-unit annual cost breakdown for the full Owners
+                Corporation.
+            </li>
+            <li><strong>Tax Summary PDFs</strong> — Generate tax summaries for any unit and any financial year.</li>
+        </ul>
+
+        <div class="shot"><strong>Screenshot placeholder:</strong> Super Admin Quick Guide – key screens</div>
+
+        <h2 id="platform-vs-building-config">Platform Admin vs Building Config</h2>
+        <p>The sidebar configuration section is now split into two groups to reflect the separation of concerns between
+            global platform administration and per-building configuration:</p>
+        <ul>
+            <li><strong>Platform Admin</strong> (Super Admin only): Feature Toggles, Access Control, Feature Access
+                Controls, Audit Logs, Security &amp; IP Logs, Scraper Settings, Technical Documentation. These control
+                platform-wide behaviour and security.
+            </li>
+            <li><strong>Building Config</strong> (Super Admin, Strata Manager, Chairman): Site Settings, Digital Twin
+                Architecture, Email Configuration, Credential Manager, Legal &amp; Privacy. These settings are scoped
+                per building and can be managed by building-level administrators.
+            </li>
+        </ul>
+
+        <h2 id="building-switcher-admin">Building Switcher</h2>
+        <p>As a Super Admin you have access to all active buildings in the system. Use the Building Switcher in the left
+            sidebar to switch your session context to any building:</p>
+        <ul>
+            <li>The dropdown shows all active buildings. Click a building name to switch.</li>
+            <li>Switching issues a new JWT with the selected <code>building_id</code> claim — all building-scoped data
+                (units, finance, announcements) refreshes automatically.
+            </li>
+            <li>A browser page reload is triggered automatically to ensure all contexts reset correctly.</li>
+            <li>The <code>POST /api/auth/switch-building</code> endpoint is used internally. The previous token is
+                replaced in localStorage.
+            </li>
+        </ul>
+
+        <h2 id="impersonation-reading-names">Impersonation — Reading Names</h2>
+        <p>When you open the <strong>Impersonate User</strong> dialog (account dropdown → Impersonate User), each
+            resident is shown with two name fields:</p>
+        <ul>
+            <li><strong>Bold name (primary)</strong> — the official <strong>strata roll name</strong> from the <code>units</code>
+                collection (e.g., "Mr Anthony McDonald &amp; Ms Jane McDonald"). This is the legally authoritative name
+                from the lot register and is always shown exactly as recorded in the strata roll.
+            </li>
+            <li><strong>Amber "Portal:" label</strong> — the name the resident typed when they registered on the portal
+                (e.g., "Tony McDonald"). This may legitimately differ from the roll (nickname, maiden name, middle name
+                omitted). It is shown for cross-referencing only.
+            </li>
+            <li><strong>Amber ⚠ icon</strong> — appears when the system has flagged a significant mismatch (&gt;40%
+                token difference) between the portal name and the roll name. Review the flag at <strong>Users</strong> →
+                <strong>Approvals</strong>.
+            </li>
+        </ul>
+        <div class="card callout info">
+            <strong>Search tip:</strong> You can search by either name. Typing "Tony" will match the portal name; typing
+            "Anthony" will match the strata roll name. Both fields are searched simultaneously.
+        </div>
+        <div class="card callout success">
+            <strong>Privacy protection after impersonation:</strong> Once you begin an impersonation session, all PII
+            fields in the resident's profile are automatically masked — the name field shows <em>"Resident"</em>, email
+            is partially masked (e.g., <code>j***@example.com</code>), phone numbers are masked, and address fields show
+            <em>REDACTED</em>. This prevents accidental display or capture of personal data during screen-sharing or
+            screen recordings. The strata roll name remains visible in the user list (it is a legally public record),
+            but is not shown within the impersonated session itself.
+        </div>
+        <div class="card callout danger">
+            <strong>Important — two name stores exist for legal reasons:</strong> The strata roll (<code>units.owner_name</code>)
+            is the authoritative record under the ACT Strata Titles Act and must match the official lot register. The
+            portal name (<code>users.full_name</code>) is operational only and cannot override the roll. If a resident's
+            legal name changes (marriage, deed poll), update the strata roll via the Admin → Owners &amp; Units page,
+            not just the user profile.
+        </div>
+
+    </article>
+</main>
+
+<footer>
+    <span data-bldg="name">your building</span> | Executive Committee | Strata Manager &nbsp;·&nbsp; E: <a
+        data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC email</a>
+    &nbsp;·&nbsp; P: <span data-bldg="contact_phone">(contact number)</span>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

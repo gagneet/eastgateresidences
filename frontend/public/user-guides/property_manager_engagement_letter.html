@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Property Management Engagement Summary</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        /* Letter-specific overrides — distinct from guide layout */
+        .letter-wrap {
+            max-width: 800px;
+            margin: 32px auto;
+            padding: 0 18px 60px;
+        }
+
+        .letter-card {
+            background: rgba(15, 26, 48, .75);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 16px;
+            padding: 40px 48px;
+        }
+
+        .letterhead {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid rgba(255, 255, 255, .12);
+            padding-bottom: 24px;
+            margin-bottom: 28px;
+        }
+
+        .agency-name {
+            font-size: 20px;
+            font-weight: 800;
+            color: #e8eef7;
+            letter-spacing: .02em;
+        }
+
+        .agency-sub {
+            font-size: 12px;
+            color: #9aa4b2;
+            margin-top: 4px;
+        }
+
+        .letter-meta {
+            text-align: right;
+            font-size: 13px;
+            color: #9aa4b2;
+            line-height: 1.8;
+        }
+
+        .letter-meta strong {
+            color: #d6deea;
+        }
+
+        .greeting {
+            font-size: 15px;
+            color: #d6deea;
+            margin-bottom: 18px;
+        }
+
+        .intro-para {
+            font-size: 14px;
+            color: #9aa4b2;
+            line-height: 1.65;
+            margin-bottom: 32px;
+            padding: 14px 18px;
+            background: rgba(79, 140, 255, .08);
+            border-left: 4px solid #4f8cff;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: #4f8cff;
+            font-weight: 700;
+            margin: 32px 0 10px;
+        }
+
+        .section-divider {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, .08);
+            margin: 10px 0 16px;
+        }
+
+        /* Fee table */
+        .fee-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+            margin-top: 8px;
+        }
+
+        .fee-table th {
+            background: rgba(79, 140, 255, .12);
+            color: #a8b8d0;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            padding: 9px 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, .1);
+        }
+
+        .fee-table td {
+            padding: 10px 12px;
+            color: #d6deea;
+            border-bottom: 1px solid rgba(255, 255, 255, .05);
+            vertical-align: top;
+        }
+
+        .fee-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .fee-table tr:hover td {
+            background: rgba(79, 140, 255, .04);
+        }
+
+        .fee-amount {
+            font-weight: 600;
+            color: #e8eef7;
+            white-space: nowrap;
+        }
+
+        /* Responsibility blocks */
+        .resp-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .resp-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .letter-card {
+                padding: 24px 20px;
+            }
+
+            .letterhead {
+                flex-direction: column;
+                gap: 14px;
+            }
+
+            .letter-meta {
+                text-align: left;
+            }
+        }
+
+        .resp-block {
+            background: rgba(11, 18, 32, .5);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+
+        .resp-block h4 {
+            font-size: 13px;
+            font-weight: 700;
+            color: #e8eef7;
+            margin: 0 0 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .resp-block ul {
+            margin: 0;
+            padding-left: 16px;
+            color: #9aa4b2;
+            font-size: 13px;
+            line-height: 1.65;
+        }
+
+        .resp-block a {
+            color: #4f8cff;
+            font-size: 12px;
+        }
+
+        /* Compliance items */
+        .compliance-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, .05);
+        }
+
+        .compliance-item:last-child {
+            border-bottom: none;
+        }
+
+        .compliance-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(245, 158, 11, .15);
+            border: 1px solid rgba(245, 158, 11, .3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 15px;
+        }
+
+        .compliance-body h4 {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #e8eef7;
+            margin: 0 0 4px;
+        }
+
+        .compliance-body p {
+            font-size: 13px;
+            color: #9aa4b2;
+            margin: 0;
+            line-height: 1.55;
+        }
+
+        .compliance-body a {
+            color: #4f8cff;
+            font-size: 12px;
+        }
+
+        /* ID check */
+        .id-list {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .id-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            background: rgba(34, 197, 94, .1);
+            border: 1px solid rgba(34, 197, 94, .25);
+            border-radius: 999px;
+            font-size: 13px;
+            color: #86efac;
+        }
+
+        /* Notes strip */
+        .notes-strip {
+            background: rgba(245, 158, 11, .08);
+            border: 1px solid rgba(245, 158, 11, .2);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #d6deea;
+            line-height: 1.6;
+        }
+
+        .notes-strip strong {
+            color: #fcd34d;
+        }
+
+        /* Signature block */
+        .sig-block {
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, .08);
+            font-size: 13px;
+            color: #9aa4b2;
+            line-height: 1.8;
+        }
+
+        .sig-block strong {
+            color: #e8eef7;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: #fff;
+                color: #000;
+            }
+
+            .letter-card {
+                border: 1px solid #ccc;
+                background: #fff;
+                padding: 20px;
+            }
+
+            .fee-table th {
+                background: #f0f4ff;
+                color: #333;
+            }
+
+            .fee-table td {
+                color: #333;
+            }
+
+            .section-label {
+                color: #1a3a6b;
+            }
+
+            .agency-name {
+                color: #000;
+            }
+
+            .resp-block {
+                border-color: #ddd;
+                background: #fafafa;
+            }
+
+            .compliance-icon {
+                background: #fff3cd;
+                border-color: #f59e0b;
+            }
+
+            a {
+                color: #1a3a6b;
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em">Strata Management Platform</div>
+                <div style="color:var(--muted);font-size:12px">OwnerHub — External Property Management</div>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+            <div class="badge">PM Engagement Letter</div>
+            <button onclick="window.print()"
+                    style="background:rgba(79,140,255,.15);border:1px solid rgba(79,140,255,.3);color:#4f8cff;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">
+                Print / Save PDF
+            </button>
+        </div>
+    </div>
+</header>
+
+<div class="letter-wrap">
+    <div class="letter-card">
+
+        <!-- Letterhead -->
+        <div class="letterhead">
+            <div>
+                <div class="agency-name">Canberra Properties</div>
+                <div class="agency-sub">Family-owned property management agency</div>
+                <div class="agency-sub" style="margin-top:6px">
+                    <a href="mailto:property-management@canberraproperties.com.au">property-management@canberraproperties.com.au</a>
+                </div>
+                <div class="agency-sub">Dedicated Property Manager · Head of Property Management</div>
+                <div class="agency-sub">Supported by a dedicated admin assistant</div>
+            </div>
+            <div class="letter-meta">
+                <div><strong>Document type</strong><br/>PM Engagement Summary</div>
+                <div style="margin-top:8px"><strong>Prepared for</strong><br/>Property Owner</div>
+                <div style="margin-top:8px"><strong>Applies to</strong><br/>Tenanted investment property</div>
+            </div>
+        </div>
+
+        <!-- Greeting -->
+        <div class="greeting">Dear Owner,</div>
+
+        <div class="intro-para">
+            Thank you for choosing Canberra Properties to manage your investment property. We are a small, family-owned
+            agency committed to a manageable portfolio so that every client receives consistent, high-quality service.
+            This summary sets out our fees, your responsibilities as a landlord, and the compliance requirements that
+            apply to your property. There is <strong>no lock-in contract and no termination fee</strong>.
+        </div>
+
+        <!-- ─── FEES ─── -->
+        <div class="section-label">Fees &amp; Charges</div>
+        <hr class="section-divider"/>
+        <p style="font-size:13px;color:#9aa4b2;margin:0 0 10px">All amounts include GST unless otherwise noted.
+            No admin fees. No monthly fees.</p>
+
+        <table class="fee-table">
+            <thead>
+            <tr>
+                <th>Service</th>
+                <th>Description</th>
+                <th>Frequency</th>
+                <th>Fee</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Advertising</td>
+                <td>Listing on Allhomes, realestate.com, Domain &amp; agency website</td>
+                <td>Per letting</td>
+                <td class="fee-amount">$390</td>
+            </tr>
+            <tr>
+                <td>Photography</td>
+                <td>Professional property photos</td>
+                <td>One-off</td>
+                <td class="fee-amount">$165</td>
+            </tr>
+            <tr>
+                <td>Letting Fee</td>
+                <td>Placed for a new tenant</td>
+                <td>Per new tenant</td>
+                <td class="fee-amount">1 week's rent + GST</td>
+            </tr>
+            <tr>
+                <td>Ingoing Condition Report</td>
+                <td>Initial property inspection report</td>
+                <td>One-off</td>
+                <td class="fee-amount">$280</td>
+            </tr>
+            <tr>
+                <td>Re-letting Fee</td>
+                <td>Lease renewal for an existing tenant</td>
+                <td>Per renewal</td>
+                <td class="fee-amount">½ week's rent + GST</td>
+            </tr>
+            <tr>
+                <td>Management Fee</td>
+                <td>Ongoing rental management</td>
+                <td>Ongoing</td>
+                <td class="fee-amount">7% + GST</td>
+            </tr>
+            <tr>
+                <td>EOFY Statement</td>
+                <td>Annual income/expense report for tax purposes</td>
+                <td>Annual</td>
+                <td class="fee-amount">$20</td>
+            </tr>
+            <tr>
+                <td>Smoke Alarm Service</td>
+                <td>Annual check via Smoke Alarms Australia — includes unlimited callouts</td>
+                <td>Annual</td>
+                <td class="fee-amount">$109</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="notes-strip">
+            <strong>No transfer fee</strong> if your property is already tenanted at the time of engagement.
+        </div>
+
+        <!-- ─── OWNER RESPONSIBILITIES ─── -->
+        <div class="section-label" style="margin-top:36px">Owner Responsibilities</div>
+        <hr class="section-divider"/>
+
+        <div class="resp-grid">
+
+            <div class="resp-block">
+                <h4>🛡 Insurance</h4>
+                <ul>
+                    <li><strong>Landlord insurance</strong> — required. Research a suitable provider.</li>
+                    <li><strong>Building insurance</strong> — required.</li>
+                    <li><strong>Contents insurance</strong> — recommended for furnished properties.</li>
+                </ul>
+            </div>
+
+            <div class="resp-block">
+                <h4>📋 Rates &amp; Land Tax</h4>
+                <ul>
+                    <li>You are liable for <strong>land tax</strong> because this property is not your main
+                        residence.
+                    </li>
+                    <li>Submit your land tax return via the
+                        <strong>ACT Revenue Office</strong>.
+                    </li>
+                    <li>You can redirect land tax and rates invoices to our agency:
+                        <br/><a href="mailto:pm@jonnywarren.com.au">pm@jonnywarren.com.au</a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="resp-block">
+                <h4>💧 Water Rates</h4>
+                <ul>
+                    <li>Owner pays water <strong>rates (supply)</strong>.</li>
+                    <li>If separately metered: tenant pays <strong>usage</strong>, landlord pays
+                        <strong>supply</strong>.
+                    </li>
+                    <li>Redirect invoices via:
+                        <br/><a href="https://www.iconwater.com.au/sites/default/files/2023-10/Redirection%20Notices_IconWater.pdf"
+                                rel="noopener" target="_blank">Icon Water Redirection Form ↗</a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="resp-block">
+                <h4>📄 No Lock-in Agreement</h4>
+                <ul>
+                    <li>No fixed-term contract.</li>
+                    <li>No termination fees — you can leave at any time.</li>
+                    <li>Small portfolio ensures your property is never deprioritised.</li>
+                </ul>
+            </div>
+
+        </div>
+
+        <!-- ─── COMPLIANCE ─── -->
+        <div class="section-label" style="margin-top:36px">Compliance Requirements</div>
+        <hr class="section-divider"/>
+        <p style="font-size:13px;color:#9aa4b2;margin:0 0 14px">These are statutory obligations for all ACT rental
+            properties. Non-compliance may result in penalties or inability to rent.</p>
+
+        <div class="compliance-item">
+            <div class="compliance-icon">🔔</div>
+            <div class="compliance-body">
+                <h4>Smoke Alarms — Mandatory Annual Check</h4>
+                <p>Working smoke alarms are required in all rental properties and must be inspected annually. This
+                    service is managed through Smoke Alarms Australia at <strong>$109/year</strong> and includes
+                    unlimited callouts for the duration of the tenancy.</p>
+            </div>
+        </div>
+
+        <div class="compliance-item">
+            <div class="compliance-icon">🏊</div>
+            <div class="compliance-body">
+                <h4>Swimming Pools — ACT Compliance Deadline: 1 May 2028</h4>
+                <p>All ACT pools must be compliant or exempt by <strong>1 May 2028</strong>. Pools constructed after
+                    1 May 2013 should already hold compliance certificates. If unsure of your pool's status, contact
+                    the ACT Government.<br/>
+                    <a href="https://www.act.gov.au/our-canberra/latest-news/2023/august/new-safety-standards-for-home-swimming-pools"
+                       rel="noopener" target="_blank">ACT Pool Safety Standards ↗</a>
+                </p>
+            </div>
+        </div>
+
+        <div class="compliance-item">
+            <div class="compliance-icon">🏠</div>
+            <div class="compliance-body">
+                <h4>Ceiling Insulation — Minimum R5 Standard</h4>
+                <p>ACT rental properties must meet a minimum of <strong>R5 ceiling insulation</strong>. If your
+                    existing insulation is below R2, an upgrade is required before the property can be re-let. No
+                    action is needed if insulation is already R2 or above.</p>
+            </div>
+        </div>
+
+        <!-- ─── OWNER ID CHECK ─── -->
+        <div class="section-label" style="margin-top:36px">Owner Identification Check</div>
+        <hr class="section-divider"/>
+        <p style="font-size:13px;color:#9aa4b2;margin:0 0 12px">
+            Required once at onboarding for office verification and security compliance. Documents are held securely
+            and used solely for this purpose.
+        </p>
+
+        <div class="id-list">
+            <div class="id-chip">✅ Recent rates notice (proof of ownership)</div>
+            <div class="id-chip">✅ Driver's licence (photo ID)</div>
+        </div>
+
+        <!-- ─── CONTACT & REDIRECT ─── -->
+        <div class="section-label" style="margin-top:36px">Key Contacts &amp; Invoice Redirects</div>
+        <hr class="section-divider"/>
+
+        <table class="fee-table">
+            <thead>
+            <tr>
+                <th>Purpose</th>
+                <th>Contact / Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>General property management enquiries</td>
+                <td><a href="mailto:property-management@canberraproperties.com.au">property-management@canberraproperties.com.au</a>
+                </td>
+            </tr>
+            <tr>
+                <td>Redirect land tax &amp; council rates invoices</td>
+                <td><a href="mailto:pm@jonnywarren.com.au">pm@jonnywarren.com.au</a></td>
+            </tr>
+            <tr>
+                <td>Redirect Icon Water invoices</td>
+                <td>
+                    <a href="https://www.iconwater.com.au/sites/default/files/2023-10/Redirection%20Notices_IconWater.pdf"
+                       rel="noopener" target="_blank">Icon Water Redirection Form ↗</a></td>
+            </tr>
+            <tr>
+                <td>ACT Revenue Office (land tax)</td>
+                <td><a href="https://www.revenue.act.gov.au" rel="noopener" target="_blank">revenue.act.gov.au ↗</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- Signature block -->
+        <div class="sig-block">
+            <p style="margin:0">Yours sincerely,</p>
+            <div style="margin-top:20px">
+                <strong>Property Manager</strong><br/>
+                Head of Property Management<br/>
+                Canberra Properties<br/>
+                <a href="mailto:property-management@canberraproperties.com.au">property-management@canberraproperties.com.au</a>
+            </div>
+            <div style="margin-top:16px;padding:10px 14px;background:rgba(79,140,255,.07);border:1px solid rgba(79,140,255,.15);border-radius:8px;font-size:12px;color:#9aa4b2">
+                This document is a summary of your property management engagement. Please retain a copy for your
+                records.
+                Fees and compliance thresholds are subject to change — your property manager will notify you of any
+                updates. This document does not constitute legal advice.
+            </div>
+        </div>
+
+    </div><!-- /letter-card -->
+
+    <!-- Integration note (visible in app, hidden on print) -->
+    <div class="no-print"
+         style="margin-top:18px;padding:14px 18px;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2);border-radius:12px;font-size:13px;color:#9aa4b2">
+        <strong style="color:#86efac">OwnerHub tip:</strong> This document is stored against your external property
+        record. You can view it any time from <em>OwnerHub → Properties → [your property] → Documents</em>. To send
+        a copy to your owner, use the <em>Email Owner</em> action on the property page.
+    </div>
+
+</div><!-- /letter-wrap -->
+
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+
+        header {
+            display: none !important;
+        }
+    }
+</style>
+
+</body>
+</html>

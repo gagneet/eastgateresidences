@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>East Gate Historical Import — Technical Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="container">
+    <h1>East Gate Historical Import</h1>
+    <p class="subtitle">Technical reference for the C4 CSV import endpoints — Phase F-Zero (May 2026)</p>
+
+    <h2>Overview</h2>
+    <p>
+        Three onboarding-wizard endpoints allow bulk import of historical data from CSV files.
+        They consume the exact CSV formats produced by the C1 East Gate import package
+        (<code>imports/east_gate_2026_05_03/</code>) and are suitable for any building onboarded
+        with pre-existing financial history.
+    </p>
+    <p>
+        All three endpoints are idempotent — re-uploading a file for the same building
+        replaces existing records rather than duplicating them.
+    </p>
+
+    <h2>Endpoint summary</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Endpoint</th>
+            <th>CSV files</th>
+            <th>Target storage</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>POST /onboarding/scheme/{session_id}/import-historical-financials</code></td>
+            <td>CSVs 06–10</td>
+            <td>MongoDB: <code>historical_annual_levies</code>, <code>historical_levy_issuances</code>, <code>historical_financial_snapshots</code></td>
+        </tr>
+        <tr>
+            <td><code>POST /onboarding/scheme/{session_id}/import-owner-transfers</code></td>
+            <td>CSV 05</td>
+            <td>Postgres: <code>core.parties</code>, <code>core.ownership_periods</code></td>
+        </tr>
+        <tr>
+            <td><code>POST /onboarding/scheme/{session_id}/import-opening-balances</code></td>
+            <td>CSV 11</td>
+            <td><code>step_data['opening_balances']</code> in <code>core.onboarding_sessions</code></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>CSV formats</h2>
+
+    <h3>CSV 05 — Owner transfers</h3>
+    <div class="code-block">
+<pre>lot_number, unit_number, effective_from, effective_to,
+new_owner_name, previous_owner_name, transfer_date,
+sold_price_aud, source, confidence, notes</pre>
+    </div>
+    <ul>
+        <li><code>effective_from</code> / <code>effective_to</code>: ISO dates (YYYY-MM-DD). Leave <code>effective_to</code> blank for current owner.</li>
+        <li>Rows are validated for non-overlapping periods per lot (EXCLUDE USING gist constraint in Postgres).</li>
+        <li>A bitemporal predecessor record is auto-inserted for the earliest transfer:
+            <code>valid_from=1900-01-01</code>, <code>valid_to=effective_from - 1 day</code>.</li>
+    </ul>
+
+    <h3>CSVs 06–10 — Historical financials</h3>
+    <p>Formats vary per file; all share <code>building_id</code> context injected automatically from the session.</p>
+    <ul>
+        <li>CSV 06: levy issuances — one row per lot per levy year</li>
+        <li>CSVs 07–09: annual levy summaries per fund type and year</li>
+        <li>CSV 10: arrears snapshots (as-at date, outstanding amounts)</li>
+    </ul>
+
+    <h3>CSV 11 — Opening balances at cutover</h3>
+    <div class="code-block">
+<pre>fund_type, opening_balance_amount, as_at_date,
+bsb, account_number, account_name, evidence_source, notes</pre>
+    </div>
+    <ul>
+        <li><code>fund_type</code> values: <code>"Administrative Fund"</code> → <code>"admin"</code>,
+            <code>"Sinking Fund"</code> → <code>"sinking"</code>,
+            <code>"Special Levy Fund"</code> → <code>"special"</code>.</li>
+        <li>Amounts are stored as cents (integer). Input can be decimal dollars.</li>
+    </ul>
+
+    <h2>Import-based vs clean-state finalize</h2>
+    <p>
+        <code>POST /onboarding/scheme/{session_id}/finalize</code> detects whether any import was uploaded:
+    </p>
+    <ul>
+        <li>If <code>step_data</code> contains <code>opening_balances</code> OR <code>historical_financials_summary</code>
+            → session is treated as <strong>import-based</strong>.</li>
+        <li>Genesis journal posting is <strong>skipped</strong> for import-based sessions (deferred to Phase F-prime).</li>
+        <li>The <code>finalize</code> response includes <code>"import_based": true</code> and captured summaries.</li>
+    </ul>
+
+    <h2>Authorization</h2>
+    <p>All three endpoints require an active onboarding session owned by the caller, resolved via
+    <code>_resolve_session(session_id, current_user)</code>. The session must not yet be finalized.
+    Building context (<code>set_ctx_building_id</code>) is set automatically from the session's scheme_number.</p>
+
+    <h2>Idempotency</h2>
+    <p>
+        All import endpoints call <code>delete_many({building_id: ...})</code> on the target collection
+        before inserting. Re-uploading a CSV for the same building fully replaces the previous import.
+        This makes wizard retry flows safe.
+    </p>
+
+    <h2>Related files</h2>
+    <ul>
+        <li><code>backend/routers/onboarding.py</code> — endpoint implementations (<code>@featuretrace:east-gate-import</code>)</li>
+        <li><code>imports/east_gate_2026_05_03/</code> — 11 CSVs, 2,498 rows</li>
+        <li><code>tests/backend/test_onboarding_csv_imports.py</code> — 5 unit tests</li>
+        <li><code>docs/architecture/adr-022_schema_naming_and_genesis_journal.md</code> — genesis pattern + F-Zero addendum</li>
+        <li><code>docs/runbooks/2026_05_phase_f_zero_reset.md</code> — Step 5: wizard onboarding walkthrough</li>
+    </ul>
+</div>
+</body>
+</html>

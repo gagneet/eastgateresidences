@@ -1,0 +1,336 @@
+{
+  "_meta": {
+    "jurisdiction": "ACT",
+    "primary_legislation": "Unit Titles (Management) Act 2011 (ACT)",
+    "trust_law": "Agents Act 2003 (ACT) Part 7",
+    "last_reviewed": "2026-04-25"
+  },
+  "max_interest_rate_pa": {
+    "value": 10,
+    "unit": "percent",
+    "legislation": "UTMA 2011 s.94",
+    "effective": "2011-01-01",
+    "notes": "Default simple interest on overdue levies: 10% per annum."
+  },
+  "max_interest_rate_pa_by_special_resolution": {
+    "value": 20,
+    "unit": "percent",
+    "legislation": "UTMA 2011 s.94",
+    "effective": "2011-01-01",
+    "notes": "Maximum interest rate by special resolution: 20% per annum."
+  },
+  "interest_grace_period_days": {
+    "value": 0,
+    "unit": "days",
+    "legislation": "UTMA 2011 s.94",
+    "effective": "2011-01-01",
+    "notes": "No statutory grace period — interest accrues from the day levy falls due."
+  },
+  "can_transfer_between_funds": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "UTMA 2011 s.87(c)",
+    "effective": "2011-01-01",
+    "notes": "Admin-to-sinking fund transfers permitted by ordinary resolution."
+  },
+  "inter_fund_transfer_resolution_required": {
+    "value": "ordinary",
+    "unit": "enum",
+    "legislation": "UTMA 2011 s.87(c)",
+    "effective": "2011-01-01",
+    "notes": "Ordinary resolution sufficient for admin→sinking transfer. Allowed values: none, ordinary, general_meeting, special, prohibited."
+  },
+  "overbudget_threshold_pct": {
+    "value": null,
+    "unit": "percent",
+    "legislation": null,
+    "effective": null,
+    "notes": "ACT has no statutory over-budget cap requiring approval. Returns null."
+  },
+  "overbudget_requires_resolution_above_pct": {
+    "value": null,
+    "unit": "percent",
+    "legislation": null,
+    "effective": null,
+    "notes": "No statutory trigger for over-budget resolution in ACT."
+  },
+  "trust_withdrawal_authority_roles": {
+    "value": [
+      "principal_licensee",
+      "strata_manager"
+    ],
+    "excluded": [
+      "assistant_property_agent"
+    ],
+    "unit": "roles",
+    "legislation": "Agents Act 2003 (ACT) s.107A",
+    "effective": "2003-01-01",
+    "notes": "Assistant property agents cannot authorise trust withdrawals per s.107A. Only licensed principal or strata manager may authorise."
+  },
+  "trial_balance_deadline_days": {
+    "value": 15,
+    "unit": "business_days",
+    "legislation": "UTMA 2011 s.111",
+    "effective": "2011-01-01",
+    "notes": "Quarterly statement due within 15 business days after quarter-end."
+  },
+  "audit_deadline": {
+    "value": "30 September",
+    "unit": "date",
+    "legislation": "Agents Act 2003 (ACT) s.115",
+    "effective": "2003-01-01",
+    "notes": "Audit of trust records must be completed by 30 September each year."
+  },
+  "pooled_trust_permitted": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "Agents Act 2003 (ACT) Part 7",
+    "effective": "2003-01-01",
+    "notes": "Pooled trust accounts are permitted under the Agents Act 2003 Part 7."
+  },
+  "interest_belongs_to": {
+    "value": "scheme",
+    "unit": "enum",
+    "legislation": "Agents Act 2003 (ACT) s.109",
+    "effective": "2003-01-01",
+    "notes": "Interest on pooled trust accounts accrues to the scheme (owners corporation). Allowed values: scheme, statutory_account, body_corporate."
+  },
+  "committee_spending_cap_formula": {
+    "value": null,
+    "unit": "formula",
+    "legislation": null,
+    "effective": null,
+    "notes": "ACT has no statutory committee spending cap formula."
+  },
+  "min_withholding_pct_no_abn": {
+    "value": 47,
+    "unit": "percent",
+    "legislation": "ITAA 1997 (Commonwealth) s.12-190",
+    "effective": "2000-07-01",
+    "notes": "ATO PAYG withholding: 47% on payments to suppliers without ABN. Applies uniformly in all jurisdictions."
+  },
+  "agm_notice_days": {
+    "value": 14,
+    "unit": "days",
+    "legislation": "UTMA 2011 Sch.3",
+    "effective": "2011-01-01",
+    "notes": "AGM notice must be received at least 14 days before meeting."
+  },
+  "agm_notice_days_unopposed_resolution": {
+    "value": 21,
+    "unit": "days",
+    "legislation": "UTMA 2011 Sch.3",
+    "effective": "2011-01-01",
+    "notes": "21 days when an unopposed/unanimous resolution is to be moved."
+  },
+  "ec_meeting_notice_days": {
+    "value": 7,
+    "unit": "days",
+    "legislation": "UTMA 2011 Sch.2",
+    "effective": "2011-01-01",
+    "notes": "Minimum 7 days notice for executive committee meetings."
+  },
+  "minutes_distribution_days": {
+    "value": 14,
+    "unit": "days",
+    "legislation": "UTMA 2011 Sch.3",
+    "effective": "2011-01-01",
+    "notes": "Minutes must be provided to each member within 14 days after meeting."
+  },
+  "agm_max_gap_months": {
+    "value": 15,
+    "unit": "months",
+    "legislation": "UTMA 2011 s.18",
+    "effective": "2011-01-01",
+    "notes": "AGM must be held within 15 months of the previous AGM."
+  },
+  "levy_interest_rate_default_percent": {
+    "value": 10,
+    "unit": "percent",
+    "legislation": "UTMA 2011 s.76",
+    "effective": "2011-01-01",
+    "notes": "Default simple interest on unpaid levies: 10% per annum."
+  },
+  "levy_interest_rate_max_percent": {
+    "value": 20,
+    "unit": "percent",
+    "legislation": "UTMA 2011 s.76",
+    "effective": "2011-01-01",
+    "notes": "Max interest rate up to 20% by special resolution."
+  },
+  "levy_interest_rate_min_percent": {
+    "value": 0,
+    "unit": "percent",
+    "legislation": "UTMA 2011 s.76",
+    "effective": "2011-01-01",
+    "notes": "OC may set less than 10% by special resolution."
+  },
+  "audit_threshold_budget_aud": {
+    "value": 250000,
+    "unit": "AUD",
+    "legislation": "UTMA 2011 s.82",
+    "effective": "2011-01-01",
+    "notes": "Mandatory audit if annual budget exceeds $250,000."
+  },
+  "audit_threshold_lots": {
+    "value": 100,
+    "unit": "count",
+    "legislation": "UTMA 2011 s.82",
+    "effective": "2011-01-01",
+    "notes": "Mandatory audit if scheme has more than 100 lots."
+  },
+  "financial_statements_deadline_months": {
+    "value": 3,
+    "unit": "months",
+    "legislation": "UTMA 2011 s.80",
+    "effective": "2011-01-01",
+    "notes": "Annual financial statements must be presented at AGM within 3 months of year-end."
+  },
+  "sinking_fund_review_years": {
+    "value": 5,
+    "unit": "years",
+    "legislation": "UTMA 2011 s.73A",
+    "effective": "2011-01-01",
+    "notes": "Sinking fund plan must be reviewed every 5 years."
+  },
+  "record_retention_years": {
+    "value": 7,
+    "unit": "years",
+    "legislation": "UTMA 2011 s.89",
+    "effective": "2011-01-01",
+    "notes": "Books and records must be kept for at least 7 years."
+  },
+  "record_inspection_days": {
+    "value": 14,
+    "unit": "days",
+    "legislation": "UTMA 2011 s.92",
+    "effective": "2011-01-01",
+    "notes": "Records must be available for inspection within 14 days of request."
+  },
+  "public_liability_minimum_aud": {
+    "value": 10000000,
+    "unit": "AUD",
+    "legislation": "UTMA 2011 s.100(2); Unit Titles Regulation 2011",
+    "effective": "2011-01-01",
+    "notes": "Minimum $10M public liability insurance for common property."
+  },
+  "building_insurance_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "UTMA 2011 s.100",
+    "effective": "2011-01-01",
+    "notes": "Building insurance at replacement value — mandatory."
+  },
+  "rental_certificate_validity_years": {
+    "value": 5,
+    "unit": "years",
+    "legislation": "UTMA 2011 s.119A",
+    "effective": "2025-01-09",
+    "notes": "Rental certificate valid for 5 years from issue date."
+  },
+  "rental_certificate_response_days": {
+    "value": 14,
+    "unit": "days",
+    "legislation": "UTMA 2011 s.119B",
+    "effective": "2025-01-09",
+    "notes": "Owners corporation must respond to rental cert request within 14 business days."
+  },
+  "rental_certificate_fee_cap_aud": {
+    "value": 342,
+    "unit": "AUD",
+    "legislation": "Unit Titles (Management) Rental Certificate Determination 2025",
+    "effective": "2025-01-09",
+    "notes": "Fee cap $342 per certificate."
+  },
+  "manager_contract_max_years": {
+    "value": 3,
+    "unit": "years",
+    "legislation": "UTMA 2011 s.60",
+    "effective": "2011-01-01",
+    "notes": "Strata management contracts may not exceed 3 years."
+  },
+  "proxy_validity_max_months": {
+    "value": 12,
+    "unit": "months",
+    "legislation": "UTMA 2011 Sch.3",
+    "effective": "2011-01-01",
+    "notes": "Proxy valid for maximum 1 year."
+  },
+  "voting_records_retention_days": {
+    "value": 28,
+    "unit": "days",
+    "legislation": "Unit Titles (Management) Regulation 2011",
+    "effective": "2011-01-01",
+    "notes": "Voting records retained for at least 28 days."
+  },
+  "egm_petition_threshold_percent": {
+    "value": 25,
+    "unit": "percent",
+    "legislation": "UTMA 2011 s.18",
+    "effective": "2011-01-01",
+    "notes": "Owners holding 25%+ of unit entitlements can requisition an EGM."
+  },
+  "capital_funding_standard_notice_days": {
+    "value": null,
+    "unit": "days",
+    "legislation": "UTMA 2011 Sch.3",
+    "effective": "2011-01-01",
+    "notes": "No verified generic capital-funding levy payment period is encoded. Capital funding approval must pass through meeting notice controls; due dates and contribution terms must be set in the approved resolution and notice."
+  },
+  "capital_funding_emergency_notice_days": {
+    "value": null,
+    "unit": "days",
+    "legislation": "UTMA 2011 Sch.3",
+    "effective": "2011-01-01",
+    "notes": "No shorter generic emergency levy period is encoded; urgent works still require jurisdiction-specific legal review."
+  },
+  "capital_funding_notice_period_verified": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "UTMA 2011",
+    "effective": "2011-01-01",
+    "notes": "Payment-period validation must rely on legal-review evidence and approved motion text, not a generic platform default."
+  },
+  "capital_funding_resolution_required": {
+    "value": "special_for_special_purpose_fund",
+    "unit": "enum",
+    "legislation": "UTMA 2011 s.74",
+    "effective": "2011-01-01",
+    "notes": "Special-purpose funds may be established by special resolution; contribution and expenditure rules must align with the approved fund and sinking-fund plan."
+  },
+  "capital_funding_allocation_basis": {
+    "value": "unit_entitlement",
+    "unit": "enum",
+    "legislation": "UTMA 2011 ss.78-79",
+    "effective": "2011-01-01",
+    "notes": "Administrative and sinking fund contributions are ordinarily proportionate to unit entitlement unless the Act and approved resolution permit another method."
+  },
+  "capital_funding_benefit_principle_available": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "UTMA 2011",
+    "effective": "2011-01-01",
+    "notes": "No generic benefit-principle allocator is enabled; class-based allocations require scheme-specific legal review."
+  },
+  "capital_funding_tenant_consultation_required": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "UTMA 2011",
+    "effective": "2011-01-01",
+    "notes": "Tenant consultation is not a default levy-approval condition; rental-certificate and works-access obligations are separate workflows."
+  },
+  "capital_funding_hardship_notice_required": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "UTMA 2011",
+    "effective": "2011-01-01",
+    "notes": "No ACT-specific hardship notice requirement is encoded; hardship support can still be offered as product policy."
+  },
+  "capital_funding_hybrid_legal_review_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "UTMA 2011; lender/legal-advice dependent",
+    "effective": "2011-01-01",
+    "notes": "Hybrid owner-funded and loan-funded structures require recorded legal approval before notices or credits are issued."
+  }
+}

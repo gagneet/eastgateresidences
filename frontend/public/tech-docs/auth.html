@@ -1,0 +1,1563 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Auth & Permissions – Eastgate Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad: true, theme: 'dark', securityLevel: 'strict'});</script>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">East Gate Residences</div>
+            <div class="sub">Technical Documentation · Auth &amp; Permissions</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a class="active" data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#jwt">JWT Authentication</a>
+            <a href="#roles">User Roles</a>
+            <a href="#permissions">Permission Flags</a>
+            <a href="#matrix">Permission Matrix</a>
+            <a href="#register-flow">Registration Flow &amp; Invitations</a>
+            <a href="#feature-toggles">Feature Toggle System</a>
+            <a href="#access-control-pages">Access Control Pages</a>
+            <a href="#login-flow">Login Flow</a>
+            <a href="#password-reset">Password Reset</a>
+            <a href="#rate-limiting">Rate Limiting</a>
+            <a href="#auth-router">Auth Router Architecture</a>
+            <a href="#rbac-abac">RBAC + ABAC System (Session 63)</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <h1>Auth &amp; Permissions</h1>
+        <p>JWT-based authentication with role-based access control. 10 user roles, 15 permission flags, and 63+ feature
+            toggles control what each user can see and do.</p>
+
+        <section id="jwt">
+            <h2>JWT Authentication</h2>
+            <div class="two-col">
+                <div class="card">
+                    <h3>Token Details</h3>
+                    <ul>
+                        <li><strong>Algorithm:</strong> HS256</li>
+                        <li><strong>Expiry (standard):</strong> 24 hours (<code>JWT_EXPIRATION_HOURS</code>)</li>
+                        <li><strong>Expiry (guest — hard cap):</strong> min(24h, stay end_date, 364 days)</li>
+                        <li><strong>Secret:</strong> <code>JWT_SECRET</code> env var</li>
+                        <li><strong>Payload:</strong> <code>{ user_id, email, role, exp, tenant_id, [building_id],
+                            [impersonator_id] }</code></li>
+                        <li><strong>Transport:</strong> <code>Authorization: Bearer &lt;token&gt;</code> header</li>
+                        <li><strong>Storage:</strong> <code>localStorage</code> on the client</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Token Validation</h3>
+                    <p>Every protected endpoint calls <code>get_current_user(token)</code> via FastAPI
+                        <code>Depends()</code>:</p>
+                    <ol>
+                        <li>Decode JWT → get <code>user_id</code></li>
+                        <li>Look up user in <code>users</code> collection</li>
+                        <li>Check <code>is_active == true</code></li>
+                        <li>Check <code>is_approved == true</code></li>
+                        <li>Return user document</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="callout warn">
+                <strong>No token refresh.</strong> Tokens expire after 24 hours. Users must log in again. The frontend
+                detects <code>401</code> responses and auto-redirects to <code>/login</code>.
+            </div>
+            <div class="callout info">
+                <strong>Guest JWT Hard Cap.</strong> Guest tokens are enforced with a 364-day maximum regardless of
+                <code>JWT_EXPIRATION_HOURS</code>. At login, the backend looks up the guest's active <code>user_units.end_date</code>
+                and mints a token expiring at <code>min(standard_expiry, end_date, now + 364 days)</code>. This prevents
+                a guest from holding a perpetually-valid session token beyond their permitted stay period. The same cap
+                is applied at registration, on <code>/auth/switch-building</code>, and on any building token reissue.
+            </div>
+        </section>
+
+        <section id="roles">
+            <h2>User Roles (10 Total)</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Role Value</th>
+                        <th>Display Name</th>
+                        <th>Typical Users</th>
+                        <th>Access Level</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>super_admin</code></td>
+                        <td>Super Admin</td>
+                        <td>Platform administrators</td>
+                        <td>100% — full system access</td>
+                    </tr>
+                    <tr>
+                        <td><code>building_admin</code></td>
+                        <td>Building Admin</td>
+                        <td>Building administrator (formerly <code>chairman</code>)</td>
+                        <td>~95% — full management except system settings</td>
+                    </tr>
+                    <tr>
+                        <td><code>strata_manager</code></td>
+                        <td>Strata Manager</td>
+                        <td>Professional property manager</td>
+                        <td>~90% — full operational access</td>
+                    </tr>
+                    <tr>
+                        <td><code>ec_member</code></td>
+                        <td>EC Member</td>
+                        <td>Executive Committee members</td>
+                        <td>~75% — management, finance, meetings, resident mgmt</td>
+                    </tr>
+                    <tr>
+                        <td><code>reception</code></td>
+                        <td>Reception</td>
+                        <td>Front desk / support staff</td>
+                        <td>~45% — requests, work orders, chat, meetings view</td>
+                    </tr>
+                    <tr>
+                        <td><code>owner</code></td>
+                        <td>Owner</td>
+                        <td>Property owners</td>
+                        <td>~50% — view finances, community, chat</td>
+                    </tr>
+                    <tr>
+                        <td><code>tenant</code></td>
+                        <td>Tenant</td>
+                        <td>Resident tenants</td>
+                        <td>~35% — community, maintenance, chat</td>
+                    </tr>
+                    <tr>
+                        <td><code>real_estate_agent</code></td>
+                        <td>Real Estate Agent</td>
+                        <td>Property managers / agents</td>
+                        <td>~40% — listings, tenancy, documents, schedule</td>
+                    </tr>
+                    <tr>
+                        <td><code>service_provider</code></td>
+                        <td>Service Provider</td>
+                        <td>External contractors</td>
+                        <td>~20% — assigned jobs, schedule</td>
+                    </tr>
+                    <tr>
+                        <td><code>guest</code></td>
+                        <td>Guest</td>
+                        <td>Short-term residents</td>
+                        <td>~10% — community, chat only</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout purple">
+                <strong>Building Admin vs Super Admin:</strong> The building_admin is an operational leader (manages
+                maintenance,
+                finance, users). The super_admin is the technical administrator (can change system settings, email
+                config, feature toggles, access tech docs).
+            </div>
+        </section>
+
+        <section id="permissions">
+            <h2>Permission Flags (15 Total)</h2>
+            <p>Each user has a <code>permissions</code> object with 15 boolean flags. Role defaults are set at
+                registration; can be individually overridden by admins.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Permission Key</th>
+                        <th>Controls</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>can_view_documents</code></td>
+                        <td>See documents in the library (further filtered by folder access)</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_upload_documents</code></td>
+                        <td>Upload documents to the library</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_manage_document_permissions</code></td>
+                        <td>Change which roles can access a document</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_view_finances</code></td>
+                        <td>Access the finance section (levies, budgets)</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_manage_finances</code></td>
+                        <td>Update levy data, record payments, upload budgets</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_create_listings</code></td>
+                        <td>Post items to the marketplace</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_chat</code></td>
+                        <td>Send messages in community chat</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_view_meetings</code></td>
+                        <td>See meeting records and agendas</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_manage_meetings</code></td>
+                        <td>Schedule meetings, record minutes</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_manage_users</code></td>
+                        <td>Approve/reject users, change roles</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_view_schedule</code></td>
+                        <td>See the service provider schedule</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_post_announcements</code></td>
+                        <td>Create community announcements</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_send_notifications</code></td>
+                        <td>Broadcast system notifications</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_access_email</code></td>
+                        <td>View Eastgate email credentials in Email Access page</td>
+                    </tr>
+                    <tr>
+                        <td><code>can_manage_requests</code></td>
+                        <td>Review and respond to maintenance and support requests</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="matrix">
+            <h2>Permission Matrix by Role</h2>
+            <div class="table-wrap matrix-wrap">
+                <table class="matrix">
+                    <thead>
+                    <tr>
+                        <th>Permission</th>
+                        <th>Super Admin</th>
+                        <th>Building Admin</th>
+                        <th>Strata Mgr</th>
+                        <th>EC Member</th>
+                        <th>Reception</th>
+                        <th>Owner</th>
+                        <th>Tenant</th>
+                        <th>Service Provider</th>
+                        <th>Guest</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>view_documents</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="partial">△</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>upload_documents</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>manage_doc_permissions</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>view_finances</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>manage_finances</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>create_listings</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>chat</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                    </tr>
+                    <tr>
+                        <td>view_meetings</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>manage_meetings</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>manage_users</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>view_schedule</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>post_announcements</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="partial">△</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>send_notifications</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>access_email</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>manage_requests</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p style="color:var(--muted);font-size:12px;margin-top:8px">✓ = granted by default &nbsp; △ =
+                partial/conditional &nbsp; ✗ = denied by default (can be individually overridden)</p>
+        </section>
+
+        <section id="register-flow">
+            <h2>Registration Flow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart TD
+                    START(["User visits /register"]) --> FORM["Fill registration form<br/>name, email, password, unit,
+                    role<br/>terms_accepted=true required"]
+                    FORM --> ROLE{"Role selected?"}
+                    ROLE -->|"owner"| UNIT["Select unit from dropdown<br/>/api/units/all"]
+                    ROLE -->|"tenant / guest"| BYLAW["Accept by-laws + owner approval path<br/>status =
+                    pending_owner_approval"]
+                    UNIT --> API
+                    BYLAW --> API
+                    API["POST /api/auth/register<br/>routers/auth.py"] --> EXIST{"Email exists<br/>and archived?"}
+                    EXIST -->|"Yes"| RETURNING["Notify admins of returning
+                    user<br/>db.user_notifications.insert_many<br/>Link: /admin/expired-accounts"]
+                    EXIST -->|"No, owner"| CREATE_OWNER["Create user<br/>is_approved=false<br/>status = active<br/>needs
+                    admin approval"]
+                    EXIST -->|"No, tenant/guest"| CREATE_TENANT["Create user<br/>is_approved=false<br/>status =
+                    pending_owner_approval<br/>needs owner + admin approval"]
+                    CREATE_OWNER --> BELL1["Bell notifications → db.user_notifications<br/>Link:
+                    /admin/users?tab=owners&search=Name"]
+                    CREATE_TENANT --> BELL2["Bell notifications → db.user_notifications<br/>Link:
+                    /admin/users?tab=residents&search=Name"]
+                    BELL1 --> EMAIL1["Email admins with<br/>?search=Name link"]
+                    BELL2 --> EMAIL2["Email admins + unit owner<br/>?search=Name link"]
+                    RETURNING --> SUCCESS
+                    EMAIL1 --> SUCCESS(["User sees /register/success"])
+                    EMAIL2 --> SUCCESS
+                    SUCCESS --> ADMIN["Super Admin clicks bell<br/>Opens /admin/users<br/>with registrant
+                    pre-searched"]
+                    ADMIN --> APPROVE{"Decision"}
+                    APPROVE -->|"Approve"| ACTIVE(["is_approved=true<br/>status=active"])
+                    APPROVE -->|"Request Profile Info<br/>POST /users/id/request-profile-info"| RESUBMIT["Bell to
+                    user<br/>Email with edit link<br/>status = info_requested"]
+                    APPROVE -->|"Reject"| ARCHIVE["User archived<br/>status = archived"]
+                    RESUBMIT --> ADMIN
+                </div>
+                <div class="diagram-caption">New user registration and approval workflow (updated with bell routing and
+                    search-link enhancements)
+                </div>
+            </div>
+
+            <h3>Key Implementation Details</h3>
+            <div class="two-col">
+                <div class="card">
+                    <h4>Bell Notification Collection</h4>
+                    <p>All registration bell notifications write to <code>db.user_notifications</code> (NOT <code>db.notifications</code>).
+                    </p>
+                    <ul>
+                        <li><code>db.user_notifications</code> — per-user bell icon (what the UI reads)</li>
+                        <li><code>db.notifications</code> — admin broadcast board (separate system)</li>
+                    </ul>
+                    <p>Code location: <code>routers/auth.py</code> — <code>register()</code> function handles all three
+                        registration paths (new owner, tenant/guest, returning archived user).</p>
+                </div>
+                <div class="card">
+                    <h4>Admin Email / Bell Search Link</h4>
+                    <p>Every admin notification (bell + email) includes a pre-populated search link so admins jump
+                        directly to the registrant:</p>
+                    <pre><code>/admin/users?tab=owners&search=Avneet+Rooprai</code></pre>
+                    <ul>
+                        <li>Tab: <code>owners</code> for owner role, <code>residents</code> for all others</li>
+                        <li>Name is URL-encoded via <code>urllib.parse.quote_plus()</code></li>
+                        <li>Frontend reads <code>?search=</code> on mount and pre-fills the search box</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3>Postgres Dual-Write &amp; Invitation-Based Registration (Phase E)</h3>
+            <div class="callout info">
+                <strong>Phase E: Dual-Write.</strong> <code>POST /api/auth/register</code> now writes to
+                <strong>both</strong> MongoDB (legacy) and Postgres (<code>core.users</code>) via
+                <code>identity_repo.create_user_for_registration()</code>. The Postgres write is <em>non-fatal</em>
+                — if it fails, the MongoDB record is still created and the user receives a JWT. JWT tokens now
+                always include a <code>tenant_id</code> UUID claim in addition to the legacy
+                <code>building_id</code> string.
+            </div>
+            <div class="card">
+                <h4>Invitation Flow</h4>
+                <p>Admins can pre-invite users via <code>POST /api/admin/invitations</code>
+                    (<code>admin_invitations.py</code>). This creates a <code>core.user_invitations</code> row and
+                    emails the recipient a time-limited claim link.</p>
+                <ol>
+                    <li>Admin sends invite — stores SHA-256 of raw token in
+                        <code>core.user_invitations.claim_token_sha256</code>; raw token is never stored in DB.
+                    </li>
+                    <li>Recipient visits <code>/register?invitation_token=&lt;raw&gt;</code>; form pre-fills from
+                        <code>prefill_*</code> columns if provided.
+                    </li>
+                    <li>On submit, <code>invitation_token</code> is passed to <code>POST /api/auth/register</code>.
+                        Backend calls <code>identity_repo.find_invitation_by_token()</code>, which hashes the token
+                        and queries using the RLS bypass sentinel
+                        (<code>00000000-0000-0000-0000-000000000000</code>) so the lookup succeeds before the
+                        invitee has a <code>tenant_id</code> (migration <code>0015_rls_invitation_bypass</code>).
+                    </li>
+                    <li>On match, <code>claim_invitation()</code> stamps <code>claimed_at</code> /
+                        <code>claimed_user_id</code>. The new JWT includes <code>tenant_id</code> and
+                        <code>building_id</code> from the invitation record.
+                    </li>
+                </ol>
+                <div class="table-wrap" style="margin-top:8px;">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Notes</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td><code>invitation_id</code></td>
+                            <td>UUID PK</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>tenant_id</code></td>
+                            <td>UUID</td>
+                            <td>FK → core.tenants (building context)</td>
+                        </tr>
+                        <tr>
+                            <td><code>email</code></td>
+                            <td>CITEXT</td>
+                            <td>Case-insensitive invitee email</td>
+                        </tr>
+                        <tr>
+                            <td><code>invited_role</code></td>
+                            <td>core.user_role</td>
+                            <td>Role granted on claim</td>
+                        </tr>
+                        <tr>
+                            <td><code>claim_token_sha256</code></td>
+                            <td>BYTEA</td>
+                            <td>SHA-256 of raw token; raw never stored</td>
+                        </tr>
+                        <tr>
+                            <td><code>expires_at</code></td>
+                            <td>TIMESTAMPTZ</td>
+                            <td>Token expiry</td>
+                        </tr>
+                        <tr>
+                            <td><code>claimed_at</code></td>
+                            <td>TIMESTAMPTZ</td>
+                            <td>Set on successful claim</td>
+                        </tr>
+                        <tr>
+                            <td><code>prefill_*</code></td>
+                            <td>TEXT/UUID</td>
+                            <td>first_name, last_name, phone, unit_id</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <h3>Request Profile Info Endpoint</h3>
+            <div class="card">
+                <p><code>POST /api/users/{user_id}/request-profile-info</code> — Super Admin / Building Admin only
+                    (<code>can_manage_users</code>)
+                </p>
+                <ul>
+                    <li>Sends a bell notification to the target user (<code>db.user_notifications.insert_one</code>)
+                    </li>
+                    <li>Sends an email with a profile-update link</li>
+                    <li>Sets user <code>status = info_requested</code></li>
+                    <li>Returns <code>403</code> if target is <code>super_admin</code></li>
+                    <li>Returns <code>404</code> if user not found</li>
+                </ul>
+                <p>Implementation: <code>server.py</code> — <code>request_profile_info()</code> function.</p>
+            </div>
+
+            <h3>Returning Archived User</h3>
+            <div class="card">
+                <p>When a previously archived user submits the registration form with the same email, the original
+                    archived record is preserved intact (7-year compliance retention). New details are captured
+                    in a <code>pending_return_details</code> sub-document for admin review.</p>
+                <ol>
+                    <li>The <strong>archived audit fields</strong> (<code>archived_at</code>,
+                        <code>archived_by</code>, <code>archived_reason</code>, <code>status="archived"</code>)
+                        are <strong>not overwritten</strong> — they remain on the document for compliance.
+                        Only these three fields are written via <code>$set</code>:
+                        <ul>
+                            <li><code>pending_return_details</code> — object containing <code>full_name</code>,
+                                <code>phone</code>, <code>unit_number</code>, <code>by_laws_acknowledged</code>,
+                                <code>requested_at</code>, and optionally <code>end_date</code>.
+                            </li>
+                            <li><code>password_hash</code> — updated to the new password so the user can log in
+                                immediately after admin restore (no forced password reset).
+                            </li>
+                            <li><code>return_requested_at</code> — ISO timestamp of the return request.</li>
+                        </ul>
+                    </li>
+                    <li>Bell notifications sent to building-scoped staff reviewers via
+                        <code>_get_staff_registration_reviewers(building_id)</code> — this helper uses a two-step
+                        query (<code>memberships.distinct</code> → <code>users.find</code>) so only staff who are
+                        members of <em>this</em> building are notified (cross-building isolation).
+                        Roles included: <code>super_admin</code> (global, always), <code>building_admin</code>,
+                        <code>ec_member</code>, <code>strata_manager</code> (building-scoped via membership).
+                    </li>
+                    <li>Email sent to each reviewer with an old-vs-new detail table (name, unit, end date changes).
+                        Links to <code>/admin/expired-accounts</code>.
+                    </li>
+                    <li>API returns <code>409 Conflict</code> with body
+                        <code>{"code": "archived_user_return_request", "message": "..."}</code>.
+                    </li>
+                    <li>Frontend (<code>RegisterPage.jsx</code>) detects <code>code ===
+                        "archived_user_return_request"</code>
+                        and shows a blue informational banner instead of a red error toast.
+                    </li>
+                </ol>
+                <h4>Restore Endpoint — <code>POST /users/{user_id}/restore</code> (super_admin only)</h4>
+                <p>When a super admin clicks Restore from the Expired Accounts page (in order):</p>
+                <ol>
+                    <li>Role guard: <code>403</code> if caller is not <code>super_admin</code>.</li>
+                    <li>Load user: <code>404</code> if not found; <code>400</code> if <code>status != "archived"</code>.
+                    </li>
+                    <li>Pre-conflict check: scans user's existing <code>user_units</code> for primary-occupancy
+                        conflicts before any writes — <code>409</code> if a conflicting active occupant exists.
+                    </li>
+                    <li>Build <code>$set</code>: <code>status=active</code>, <code>is_active=True</code>,
+                        <code>is_approved=True</code>, <code>restored_at</code>, <code>restored_by</code>,
+                        <code>restore_reason</code>; plus <code>full_name</code>, <code>phone</code>,
+                        <code>end_date</code>, <code>by_laws_acknowledged</code> from
+                        <code>pending_return_details</code> (if present); plus <code>unit_number</code> if
+                        <code>pending_return_details.unit_number</code> is set.
+                    </li>
+                    <li>Apply <code>$unset</code>: <code>archived_at</code>, <code>archived_by</code>,
+                        <code>archived_reason</code>, <code>pending_return_details</code>.
+                    </li>
+                    <li>Unit change path — if <code>pending_return_details.unit_number</code> differs from current
+                        <code>unit_number</code>:
+                        <ul>
+                            <li>Second conflict guard on new unit → <code>409</code> if occupied.</li>
+                            <li>Deactivates old <code>user_units</code> (<code>is_active=false</code>,
+                                <code>actual_end_date=now</code>).
+                            </li>
+                            <li>Inserts a new <code>user_units</code> record for the new unit (scoped to
+                                <code>building_id</code>, <code>start_date=today</code>).
+                            </li>
+                        </ul>
+                        Otherwise: reactivates existing <code>user_units</code> via
+                        <code>update_many(is_active=True)</code>.
+                    </li>
+                    <li>Re-activates building membership via <code>memberships</code> upsert
+                        (unconditional — always happens regardless of unit change).
+                    </li>
+                </ol>
+                <p><em>Composite index <code>{building_id: 1, user_id: 1}</code> on <code>user_units</code>
+                    is created at app startup for efficient restore lookups.</em></p>
+            </div>
+        </section>
+
+        <section id="login-flow">
+            <h2>Login Flow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    sequenceDiagram
+                    participant U as User (Browser)
+                    participant FE as React / AuthContext
+                    participant API as POST /api/auth/login
+                    participant DB as MongoDB users
+
+                    U->>FE: Enter email + password
+                    FE->>API: { email, password }
+                    API->>DB: Find user by email
+                    DB-->>API: User document (with hash)
+                    API->>API: bcrypt.verify(password, hash)
+                    alt Password incorrect
+                    API-->>FE: 401 Unauthorized
+                    FE-->>U: "Invalid credentials" toast
+                    else User not approved
+                    API-->>FE: 403 Forbidden
+                    FE-->>U: "Account pending approval"
+                    else Success
+                    API->>API: Resolve building_id from user.building_id or memberships (→ 403 if none found)
+                    API->>API: create_token({user_id, email, role, building_id, tenant_id})
+                    API-->>FE: { token, user }
+                    FE->>FE: store token in localStorage
+                    FE->>FE: set user + building in AuthContext state
+                    FE-->>U: Redirect to /dashboard
+                    end
+                </div>
+                <div class="diagram-caption">Login sequence — JWT includes <code>building_id</code> and
+                    <code>tenant_id</code> (auto-scoped on login)
+                </div>
+            </div>
+            <div class="callout info">
+                <strong>Multi-tenant login:</strong> <code>/auth/login</code> auto-resolves <code>building_id</code>
+                into the JWT: first from <code>user.building_id</code>, then from single membership, then
+                returns <code>403</code> if neither resolves (<code>DEFAULT_BUILDING_ID = ""</code> — Phase E
+                clean-break; no implicit fallback to a hardcoded building). Multi-building users can call
+                <code>/auth/switch-building</code> to mint a new JWT scoped to a different building.
+            </div>
+            <div class="callout warn">
+                <strong>Switch-building loop guard (fixed commit b9bc1a0c):</strong> The JWT <code>building_id</code>
+                claim is the human-readable <em>plan number</em> (e.g. <code>"13195"</code>), not the UUID. The
+                <code>Building</code> object returned by <code>GET /buildings/me</code> has two separate fields:
+                <code>id</code> (UUID) and <code>building_id</code> (plan number). <code>AuthContext.fetchUser</code>
+                compares <code>jwtBuildingId</code> against <code>currentBuildingId</code> (plan number), NOT
+                against <code>currentId</code> (UUID). Without this distinction, the comparison was always
+                <code>false</code>, triggering a switch-building call on every token rotation and creating an
+                infinite loop. When calling <code>POST /auth/switch-building</code> the frontend sends
+                <code>{ building_id: building.id }</code> — the UUID — which the backend accepts.
+            </div>
+            <div class="callout info">
+                <strong>Hash compatibility:</strong> Login verifies <code>password_hash</code> with a fallback to legacy
+                <code>hashed_password</code>.
+            </div>
+        </section>
+
+        <section id="feature-toggles">
+            <h2>Feature Toggle System (63 Toggles)</h2>
+            <p>The platform uses a <strong>3-tier resolution model</strong> — first match wins — to determine whether
+                a user can access a given feature:</p>
+            <ol>
+                <li><strong>User-level override</strong> — stored in <code>user_feature_access</code> collection
+                    (<code>{user_id, feature_key, is_enabled}</code>). Checked first for non-elevated users. Can
+                    grant or deny a feature independently of the building or global toggle. <em>Skipped entirely for
+                        temporarily-elevated users — only the building/global toggle applies to them.</em>
+                </li>
+                <li><strong>Building-level override</strong> — stored in <code>feature_toggles</code> with a specific
+                    <code>building_id</code>. Applies to all users of that building when no user-level override
+                    exists (or when elevation is active).
+                </li>
+                <li><strong>Global default</strong> — stored in <code>feature_toggles</code> with
+                    <code>building_id = null</code>. Shared across all buildings; falls back to
+                    <code>enabled = true</code> if no document exists.
+                </li>
+            </ol>
+            <div class="callout info">
+                <strong>Effective access formula:</strong>
+                <code>super_admin → always true</code> ·
+                <code>elevation active → building/global toggle</code> ·
+                <code>user_override exists → user_override.is_enabled</code> ·
+                <code>else → building or global toggle</code>.
+                See <a href="feature-toggles.html">Feature Toggles</a> for full resolution algorithm and examples.
+            </div>
+
+            <h3>Feature Toggle Document Schema</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>feature_key</code></td>
+                        <td>string (unique)</td>
+                        <td>Slug used in API and frontend checks (e.g. <code>levy_payments</code>)</td>
+                    </tr>
+                    <tr>
+                        <td><code>feature_name</code></td>
+                        <td>string</td>
+                        <td>Human-readable display name</td>
+                    </tr>
+                    <tr>
+                        <td><code>description</code></td>
+                        <td>string</td>
+                        <td>Shown on the Feature Toggles admin page</td>
+                    </tr>
+                    <tr>
+                        <td><code>is_enabled</code></td>
+                        <td>boolean</td>
+                        <td>Site-wide on/off</td>
+                    </tr>
+                    <tr>
+                        <td><code>category</code></td>
+                        <td>string</td>
+                        <td>One of: core, financial, governance, communication, community, safety, facilities,
+                            maintenance, system
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>icon</code></td>
+                        <td>string</td>
+                        <td>Lucide-react icon name (must exist in v0.507)</td>
+                    </tr>
+                    <tr>
+                        <td><code>routes</code></td>
+                        <td>string[]</td>
+                        <td>Frontend route paths gated by this toggle</td>
+                    </tr>
+                    <tr>
+                        <td><code>updated_by</code></td>
+                        <td>string | null</td>
+                        <td>User ID of last admin who changed it</td>
+                    </tr>
+                    <tr>
+                        <td><code>created_at / updated_at</code></td>
+                        <td>datetime</td>
+                        <td>ISO 8601 UTC</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>User Feature Override Schema (<code>user_feature_access</code>)</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>user_id</code></td>
+                        <td>string</td>
+                        <td>References <code>users._id</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>feature_key</code></td>
+                        <td>string</td>
+                        <td>References <code>feature_toggles.feature_key</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>is_enabled</code></td>
+                        <td>boolean</td>
+                        <td><code>true</code> = Grant, <code>false</code> = Deny</td>
+                    </tr>
+                    <tr>
+                        <td><code>created_at / updated_at</code></td>
+                        <td>datetime</td>
+                        <td>ISO 8601 UTC</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Toggle Categories</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Count</th>
+                        <th>Example Feature Keys</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>core</td>
+                        <td>~10</td>
+                        <td>dashboard, announcements, marketplace, chat, calendar</td>
+                    </tr>
+                    <tr>
+                        <td>financial</td>
+                        <td>~12</td>
+                        <td>finance, levy_payments, financial_projections, collection_rate, arrears_recovery,
+                            spending_categories, financial_data_import
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>governance</td>
+                        <td>~10</td>
+                        <td>strata_roll, tenant_approvals, user_permissions, user_feature_permissions,
+                            rental_certificates, agm_voting
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>communication</td>
+                        <td>~5</td>
+                        <td>notice_board, manual_email, notifications_management, email_preferences</td>
+                    </tr>
+                    <tr>
+                        <td>community</td>
+                        <td>~5</td>
+                        <td>resident_directory, pet_register, events, schedule</td>
+                    </tr>
+                    <tr>
+                        <td>safety</td>
+                        <td>~3</td>
+                        <td>emergency_services, incident_reports</td>
+                    </tr>
+                    <tr>
+                        <td>facilities</td>
+                        <td>~3</td>
+                        <td>bookings, facility_management</td>
+                    </tr>
+                    <tr>
+                        <td>maintenance</td>
+                        <td>~5</td>
+                        <td>maintenance, work_orders, insurance_claims, maintenance_intelligence, digital_twin</td>
+                    </tr>
+                    <tr>
+                        <td>system</td>
+                        <td>~10</td>
+                        <td>site_settings, admin_console, email_settings, security_ip_logs, scraper_settings,
+                            asset_register, manage_mail_passwords
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Key API Endpoints</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/api/feature-toggles</code></td>
+                        <td>List all toggles (super_admin sees all; others see only enabled)</td>
+                    </tr>
+                    <tr>
+                        <td><code>PUT</code></td>
+                        <td><code>/api/feature-toggles/{key}</code></td>
+                        <td>Update site-wide toggle (super_admin only)</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/api/feature-toggles/access-summary/me</code></td>
+                        <td>Get effective feature access map for the current user</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/api/feature-toggles/access-summary/{user_id}</code></td>
+                        <td>Get effective feature access map for a specific user (admin use)</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/api/feature-toggles/users/{user_id}</code></td>
+                        <td>Create or update per-user feature overrides for a user</td>
+                    </tr>
+                    <tr>
+                        <td><code>DELETE</code></td>
+                        <td><code>/api/feature-toggles/users/{user_id}/{feature_key}</code></td>
+                        <td>Remove a per-user override for a specific feature (revert to site default)</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Frontend Integration</h3>
+            <p>The frontend checks feature access via <code>hasFeatureAccess(featureKey)</code> from <code>AuthContext.js</code>.
+                The context fetches the user's effective access map on login and caches it. Navigation items in <code>DashboardLayout.jsx</code>
+                conditionally render based on this map. Attempting to navigate to a gated route without access shows a
+                403-style redirect.</p>
+
+            <h3>Seeding Toggles</h3>
+            <p>All 63 toggles are defined in <code>backend/seeds/feature_toggles.py</code>. The seed is upsert-safe —
+                running it multiple times only inserts missing entries. To add toggles for a new deployment:</p>
+            <pre><code>cd backend
+python3 -c "import asyncio; from seeds.feature_toggles import seed_feature_toggles; asyncio.run(seed_feature_toggles())"</code></pre>
+            <p>Or use the one-off scripts in <code>scripts/db/seed_new_feature_toggles_*.py</code> for adding batches of
+                new toggles without re-running the full seed.</p>
+        </section>
+
+        <section id="access-control-pages">
+            <h2>Access Control Pages</h2>
+            <p>Two dedicated admin pages provide UI-driven management of the permission and feature access systems.</p>
+
+            <h3>Access Control Management (<code>/admin/user-permissions</code>)</h3>
+            <p>Manages the 14 boolean <code>permissions.*</code> flags per user. Changes are stored in the <code>custom_permissions</code>
+                field of the user document.</p>
+            <ul>
+                <li><strong>Left panel:</strong> searchable, role-filterable user list with override count badges.</li>
+                <li><strong>Right panel:</strong> 6 grouped permission categories, each permission showing current
+                    state, role default label, and Elevated/Restricted badges.
+                </li>
+                <li><strong>Unsaved changes bar:</strong> amber sticky bar listing the count of pending changes; <em>Save
+                    Changes</em> calls <code>PUT /api/users/{id}</code> with only the <code>permissions</code> delta.
+                </li>
+                <li><strong>Role Defaults reset:</strong> one-click button removes all <code>custom_permissions</code>
+                    overrides and reverts to role defaults.
+                </li>
+            </ul>
+
+            <h4>Elevation vs Restriction Detection</h4>
+            <p>The frontend hardcodes a <code>ROLE_DEFAULTS</code> map mirroring <code>backend/models/user.py
+                DEFAULT_PERMISSIONS</code>. A permission is flagged as <em>Elevated</em> if it is <code>true</code> when
+                the role default is <code>false</code>, and <em>Restricted</em> if it is <code>false</code> when the
+                role default is <code>true</code>.</p>
+
+            <h3>Feature Access Controls (<code>/admin/user-feature-permissions</code>)</h3>
+            <p>Manages per-user feature overrides in the <code>user_feature_access</code> collection. Reads effective
+                access via <code>GET /api/feature-toggles/user/{user_id}</code>.</p>
+            <ul>
+                <li><strong>Inline 3-state selector:</strong> <em>Site Default</em> (DELETE override) / <em>Grant</em>
+                    (POST <code>is_enabled:true</code>) / <em>Deny</em> (POST <code>is_enabled:false</code>). Changes
+                    apply immediately on click.
+                </li>
+                <li><strong>Effective badge:</strong> green check or red X computed from site toggle + override + role
+                    bypass.
+                </li>
+                <li><strong>Filters:</strong> feature search, category dropdown, "Overrides only" toggle button.</li>
+                <li><strong>Column layout:</strong> Feature name (4 cols) | Site Toggle (2) | Override (4) | Effective
+                    (2).
+                </li>
+                <li><strong>User summary:</strong> shows selected user's role, Grant count, Deny count chips, and Clear
+                    All Overrides button.
+                </li>
+            </ul>
+
+            <h4>Super Admin Bypass</h4>
+            <p>The <code>super_admin</code> role bypasses all feature toggle checks. Its effective access is always
+                <code>true</code> regardless of site toggle or per-user overrides. This is enforced on both the backend
+                (<code>GET /api/feature-toggles/user/{id}</code> returns all-true for super_admin) and the frontend
+                (hard bypass in <code>hasFeatureAccess()</code>).</p>
+
+            <h4>Adding a New Feature Toggle</h4>
+            <ol>
+                <li>Add the entry to <code>backend/seeds/feature_toggles.py</code> (all fields required: <code>feature_key,
+                    feature_name, description, is_enabled, category, icon, routes</code>).
+                </li>
+                <li>Run the seed or the one-off upsert script.</li>
+                <li>Add the Lucide-react icon to <code>ICON_MAP</code> in <code>FeatureTogglesPage.jsx</code> (verify
+                    the icon name exists in v0.507 first).
+                </li>
+                <li>Wrap the relevant frontend route/nav item with <code>hasFeatureAccess('your_feature_key')</code>.
+                </li>
+            </ol>
+
+            <div class="callout warn">
+                <strong>Icon compatibility:</strong> Verify any new icon name against the installed lucide-react version
+                before committing. Run: <code>node -e "const l=require('./node_modules/lucide-react');
+                console.log('YourIconName' in l)"</code> from the <code>frontend/</code> directory.
+            </div>
+        </section>
+
+        <section id="password-reset">
+            <h2>Password Reset Flow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart LR
+                    A(["User clicks<br/>Forgot Password"]) --> B["POST /api/auth/forgot-password<br/>body: email"]
+                    B --> C{"User found?"}
+                    C -->|"No"| D["Return 200<br/>no user enumeration"]
+                    C -->|"Yes"| E["Generate reset token<br/>Store in DB with 1hr expiry"]
+                    E --> F["Send email with<br/>reset link"]
+                    F --> G(["User clicks link in email"])
+                    G --> H["POST /api/auth/reset-password<br/>body: token + new_password"]
+                    H --> I{"Token valid<br/>and not expired?"}
+                    I -->|"No"| J["Return 400 Invalid token"]
+                    I -->|"Yes"| K["Hash new password<br/>Update in DB<br/>Invalidate token"]
+                    K --> L(["User redirected to /login"])
+                </div>
+                <div class="diagram-caption">Password reset flow</div>
+            </div>
+            <div class="callout success">
+                <strong>Security note:</strong> The <code>forgot-password</code> endpoint always returns <code>200
+                OK</code> even if the email doesn't exist. This prevents user enumeration attacks.
+            </div>
+            <div class="callout info">
+                <strong>Hash compatibility:</strong> Password resets update both <code>password_hash</code> and <code>hashed_password</code>
+                fields to keep legacy login compatibility intact.
+            </div>
+        </section>
+
+        <section id="rate-limiting">
+            <h2>Rate Limiting</h2>
+            <p>All sensitive auth endpoints are protected by per-IP rate limits using <strong>slowapi</strong>. A shared
+                limiter and dynamic helper from <code>utils/rate_limit.py</code> are used across the entire application.
+                Base limits are configured in Site Settings and scaled by a global multiplier; the
+                <code>rate_limiting</code> feature toggle can disable enforcement.</p>
+
+            <div class="two-col">
+                <div class="card">
+                    <h3>Endpoint Limits</h3>
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>Endpoint</th>
+                            <th>Limit</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td><code>POST /auth/register</code></td>
+                            <td>5 / minute</td>
+                        </tr>
+                        <tr>
+                            <td><code>POST /auth/login</code></td>
+                            <td>10 / minute</td>
+                        </tr>
+                        <tr>
+                            <td><code>POST /auth/forgot-password</code></td>
+                            <td>5 / minute</td>
+                        </tr>
+                        <tr>
+                            <td><code>POST /auth/reset-password</code></td>
+                            <td>5 / minute</td>
+                        </tr>
+                        <tr>
+                            <td><code>POST /auth/change-password</code></td>
+                            <td>10 / minute</td>
+                        </tr>
+                        <tr>
+                            <td><code>POST /auth/registration-decision</code></td>
+                            <td>10 / minute</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <p class="muted" style="margin-top:8px;">Effective limits = base value × global multiplier from Site
+                        Settings.</p>
+                </div>
+                <div class="card">
+                    <h3>Implementation</h3>
+                    <ul>
+                        <li>Rate limiting key: client IP address (<code>get_remote_address</code>)</li>
+                        <li>Exceeded limit returns <code>HTTP 429 Too Many Requests</code></li>
+                        <li><code>Retry-After</code> header included in 429 response</li>
+                        <li>Global control via <code>rate_limiting</code> feature toggle</li>
+                        <li>Site Settings define per-endpoint base limits + global multiplier (changes propagate within
+                            ~1 minute)
+                        </li>
+                        <li><code>_DummyLimiter</code> fallback: if <code>slowapi</code> is not installed, rate limiting
+                            is silently disabled (no crash)
+                        </li>
+                        <li><strong>Test bypass:</strong> set <code>DISABLE_RATE_LIMIT=1</code> in the backend
+                            environment to skip all slowapi enforcement without touching the toggle. Used by the E2E
+                            security suite to prevent parallel login calls from hitting 429 during <code>beforeAll</code>
+                            token acquisition.
+                        </li>
+                    </ul>
+                    <pre><code># utils/rate_limit.py
+from utils.rate_limit import rate_limit
+
+@router.post("/auth/login")
+@rate_limit("rate_limit_login", 10)
+async def login(request: Request, credentials: UserLogin):
+    ...</code></pre>
+                    <pre><code># .env (dev/test only — never set in production)
+DISABLE_RATE_LIMIT=1</code></pre>
+                </div>
+            </div>
+
+            <div class="callout info">
+                <strong>Frontend handling:</strong> <code>AuthContext.js</code> axios interceptor converts 429 responses
+                into a <code>error.rateLimitMessage</code> property with a user-friendly string. The
+                <code>register()</code> function surfaces this directly so registration pages can display "Too many
+                attempts. Please wait a moment."
+            </div>
+        </section>
+
+        <section id="auth-router">
+            <h2>Auth Router Architecture</h2>
+            <p>All auth logic lives in <strong><code>backend/routers/auth.py</code></strong> as the single source of
+                truth. This router is included in <code>server.py</code> via <code>api_router.include_router(auth_router,
+                    tags=["Auth"])</code>.</p>
+
+            <div class="two-col">
+                <div class="card">
+                    <h3>Endpoints in routers/auth.py</h3>
+                    <ul>
+                        <li><code>POST /auth/register</code> — new user registration</li>
+                        <li><code>POST /auth/login</code> — JWT login with audit trail</li>
+                        <li><code>GET /auth/me</code> — current user profile</li>
+                        <li><code>POST /auth/impersonate</code> — super admin impersonation</li>
+                        <li><code>GET /auth/memberships</code> — list all building memberships for the authenticated
+                            user. For super_admin, synthesises entries from the <code>buildings</code> collection. Each
+                            entry's <code>id</code> field is the building UUID (not prefixed — changed from the
+                            old <code>sa_&lt;uuid&gt;</code> format in commit <code>b9bc1a0c</code>).
+                        </li>
+                        <li><code>POST /auth/switch-building</code> — mint a new JWT scoped to a different
+                            building. Request body: <code>{ "building_id": "&lt;building UUID&gt;" }</code>.
+                        </li>
+                        <li><code>POST /auth/forgot-password</code> — send reset link</li>
+                        <li><code>POST /auth/reset-password</code> — consume reset token</li>
+                        <li><code>POST /auth/change-password</code> — authenticated password change</li>
+                        <li><code>GET /auth/registration-decision</code> — owner approve/reject form</li>
+                        <li><code>POST /auth/registration-decision</code> — process owner decision</li>
+                        <li><code>GET /mail/access</code> — retrieve mail credentials</li>
+                        <li><code>PUT /mail/update-password</code> — self-service mail password</li>
+                        <li><code>PUT /mail/admin-update-password</code> — admin mail password</li>
+                        <li><code>POST /admin/reset-user-passwords</code> — bulk password reset</li>
+                        <li><code>POST /admin/create-staff-user</code> — super admin direct staff account creation
+                            (immediately active)
+                        </li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Staff User Management Endpoints (<code>routers/staff_management.py</code>)</h3>
+                    <p>Super Admin only. Provides staff-specific user management with building-scoped role
+                        assignment.</p>
+                    <ul>
+                        <li><code>GET /admin/staff-users</code> — list all strata_manager / real_estate_agent /
+                            reception users (all buildings, excludes archived)
+                        </li>
+                        <li><code>GET /admin/staff-users/buildings</code> — list active buildings for role-assignment
+                            dropdowns
+                        </li>
+                        <li><code>GET /admin/staff-users/{user_id}</code> — staff user detail: profile + building
+                            memberships + active RBAC role assignments
+                        </li>
+                        <li><code>POST /admin/staff-users/{user_id}/building-roles</code> — assign an elevated role
+                            (owner, ec_member, secretary, treasurer, building_admin) to a staff user for a specific
+                            building.
+                            Writes to <code>user_roles</code> (RBAC) and updates legacy <code>ec_position</code> for EC
+                            roles. Creates building membership if not already a member.
+                        </li>
+                        <li><code>DELETE /admin/staff-users/{user_id}/building-roles/{assignment_id}</code> —
+                            soft-revoke role assignment (sets <code>is_active=False</code>, preserves record for audit).
+                            Clears <code>ec_position</code> if no active EC roles remain.
+                        </li>
+                    </ul>
+                    <div class="callout info">
+                        <strong>Data isolation:</strong> building_id is validated against the <code>buildings</code>
+                        collection before any write. Users can only hold roles in buildings that actually exist.
+                        Cross-building data leaks are prevented at the API layer.
+                    </div>
+                    <div class="callout success">
+                        <strong>RBAC integration:</strong> Role assignments are written to the <code>user_roles</code>
+                        collection (same as <code>POST /api/auth/rbac/users/{id}/roles</code>). The staff management
+                        endpoints provide a higher-level UX-friendly wrapper that also handles building membership
+                        creation and legacy field synchronisation.
+                    </div>
+                    <div class="card">
+                        <h3>Helpers in routers/auth.py</h3>
+                        <ul>
+                            <li><code>_calculate_risk_score()</code> — compare login context vs last login</li>
+                            <li><code>_log_login_attempt()</code> — write audit record to <code>login_audit_logs</code>
+                            </li>
+                            <li><code>_send_suspicious_login_email()</code> — alert on risk score ≥ 50</li>
+                            <li><code>_log_password_change()</code> — write to <code>password_change_audit</code></li>
+                            <li><code>_reg_decision_html_result()</code> — render HTML result page</li>
+                            <li><code>_validate_reg_decision_token()</code> — validate one-click approval token</li>
+                            <li><code>_get_portal_url()</code> — reads <code>FRONTEND_URL</code> env var</li>
+                        </ul>
+                        <div class="callout warning" style="margin-top:12px">
+                            <strong>server.py still provides:</strong> <code>send_email_async</code>, <code>get_email_settings</code>,
+                            <code>hash_password</code>, <code>verify_password</code>, <code>create_token</code>, <code>get_current_user</code>
+                            — these are shared utilities imported by routers/auth.py.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="callout info">
+                    <strong>IP extraction — always from headers (2026-03-09 fix):</strong>
+                    <code>_log_login_attempt()</code> extracts the real client IP using the full header priority chain
+                    <strong>regardless</strong> of whether MaxMind GeoIP (<code>geoip2</code>) is installed.
+                    Without this fix, the <code>GEO_AVAILABLE=False</code> branch fell back to
+                    <code>request.client.host</code> = <code>127.0.0.1</code> because login requests
+                    arrive from Next.js (internal, via <code>BACKEND_INTERNAL_URL</code>), not directly from the
+                    browser.
+                    The priority order is: <code>CF-Connecting-IP</code> → <code>X-Real-IP</code> → first entry of
+                    <code>X-Forwarded-For</code> → <code>request.client.host</code> (direct connections only).
+                    GeoIP lookup (country, city, ISP) remains gated on <code>GEO_AVAILABLE</code>.
+                    <br/><br/>
+                    <strong>auth.ts (Next.js):</strong> The NextAuth <code>authorize()</code> callback forwards
+                    <code>CF-Connecting-IP</code>, <code>X-Real-IP</code>, <code>X-Forwarded-For</code>, and
+                    <code>CF-IPCountry</code> headers from the incoming request to the backend login call.
+                    Nginx forwards all Cloudflare headers with <code>proxy_set_header CF-Connecting-IP
+                    $http_cf_connecting_ip</code>.
+                </div>
+        </section>
+        <section id="rbac-abac">
+            <h2>RBAC + ABAC System (Session 63)</h2>
+            <p>Added in Session 63, the platform now runs a <strong>3-layer authorization model</strong> that is fully
+                backward-compatible with the original boolean-flags system:</p>
+            <ol>
+                <li><strong>Legacy layer</strong> — original <code>user.role</code> string + boolean
+                    <code>Permission</code> flags. Untouched.
+                </li>
+                <li><strong>RBAC layer</strong> — <code>user_roles</code>, <code>role_permissions</code> MongoDB
+                    collections. Building-scoped, time-bounded assignments.
+                </li>
+                <li><strong>ReBAC / Zanzibar layer</strong> — <code>relationship_tuples</code> graph. BFS traversal
+                    derives permissions from ownership/committee relationships.
+                </li>
+            </ol>
+
+            <div class="two-col">
+                <div class="card">
+                    <h3>New MongoDB Collections</h3>
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>Collection</th>
+                            <th>Purpose</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td><code>permissions</code></td>
+                            <td>39 slug definitions (e.g. <code>financial.approve_invoice</code>)</td>
+                        </tr>
+                        <tr>
+                            <td><code>roles</code></td>
+                            <td>13 named roles (base + elevation)</td>
+                        </tr>
+                        <tr>
+                            <td><code>role_permissions</code></td>
+                            <td>226 role → slug mappings</td>
+                        </tr>
+                        <tr>
+                            <td><code>user_roles</code></td>
+                            <td>Building-scoped, dated role assignments per user</td>
+                        </tr>
+                        <tr>
+                            <td><code>relationship_tuples</code></td>
+                            <td>Zanzibar graph edges: subject → relation → object</td>
+                        </tr>
+                        <tr>
+                            <td><code>permissions_cache</code></td>
+                            <td>TTL-indexed cache for permission resolution</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card">
+                    <h3>Permission Slugs (sample)</h3>
+                    <ul>
+                        <li><code>building.view</code> / <code>building.update</code></li>
+                        <li><code>financial.view</code> / <code>financial.view_own</code></li>
+                        <li><code>financial.approve_invoice</code> / <code>financial.export</code></li>
+                        <li><code>workorder.create</code> / <code>workorder.approve</code></li>
+                        <li><code>committee.vote</code> / <code>committee.finalize_minutes</code></li>
+                        <li><code>documents.upload</code> / <code>documents.delete</code></li>
+                        <li><code>user.manage</code> / <code>user.view</code></li>
+                    </ul>
+                    <p class="muted">Full list: <code>backend/models/rbac_models.py → PERMISSION_SLUGS</code></p>
+                </div>
+            </div>
+
+            <h3>Role Lifecycle (Owner → EC → Building Admin → Owner)</h3>
+            <pre><code># 1. Add EC Member role (auto-expires at next AGM)
+POST /api/auth/rbac/relationships
+{
+  "user_id": "...",
+  "role_name": "EC_MEMBER",
+  "building_id": "...",
+  "start_date": "2026-02-23",
+  "end_date": "2027-02-23"
+}
+
+# 2. Assign Building Admin role (top-level building authority)
+# Note: "Chairman" is now an ec_position on ec_member, not a system role.
+# Use BUILDING_ADMIN for the system role.
+POST /api/auth/rbac/relationships
+{ "role_name": "BUILDING_ADMIN", ... }
+
+# 3. Term ends → set is_active: false (or let end_date expire)
+# User automatically returns to OWNER base role
+# No data deletion required</code></pre>
+
+            <h3>Backend Integration</h3>
+            <h4><code>require_permission_v2("slug")</code></h4>
+            <p>New decorator in <code>backend/utils/permissions.py</code>. Use alongside (or instead of) the existing
+                <code>@require_permission()</code>:</p>
+            <pre><code>from utils.permissions import require_permission_v2
+
+@router.get("/financials")
+@require_permission_v2("financial.view")
+async def get_financials(building_id: str, current_user = Depends(get_current_user)):
+    ...</code></pre>
+            <p>The decorator tries the new RBAC layer first; if it finds no active user_roles it falls back to the
+                legacy boolean map, then raises <code>403</code> if denied. <strong>SUPER_ADMIN always bypasses</strong>.
+            </p>
+
+            <h4><code>user_can(user_id, slug, building_id, resource)</code></h4>
+            <p>Central async function in <code>backend/services/permission_service.py</code>. Used by the decorator and
+                callable directly from business logic:</p>
+            <pre><code>from services.permission_service import user_can
+
+allowed = await user_can(str(user.id), "financial.approve_invoice", building_id=building_id)
+if not allowed:
+    raise HTTPException(403, "Insufficient permissions")</code></pre>
+
+            <h4>ABAC Hard-Deny Rules</h4>
+            <ul>
+                <li><code>building.config</code> — denied for ALL non-SUPER_ADMIN users regardless of RBAC grants</li>
+                <li><code>financial.*</code> — owner must own a unit in the target building</li>
+                <li>Cross-building: user with role in Building A cannot act on Building B</li>
+            </ul>
+
+            <h3>Frontend Integration</h3>
+            <pre><code>// utils/permissions.ts
+import { can, canAll, canAny } from "@/utils/permissions";
+
+// In a component
+const session = useSession();
+if (can(session.data, "financial.approve_invoice", buildingId)) {
+  // show approve button
+}
+
+// Or via hook
+import { usePermissions } from "@/hooks/usePermissions";
+const { can } = usePermissions();
+if (can("committee.vote")) { ... }
+
+// Or via declarative guard
+import { PermissionGuard } from "@/components/rbac/PermissionGuard";
+&lt;PermissionGuard permission="workorder.approve"&gt;
+  &lt;ApproveButton /&gt;
+&lt;/PermissionGuard&gt;</code></pre>
+
+            <h3>RBAC REST Endpoints (<code>/api/auth/rbac/</code>)</h3>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Method</th>
+                    <th>Path</th>
+                    <th>Purpose</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>GET</td>
+                    <td><code>/api/auth/rbac/roles</code></td>
+                    <td>List all roles</td>
+                </tr>
+                <tr>
+                    <td>GET</td>
+                    <td><code>/api/auth/rbac/permissions</code></td>
+                    <td>List all 39 slugs</td>
+                </tr>
+                <tr>
+                    <td>GET</td>
+                    <td><code>/api/auth/rbac/users/{id}/roles</code></td>
+                    <td>User's active role assignments</td>
+                </tr>
+                <tr>
+                    <td>POST</td>
+                    <td><code>/api/auth/rbac/relationships</code></td>
+                    <td>Assign role (building-scoped)</td>
+                </tr>
+                <tr>
+                    <td>DELETE</td>
+                    <td><code>/api/auth/rbac/relationships/{id}</code></td>
+                    <td>Deactivate assignment</td>
+                </tr>
+                <tr>
+                    <td>POST</td>
+                    <td><code>/api/auth/rbac/check</code></td>
+                    <td>Check <code>{user_id, slug, building_id}</code></td>
+                </tr>
+                <tr>
+                    <td>GET</td>
+                    <td><code>/api/auth/rbac/users/{id}/permissions</code></td>
+                    <td>Merged permission slug list</td>
+                </tr>
+                <tr>
+                    <td>POST</td>
+                    <td><code>/api/auth/rbac/graph/relationships</code></td>
+                    <td>Add Zanzibar tuple</td>
+                </tr>
+                <tr>
+                    <td>DELETE</td>
+                    <td><code>/api/auth/rbac/graph/relationships/{id}</code></td>
+                    <td>Remove tuple</td>
+                </tr>
+                <tr>
+                    <td>POST</td>
+                    <td><code>/api/auth/rbac/graph/check</code></td>
+                    <td>Zanzibar check</td>
+                </tr>
+                <tr>
+                    <td>POST</td>
+                    <td><code>/api/auth/rbac/expire-committee</code></td>
+                    <td>Expire past committee tuples</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h3>Seed &amp; Migration</h3>
+            <pre><code># Seed permissions/roles/mappings into MongoDB (idempotent)
+cd /home/gagneet/strata-management/backend
+venv/bin/python3 seeds/rbac.py
+
+# Migrate existing users to new collections (idempotent, non-destructive)
+cd /home/gagneet/strata-management
+backend/venv/bin/python3 scripts/migrate_to_rbac.py</code></pre>
+
+            <div class="callout success">
+                <strong>Migration already run in production:</strong> 79 users → 81 user_roles + 127 relationship_tuples
+                (Feb 2026). The seed and migration scripts are safe to re-run at any time (upsert, no data loss).
+            </div>
+        </section>
+    </main>
+</div>
+<footer>East Gate Residences · Technical Documentation · Auth &amp; Permissions · Super Admin Only · 2026 · A vision by:
+    Silverfox Technologies, Australia · Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+</body>
+</html>

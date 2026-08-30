@@ -1,0 +1,264 @@
+{
+  "_meta": {
+    "jurisdiction": "QLD",
+    "primary_legislation": "Body Corporate and Community Management Act 1997 (QLD)",
+    "trust_law": "BCCM Act 1997; Standard Module Regulation; Accommodation Module Regulation",
+    "last_reviewed": "2026-04-25"
+  },
+  "max_interest_rate_pa": {
+    "value": 30,
+    "unit": "percent",
+    "legislation": "BCCM Accommodation Module reg 157; Standard Module reg 100(7)",
+    "effective": "1997-01-01",
+    "notes": "QLD interest ceiling is 2.5% per month (Accommodation Module reg 157), which equates to a maximum of 30% per annum simple interest."
+  },
+  "max_interest_rate_pa_by_special_resolution": {
+    "value": 30,
+    "unit": "percent",
+    "legislation": "BCCM Standard Module reg 100(7)",
+    "effective": "1997-01-01",
+    "notes": "2.5% per month is the statutory ceiling. Expressed as annual: 30%."
+  },
+  "interest_grace_period_days": {
+    "value": 0,
+    "unit": "days",
+    "legislation": "BCCM Act 1997 s.141",
+    "effective": "1997-01-01",
+    "notes": "No statutory grace period — interest accrues from the day the contribution falls due."
+  },
+  "can_transfer_between_funds": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "BCCM Standard Module reg 100(7); Accommodation Module reg 157",
+    "effective": "1997-01-01",
+    "notes": "Inter-fund transfers (e.g. admin→sinking) are PROHIBITED under the Standard Module and Accommodation Module."
+  },
+  "inter_fund_transfer_resolution_required": {
+    "value": "prohibited",
+    "unit": "enum",
+    "legislation": "BCCM Standard Module reg 100(7)",
+    "effective": "1997-01-01",
+    "notes": "No resolution can authorise an inter-fund transfer in QLD — the prohibition is absolute. Allowed values: none, ordinary, general_meeting, special, prohibited."
+  },
+  "overbudget_threshold_pct": {
+    "value": null,
+    "unit": "percent",
+    "legislation": null,
+    "effective": null,
+    "notes": "QLD does not impose a statutory over-budget percentage threshold."
+  },
+  "overbudget_requires_resolution_above_pct": {
+    "value": null,
+    "unit": "percent",
+    "legislation": null,
+    "effective": null,
+    "notes": "No statutory over-budget resolution trigger in QLD."
+  },
+  "trust_withdrawal_authority_roles": {
+    "value": [
+      "committee_majority",
+      "body_corporate_manager"
+    ],
+    "excluded": [],
+    "unit": "roles",
+    "legislation": "BCCM Act 1997; Standard Module",
+    "effective": "1997-01-01",
+    "notes": "Body corporate owns the bank account directly. Withdrawals authorised by committee resolution (majority) or by the body corporate manager per their contract."
+  },
+  "trial_balance_deadline_days": {
+    "value": 30,
+    "unit": "calendar_days",
+    "legislation": "BCCM Standard Module reg 170",
+    "effective": "1997-01-01",
+    "notes": "Monthly financial statement required — effectively a 30-day deadline after month-end."
+  },
+  "audit_deadline": {
+    "value": "at-AGM",
+    "unit": "date",
+    "legislation": "BCCM Act 1997",
+    "effective": "1997-01-01",
+    "notes": "Financial statements tabled at AGM; audit completed unless resolved otherwise."
+  },
+  "pooled_trust_permitted": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "BCCM Act 1997",
+    "effective": "1997-01-01",
+    "notes": "Body corporate owns the bank account directly — there is no manager-held pooled trust arrangement."
+  },
+  "interest_belongs_to": {
+    "value": "body_corporate",
+    "unit": "enum",
+    "legislation": "BCCM Act 1997",
+    "effective": "1997-01-01",
+    "notes": "The body corporate owns the account and receives all interest directly. Allowed values: scheme, statutory_account, body_corporate."
+  },
+  "committee_spending_cap_formula": {
+    "value": "$200 * lot_count",
+    "unit": "formula",
+    "legislation": "BCCM Standard Module; Accommodation Module",
+    "effective": "1997-01-01",
+    "notes": "Default committee spending cap: $200 per lot. Requires a committee resolution for amounts above this threshold. Total cap = $200 × number of lots in the scheme."
+  },
+  "committee_spending_cap_per_lot_cents": {
+    "value": 20000,
+    "unit": "cents",
+    "legislation": "BCCM Standard Module; Accommodation Module",
+    "effective": "1997-01-01",
+    "notes": "Per-lot committee spending cap in integer cents ($200 = 20000 cents)."
+  },
+  "min_withholding_pct_no_abn": {
+    "value": 47,
+    "unit": "percent",
+    "legislation": "ITAA 1997 (Commonwealth) s.12-190",
+    "effective": "2000-07-01",
+    "notes": "ATO PAYG withholding: 47% on payments to suppliers without ABN."
+  },
+  "agm_notice_days": {
+    "value": 21,
+    "unit": "days",
+    "legislation": "BCCM Act 1997 s.88",
+    "effective": "1997-01-01",
+    "notes": "21 days notice for general meetings."
+  },
+  "record_retention_years": {
+    "value": 7,
+    "unit": "years",
+    "legislation": "BCCM Act 1997",
+    "effective": "1997-01-01",
+    "notes": "Records kept 7 years."
+  },
+  "levy_interest_rate_default_percent": {
+    "value": 2.5,
+    "unit": "percent",
+    "legislation": "BCCM Act 1997 s.141",
+    "effective": "1997-01-01",
+    "notes": "Default monthly interest on unpaid contributions: 2.5% per month."
+  },
+  "levy_interest_rate_max_percent": {
+    "value": 2.5,
+    "unit": "percent",
+    "legislation": "BCCM Accommodation Module reg 157",
+    "effective": "1997-01-01",
+    "notes": "Statutory ceiling per month: 2.5%."
+  },
+  "levy_interest_rate_min_percent": {
+    "value": 0,
+    "unit": "percent",
+    "legislation": "BCCM Act 1997",
+    "effective": "1997-01-01",
+    "notes": "Body corporate may resolve a lower rate."
+  },
+  "audit_threshold_budget_aud": {
+    "value": 0,
+    "unit": "AUD",
+    "legislation": "BCCM Act 1997",
+    "effective": "1997-01-01",
+    "notes": "QLD: all schemes above a minimum size must have accounts reviewed annually. Threshold set by regulation."
+  },
+  "audit_threshold_lots": {
+    "value": 0,
+    "unit": "count",
+    "legislation": "BCCM Act 1997",
+    "effective": "1997-01-01",
+    "notes": "All schemes required to have financial accounts reviewed/audited annually."
+  },
+  "public_liability_minimum_aud": {
+    "value": 10000000,
+    "unit": "AUD",
+    "legislation": "BCCM Act 1997",
+    "effective": "1997-01-01",
+    "notes": "Minimum $10M public liability insurance."
+  },
+  "building_insurance_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "BCCM Act 1997 s.197",
+    "effective": "1997-01-01",
+    "notes": "Building insurance at replacement value — mandatory."
+  },
+  "sinking_fund_review_years": {
+    "value": 10,
+    "unit": "years",
+    "legislation": "BCCM Standard Module",
+    "effective": "1997-01-01",
+    "notes": "Sinking fund plan reviewed every 10 years."
+  },
+  "manager_contract_max_years": {
+    "value": 5,
+    "unit": "years",
+    "legislation": "BCCM Act 1997",
+    "effective": "1997-01-01",
+    "notes": "BCM contract maximum 5 years."
+  },
+  "record_inspection_days": {
+    "value": 14,
+    "unit": "days",
+    "legislation": "BCCM Act 1997",
+    "effective": "1997-01-01",
+    "notes": "Records must be available for inspection within 14 days of request."
+  },
+  "capital_funding_standard_notice_days": {
+    "value": 30,
+    "unit": "days",
+    "legislation": "BCCM Act 1997 s.141; Queensland Government contribution notice guidance",
+    "effective": "1997-01-01",
+    "notes": "Owners must receive written contribution notices at least 30 days before the contribution falls due."
+  },
+  "capital_funding_emergency_notice_days": {
+    "value": 30,
+    "unit": "days",
+    "legislation": "BCCM Act 1997 s.141",
+    "effective": "1997-01-01",
+    "notes": "No shorter generic emergency levy period is encoded; urgent funding structures require legal-review override."
+  },
+  "capital_funding_notice_period_verified": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "BCCM Act 1997 s.141; Queensland Government contribution notice guidance",
+    "effective": "1997-01-01",
+    "notes": "The 30-day written contribution notice period is encoded from Queensland Government guidance."
+  },
+  "capital_funding_resolution_required": {
+    "value": "ordinary",
+    "unit": "enum",
+    "legislation": "BCCM Act 1997; Queensland Government contribution guidance",
+    "effective": "1997-01-01",
+    "notes": "Special contributions are generally approved by ordinary resolution."
+  },
+  "capital_funding_allocation_basis": {
+    "value": "contribution_schedule_lot_entitlement",
+    "unit": "enum",
+    "legislation": "BCCM Act 1997 s.141",
+    "effective": "1997-01-01",
+    "notes": "Contributions are calculated using contribution schedule lot entitlements unless a statutory exception applies."
+  },
+  "capital_funding_benefit_principle_available": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "BCCM Act 1997 s.141",
+    "effective": "1997-01-01",
+    "notes": "The default capital-funding allocator is the contribution schedule lot entitlement; mixed-use exceptions require legal review."
+  },
+  "capital_funding_tenant_consultation_required": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "BCCM Act 1997",
+    "effective": "1997-01-01",
+    "notes": "Tenant consultation is not a default contribution-approval condition; works access and by-law communications are separate workflows."
+  },
+  "capital_funding_hardship_notice_required": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "BCCM Act 1997",
+    "effective": "1997-01-01",
+    "notes": "No QLD-specific hardship notice requirement is encoded; payment-plan controls can still be offered as product policy."
+  },
+  "capital_funding_hybrid_legal_review_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "BCCM Act 1997; lender/legal-advice dependent",
+    "effective": "1997-01-01",
+    "notes": "Hybrid owner-funded and loan-funded structures require recorded legal approval before notices or credits are issued."
+  }
+}

@@ -1,0 +1,4006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>StrataOS — The Complete Strata Management Platform for Australia</title>
+    <meta content="A comprehensive strata management platform built for Australian Owners Corporations. ACT-first compliance, NSW coverage, automated workflows, financial intelligence, guided onboarding, and 118+ feature modules backed by a larger toggle registry for portfolio control."
+          name="description">
+    <meta content="strata management software, owners corporation, ACT strata, unit titles, body corporate, strata manager, levy management, compliance, Australia"
+          name="keywords">
+    <meta content="StrataOS — Complete Strata Management Platform" property="og:title">
+    <meta content="118+ feature modules. ACT compliance, NSW coverage, multi-building portfolio management, and guided scheme onboarding. Request a walkthrough for your building."
+          property="og:description">
+    <meta content="website" property="og:type">
+    <meta content="index, follow" name="robots">
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap"
+          rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- reCAPTCHA v3 — site key active -->
+    <script async defer
+            src="https://www.google.com/recaptcha/api.js?render=6LeOF8AsAAAAABQhVsqQNn7j7kNZoDv3JsREWbsl"></script>
+    <!-- PDF via browser print — window.print() with @media print CSS handles layout -->
+    <style>
+        :root {
+            --primary: #2F4F4F;
+            --secondary: #E07A5F;
+            --accent: #F2CC8F;
+            --dark: #1a2e2e;
+            --light: #f8faf8;
+            --text: #2d3748;
+            --muted: #718096;
+            --border: #e2e8f0;
+            --success: #48bb78;
+            --warning: #ed8936;
+            --info: #4299e1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            background: #fff;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Manrope', sans-serif;
+        }
+
+        /* ANALYTICS TRACKING */
+        .track-section {
+            transition: opacity 0.3s;
+        }
+
+        /* HERO */
+        .hero {
+            background: linear-gradient(135deg, var(--dark) 0%, var(--primary) 50%, #3d6666 100%);
+            color: white;
+            padding: 80px 20px 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .hero-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(242, 204, 143, 0.2);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            font-size: clamp(32px, 5vw, 64px);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            max-width: 800px;
+        }
+
+        .hero h1 span {
+            color: var(--accent);
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.8);
+            max-width: 600px;
+            line-height: 1.6;
+            margin-bottom: 36px;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 60px;
+        }
+
+        .btn-primary {
+            background: var(--secondary);
+            color: white;
+            padding: 14px 32px;
+            border-radius: 100px;
+            font-weight: 700;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            background: #c9694f;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(224, 122, 95, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 14px 32px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* STATS BAR */
+        .stats-bar {
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 24px 20px;
+        }
+
+        .stats-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: 'Manrope', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* SECTION LAYOUT */
+        .section {
+            padding: 80px 20px;
+        }
+
+        .section-alt {
+            background: var(--light);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-tag {
+            display: inline-block;
+            background: rgba(47, 79, 79, 0.1);
+            color: var(--primary);
+            padding: 5px 14px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: clamp(24px, 3.5vw, 40px);
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        .section-subtitle {
+            font-size: 17px;
+            color: var(--muted);
+            max-width: 600px;
+            line-height: 1.6;
+            margin-bottom: 48px;
+        }
+
+        /* FEATURE TABS */
+        .feature-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border-radius: 100px;
+            border: 2px solid var(--border);
+            background: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--muted);
+        }
+
+        .tab-btn.active, .tab-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        /* FEATURE CARDS */
+        .feature-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(47, 79, 79, 0.12);
+            border-color: var(--primary);
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 16px;
+            background: rgba(47, 79, 79, 0.08);
+        }
+
+        .feature-card h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .feature-toggle-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(72, 187, 120, 0.1);
+            color: var(--success);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 100px;
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
+
+        /* TOGGLE SHOWCASE */
+        .toggle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+        }
+
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toggle-item:hover {
+            border-color: var(--primary);
+            background: rgba(47, 79, 79, 0.02);
+        }
+
+        .toggle-switch {
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            position: relative;
+            flex-shrink: 0;
+            transition: background 0.3s;
+            background: #cbd5e0;
+        }
+
+        .toggle-switch.on {
+            background: var(--primary);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            top: 3px;
+            left: 3px;
+            transition: left 0.3s;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.on::after {
+            left: 23px;
+        }
+
+        .toggle-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            flex: 1;
+        }
+
+        .toggle-category {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        /* STATE COMPLIANCE */
+        .states-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        .state-card {
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .state-card:hover {
+            border-color: var(--secondary);
+            box-shadow: 0 8px 32px rgba(224, 122, 95, 0.15);
+        }
+
+        .state-header {
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .state-flag {
+            font-size: 36px;
+        }
+
+        .state-name {
+            font-weight: 800;
+            font-size: 18px;
+        }
+
+        .state-status {
+            margin-left: auto;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status-live {
+            background: rgba(72, 187, 120, 0.1);
+            color: var(--success);
+        }
+
+        .status-coming {
+            background: rgba(242, 204, 143, 0.2);
+            color: #b7791f;
+        }
+
+        .status-planned {
+            background: rgba(66, 153, 225, 0.1);
+            color: var(--info);
+        }
+
+        .state-body {
+            padding: 20px 24px;
+        }
+
+        .compliance-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            font-size: 14px;
+        }
+
+        .compliance-item:last-child {
+            border-bottom: none;
+        }
+
+        .check-icon {
+            color: var(--success);
+            font-size: 16px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .partial-icon {
+            color: var(--warning);
+            font-size: 16px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .todo-icon {
+            color: #a0aec0;
+            font-size: 16px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        /* WORKFLOWS */
+        .workflow-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .workflow-step {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+            text-align: center;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            font-weight: 800;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+
+        .workflow-step h4 {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .workflow-step p {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        /* ROADMAP */
+        .roadmap-timeline {
+            position: relative;
+            padding-left: 32px;
+        }
+
+        .roadmap-timeline::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--primary), var(--secondary), #a0aec0);
+        }
+
+        .roadmap-item {
+            position: relative;
+            margin-bottom: 36px;
+        }
+
+        .roadmap-dot {
+            position: absolute;
+            left: -28px;
+            top: 6px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px var(--primary);
+            background: var(--primary);
+        }
+
+        .roadmap-dot.secondary {
+            box-shadow: 0 0 0 2px var(--secondary);
+            background: var(--secondary);
+        }
+
+        .roadmap-dot.muted {
+            box-shadow: 0 0 0 2px #a0aec0;
+            background: #a0aec0;
+        }
+
+        .roadmap-quarter {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .roadmap-item h4 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .roadmap-item p {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .roadmap-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .rtag {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 100px;
+            background: rgba(47, 79, 79, 0.08);
+            color: var(--primary);
+        }
+
+        /* ROLES */
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .role-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .role-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(47, 79, 79, 0.1);
+        }
+
+        .role-icon {
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+
+        .role-card h4 {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .role-card p {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+
+        .role-perms {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .perm-tag {
+            font-size: 11px;
+            background: var(--light);
+            padding: 3px 8px;
+            border-radius: 6px;
+            color: var(--muted);
+        }
+
+        /* AUTOMATION */
+        .cron-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .cron-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .cron-icon {
+            font-size: 20px;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .cron-name {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .cron-desc {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+
+        .cron-schedule {
+            font-size: 11px;
+            color: var(--primary);
+            font-weight: 600;
+            background: rgba(47, 79, 79, 0.08);
+            padding: 2px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-top: 6px;
+            font-family: monospace;
+        }
+
+        /* SIGNUP */
+        .signup-section {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white;
+            padding: 100px 20px;
+            text-align: center;
+        }
+
+        .signup-section h2 {
+            font-size: clamp(28px, 4vw, 48px);
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+
+        .signup-section p {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.75);
+            margin-bottom: 40px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* CHART CONTAINERS */
+        .chart-container {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        /* NAV */
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 20px;
+        }
+
+        .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            font-family: 'Manrope', sans-serif;
+            font-weight: 800;
+            font-size: 20px;
+            color: var(--primary);
+        }
+
+        .nav-logo span {
+            color: var(--secondary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-cta {
+            background: var(--primary);
+            color: white;
+            padding: 10px 22px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: 'Manrope', sans-serif;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-cta:hover {
+            background: var(--dark);
+            transform: translateY(-1px);
+        }
+
+        /* LOGO MARK */
+        .logo-mark {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        /* PAIN SECTION */
+        .pain-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .pain-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 28px;
+            transition: all 0.3s;
+        }
+
+        .pain-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(224, 122, 95, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .pain-stat {
+            font-size: 44px;
+            font-weight: 800;
+            color: var(--secondary);
+            font-family: 'Manrope', sans-serif;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .pain-label {
+            font-size: 15px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .pain-desc {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.55;
+        }
+
+        .pain-arrow {
+            text-align: center;
+            padding: 24px 0 0;
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.3px;
+        }
+
+        /* ROI STRIP */
+        .roi-strip {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 20px 16px;
+            margin-top: 48px;
+        }
+
+        .roi-item {
+            text-align: center;
+            padding: 10px 24px;
+        }
+
+        .roi-value {
+            display: block;
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--accent);
+            font-family: 'Manrope', sans-serif;
+        }
+
+        .roi-label {
+            display: block;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.55);
+            margin-top: 3px;
+        }
+
+        .roi-divider {
+            width: 1px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* ROI CALCULATOR */
+        .calc-wrap {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .calc-panel {
+            background: var(--light);
+            border-radius: 20px;
+            padding: 32px;
+        }
+
+        .calc-group {
+            margin-bottom: 28px;
+        }
+
+        .calc-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .calc-lbl {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .calc-range {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .calc-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(47, 79, 79, 0.3);
+        }
+
+        .calc-range::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: none;
+        }
+
+        .slider-val {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary);
+            min-width: 96px;
+            text-align: right;
+        }
+
+        .calc-results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .calc-result {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .calc-result.highlight {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .cr-val {
+            display: block;
+            font-size: 28px;
+            font-weight: 800;
+            font-family: 'Manrope', sans-serif;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .calc-result.highlight .cr-val {
+            color: var(--accent);
+        }
+
+        .cr-lbl {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .calc-result.highlight .cr-lbl {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .cr-sub {
+            display: block;
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        .calc-result.highlight .cr-sub {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .calc-chart-row {
+            grid-column: 1 / -1;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .calc-wrap {
+                grid-template-columns: 1fr;
+            }
+
+            .roi-divider {
+                width: 60px;
+                height: 1px;
+            }
+
+            .roi-item {
+                padding: 8px 16px;
+            }
+        }
+
+        /* PRINT */
+        @media print {
+            .nav, .hero-cta, .feature-tabs, .signup-section, .pdf-btn {
+                display: none !important;
+            }
+
+            .section {
+                padding: 40px 20px;
+                page-break-inside: avoid;
+            }
+
+            .tab-panel {
+                display: grid !important;
+            }
+
+            body {
+                font-size: 12px;
+            }
+        }
+
+        /* ANIMATIONS */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes countUp {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .animate-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .animate-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* PDF BUTTON */
+        .pdf-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--secondary);
+            color: white;
+            padding: 14px 22px;
+            border-radius: 100px;
+            font-weight: 700;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(224, 122, 95, 0.4);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .pdf-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(224, 122, 95, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .stats-inner {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* TRUST AUDIT */
+        .trust-audit-grid {
+            display: grid;
+            grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .trust-audit-card {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            transition: all 0.3s;
+        }
+
+        .trust-audit-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(47, 79, 79, 0.1);
+        }
+
+        .ta-checklist {
+            background: rgba(47, 79, 79, 0.05);
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 12px;
+            color: var(--text);
+            line-height: 2.1;
+            margin-top: 12px;
+        }
+
+        /* MIGRATION */
+        .migration-step {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            transition: all 0.3s;
+        }
+
+        .migration-step:hover {
+            border-color: var(--secondary);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 32px rgba(224, 122, 95, 0.1);
+        }
+
+        /* PRICING */
+        .pricing-card {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            padding: 32px;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .pricing-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(47, 79, 79, 0.1);
+        }
+
+        .pricing-card.featured {
+            background: var(--primary);
+            border-color: var(--primary);
+            box-shadow: 0 20px 60px rgba(47, 79, 79, 0.28);
+            transform: scale(1.03);
+        }
+
+        .pricing-badge {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--secondary);
+            color: white;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 5px 16px;
+            border-radius: 100px;
+            white-space: nowrap;
+        }
+
+        /* COMPLIANCE CALENDAR */
+        .cal-row {
+            display: grid;
+            grid-template-columns:160px repeat(12, 1fr);
+            gap: 3px;
+            margin-bottom: 3px;
+            align-items: center;
+        }
+
+        .cal-cell {
+            height: 26px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s;
+            position: relative;
+        }
+
+        .cal-cell:hover {
+            transform: scaleY(1.2);
+            z-index: 5;
+        }
+
+        .cal-cell[data-tip]:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--dark);
+            color: white;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 10px;
+            border-radius: 8px;
+            white-space: nowrap;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .c-empty {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        .c-deadline {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .c-reminder {
+            background: var(--accent);
+            color: #7a5c00;
+        }
+
+        .c-auto {
+            background: rgba(47, 79, 79, 0.15);
+            color: var(--primary);
+        }
+
+        .c-always {
+            background: rgba(47, 79, 79, 0.07);
+            color: var(--primary);
+        }
+
+        .cal-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text);
+            padding-right: 6px;
+            line-height: 1.3;
+        }
+
+        .cal-state-panel {
+            display: none;
+        }
+
+        .cal-state-panel.active {
+            display: block;
+        }
+
+        /* WORKFLOW ANIMATION */
+        .workflow-compare {
+            display: grid;
+            grid-template-columns:1fr auto 1fr;
+            gap: 16px;
+            align-items: start;
+            margin-top: 40px;
+        }
+
+        .wf-side {
+            border-radius: 20px;
+            padding: 24px;
+        }
+
+        .wf-manual {
+            background: rgba(224, 122, 95, 0.05);
+            border: 2px solid rgba(224, 122, 95, 0.25);
+        }
+
+        .wf-auto {
+            background: rgba(47, 79, 79, 0.04);
+            border: 2px solid rgba(47, 79, 79, 0.18);
+        }
+
+        .wf-hdr {
+            font-size: 15px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .wf-step {
+            display: flex;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            opacity: 0;
+            transform: translateX(-12px);
+            transition: opacity 0.4s, transform 0.4s;
+        }
+
+        .wf-step.right-in {
+            transform: translateX(12px);
+        }
+
+        .wf-step.visible {
+            opacity: 1;
+            transform: none;
+        }
+
+        .wf-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .wf-manual .wf-dot {
+            background: rgba(224, 122, 95, 0.2);
+            color: #b05040;
+        }
+
+        .wf-auto .wf-dot {
+            background: rgba(47, 79, 79, 0.15);
+            color: var(--primary);
+        }
+
+        .wf-title {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .wf-time {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .wf-total {
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .wf-manual .wf-total {
+            background: rgba(224, 122, 95, 0.1);
+            color: #b05040;
+        }
+
+        .wf-auto .wf-total {
+            background: rgba(47, 79, 79, 0.08);
+            color: var(--primary);
+        }
+
+        .wf-vs {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--muted);
+            padding-top: 80px;
+        }
+
+        @media (max-width: 768px) {
+            .workflow-compare {
+                grid-template-columns:1fr;
+            }
+
+            .wf-vs {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ANALYTICS TRACKING -->
+<script>
+    window._analytics = {views: {}, clicks: [], scrollDepth: 0};
+
+    function trackView(section) {
+        if (!window._analytics.views[ section ]) {
+            window._analytics.views[ section ] = {first: Date.now(), count: 0};
+        }
+        window._analytics.views[ section ].count++;
+        // GTM dataLayer push
+        if (window.dataLayer) window.dataLayer.push({event: 'section_view', section_name: section});
+    }
+
+    function trackClick(element, label) {
+        window._analytics.clicks.push({element, label, time: Date.now()});
+        if (window.dataLayer) window.dataLayer.push({event: 'cta_click', cta_label: label});
+    }
+
+    window.addEventListener('scroll', () => {
+        const depth = Math.round(( window.scrollY / ( document.body.scrollHeight - window.innerHeight ) ) * 100);
+        if (depth > window._analytics.scrollDepth) {
+            window._analytics.scrollDepth = depth;
+            if (depth % 25 === 0 && window.dataLayer) {
+                window.dataLayer.push({event: 'scroll_depth', depth_percent: depth});
+            }
+        }
+    });
+    // PLACEHOLDER: Replace GTM-XXXXXXX with your actual Google Tag Manager container ID
+    // (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
+    // })(window,document,'script','dataLayer','GTM-XXXXXXX');
+</script>
+
+<!-- NAVBAR -->
+<nav class="nav">
+    <div class="nav-inner">
+        <div class="nav-logo" style="display:flex;align-items:center;gap:8px;">
+            <svg aria-hidden="true" class="logo-mark" fill="none" height="28" viewBox="0 0 28 28"
+                 width="28" xmlns="http://www.w3.org/2000/svg">
+                <rect fill="#2F4F4F" height="21" rx="2" width="20" x="2" y="5"/>
+                <rect fill="#F2CC8F" height="4" rx="1" width="4" x="5" y="9"/>
+                <rect fill="#F2CC8F" height="4" opacity="0.55" rx="1" width="4" x="12" y="9"/>
+                <rect fill="#E07A5F" height="4" rx="1" width="4" x="5" y="16"/>
+                <rect fill="#F2CC8F" height="4" opacity="0.7" rx="1" width="4" x="12" y="16"/>
+                <circle cx="22" cy="7" fill="#E07A5F" r="5"/>
+                <path d="M20 7h4M22 5v4" stroke="white" stroke-linecap="round" stroke-width="1.5"/>
+            </svg>
+            Strata<span>OS</span>
+        </div>
+        <div class="nav-links">
+            <a href="#features" onclick="trackClick('nav','features')">Features</a>
+            <a href="#compliance" onclick="trackClick('nav','compliance')">Compliance</a>
+            <a href="#automation" onclick="trackClick('nav','automation')">Automation</a>
+            <a href="#security" onclick="trackClick('nav','security')">Security</a>
+            <a href="#roadmap" onclick="trackClick('nav','roadmap')">Roadmap</a>
+            <a href="investor-pitch.html" onclick="trackClick('nav','investor')">Investors</a>
+            <button class="nav-cta" onclick="openTrialForm('nav'); trackClick('nav','signup_nav');">Request a
+                Walkthrough
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-inner">
+        <div class="hero-badge">⚡ Enterprise Strata Management — ACT Compliance + NSW Coverage</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:12px;">StrataOS is the SaaS strata
+            management platform built by Silverfox Technologies. East Gate Residences (UP 13195, ACT) is the production
+            reference customer running the platform live.
+        </div>
+        <h1>Stop Managing Strata on<br><span>Emails, Spreadsheets &amp; Guesswork</span></h1>
+        <p>While your managers are drowning in owner emails and manual processes, StrataOS reduces the administrative
+            load, supports compliance workflows, and provides structured financial visibility under Manager oversight —
+            across every building in your portfolio.</p>
+        <div class="hero-cta">
+            <button class="btn-primary" onclick="openTrialForm('hero'); trackClick('hero','start_trial');">Request a
+                Walkthrough
+            </button>
+            <a class="btn-secondary" href="#features" onclick="trackClick('hero','explore_features')">Explore Features
+                →</a>
+        </div>
+        <!-- Hero stats -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:20px;max-width:800px;">
+            <div style="text-align:center;">
+                <div data-count="185" style="font-size:32px;font-weight:800;color:var(--accent);">0</div>
+                <div style="font-size:13px;color:rgba(255,255,255,0.6);">Feature Toggles</div>
+            </div>
+            <div style="text-align:center;">
+                <div data-count="121" style="font-size:32px;font-weight:800;color:var(--accent);">0</div>
+                <div style="font-size:13px;color:rgba(255,255,255,0.6);">API Route Modules</div>
+            </div>
+            <div style="text-align:center;">
+                <div data-count="22" style="font-size:32px;font-weight:800;color:var(--accent);">0</div>
+                <div style="font-size:13px;color:rgba(255,255,255,0.6);">Active Automated Tasks</div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:32px;font-weight:800;color:var(--accent);">10</div>
+                <div style="font-size:13px;color:rgba(255,255,255,0.6);">Role Types</div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:32px;font-weight:800;color:var(--accent);">2</div>
+                <div style="font-size:13px;color:rgba(255,255,255,0.6);">States Covered</div>
+            </div>
+        </div>
+        <!-- ROI Strip -->
+        <div class="roi-strip">
+            <div class="roi-item">
+                <span class="roi-value">Close to 80%</span>
+                <span class="roi-label">Reduction in Owner email volume</span>
+            </div>
+            <div class="roi-divider"></div>
+            <div class="roi-item">
+                <span class="roi-value">Up to 20hrs</span>
+                <span class="roi-label">Saved per Manager, per week</span>
+            </div>
+            <div class="roi-divider"></div>
+            <div class="roi-item">
+                <span class="roi-value">Reduced Risk</span>
+                <span class="roi-label">Of missed compliance deadlines</span>
+            </div>
+            <div class="roi-divider"></div>
+            <div class="roi-item">
+                <span class="roi-value">+8pts</span>
+                <span class="roi-label">Margin improvement potential</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- MARKET STATS BAR -->
+<div class="stats-bar">
+    <div class="stats-inner">
+        <div class="stat-item">
+            <span class="stat-number">3.19M</span>
+            <span class="stat-label">Strata Lots in Australia</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">$10B</span>
+            <span class="stat-label">Levies Managed Annually</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">4.2M</span>
+            <span class="stat-label">Australians in Strata</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">69%</span>
+            <span class="stat-label">Managers Cite Overload</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">14.2%</span>
+            <span class="stat-label">PropTech CAGR 2026–35 <sup title="Expert Market Research projection; global consensus 11.9–17.8%">†</sup></span>
+        </div>
+    </div>
+</div>
+
+<!-- PAIN SECTION -->
+<section class="section" id="problem" style="background:var(--dark);color:white;">
+    <div class="container">
+        <div class="section-tag" style="background:rgba(224,122,95,0.15);color:var(--secondary);">The Daily Reality
+        </div>
+        <h2 class="section-title" style="color:white;">Your Managers Are Drowning in Admin</h2>
+        <p style="color:rgba(255,255,255,0.6);font-size:17px;max-width:660px;line-height:1.6;margin-bottom:48px;">The
+            strata management industry has grown enormously. The tools haven't. The result is a burned-out workforce,
+            frustrated owners, and declining margins — not because your team isn't working hard enough, but because
+            they're working in the wrong systems.</p>
+        <div class="pain-grid">
+            <div class="pain-card">
+                <div class="pain-stat">69%</div>
+                <div class="pain-label">Managers Cite Overload as #1 Challenge</div>
+                <div class="pain-desc">21% describe themselves as "far too busy." With no capacity to spare, growing the
+                    portfolio means burning out the team — unless you automate the repetitive work.
+                </div>
+            </div>
+            <div class="pain-card">
+                <div class="pain-stat">1 in 5</div>
+                <div class="pain-label">Spend 80% of Day on Owner Emails</div>
+                <div class="pain-desc">One in five Strata Managers spends up to 80% of their working day answering owner
+                    communication. Self-service portals and structured workflows can eliminate the majority of this.
+                </div>
+            </div>
+            <div class="pain-card">
+                <div class="pain-stat">59%</div>
+                <div class="pain-label">Of Owners Frustrated by Slow Response</div>
+                <div class="pain-desc">59.1% of lot owners cite slow communication as their top frustration. 26.5% want
+                    more transparency in fees and decision-making. This lands back on the manager's desk.
+                </div>
+            </div>
+            <div class="pain-card">
+                <div class="pain-stat">19%</div>
+                <div class="pain-label">Average Profit Margin — and Falling</div>
+                <div class="pain-desc">Down from 33% in 2005 and 23% in 2022. Wages now consume 52% of revenue (up from
+                    49% in 2022). Base fees rose only 9% since 2022. Automation is the only way to protect margins.
+                </div>
+            </div>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:16px;margin-bottom:8px;">Sources: MRI Software
+            <em>Voice of the Strata Manager</em> (workload stats) · Premium Strata/AAA/LookUpStrata <em>Strata Survey 2024</em> n=761 (owner satisfaction) · Macquarie 2026 Strata Industry Benchmarking Report "Striking the Balance" (margins)
+        </div>
+        <div class="pain-arrow">StrataOS addresses operational pressures through structured workflows and visibility ↓
+        </div>
+    </div>
+</section>
+
+<!-- FEATURE EXPLORER -->
+<section class="section track-section" data-section="features" id="features">
+    <div class="container">
+        <div class="section-tag">Platform Features</div>
+        <h2 class="section-title">One Platform That Consolidates Core Strata Systems</h2>
+        <p class="section-subtitle">Most firms run a trust system, a maintenance tool, and a comms platform — each with
+            its own logins, data silos, and learning curve. StrataOS consolidates these systems in one interface. 118+
+            feature modules across 8 product domains, backed by 192 seeded feature toggles with 161 enabled by default,
+            so firms retain control
+            over how each scheme operates.</p>
+
+        <div class="feature-tabs">
+            <button class="tab-btn active" onclick="showTab('finance',this)">💰 Finance</button>
+            <button class="tab-btn" onclick="showTab('governance',this)">🏛️ Governance</button>
+            <button class="tab-btn" onclick="showTab('maintenance',this)">🔧 Maintenance</button>
+            <button class="tab-btn" onclick="showTab('communications',this)">📢 Communications</button>
+            <button class="tab-btn" onclick="showTab('intelligence',this)">🧠 Intelligence</button>
+            <button class="tab-btn" onclick="showTab('community',this)">👥 Community</button>
+            <button class="tab-btn" onclick="showTab('trust',this)">🏦 Trust & Accounts</button>
+            <button class="tab-btn" onclick="showTab('ownerhub',this)">🏠 OwnerHub</button>
+        </div>
+
+        <!-- Finance Tab -->
+        <div class="tab-panel active" id="tab-finance">
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📊</div>
+                <h3>Levy KPI Dashboard</h3>
+                <p>Quarter-level KPIs: Collection Rate, Arrears, Fund Health, Sinking Coverage, Lot Compliance — all
+                    computed in real-time.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🔮</div>
+                <h3>Financial Intelligence</h3>
+                <p>Forecasting and anomaly indicators, indicative building health indicators, and special levy
+                    prediction, to support financial planning</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">⚖️</div>
+                <h3>Levy Fairness Engine</h3>
+                <p>Analyse fair levy distribution across lot groups. Model what-if scenarios, cross-subsidy reports, and
+                    lock reference snapshots.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Planned/Pilot</div>
+                <div class="feature-icon">🏗️</div>
+                <h3>Capital Funding & Special Levy Workspace</h3>
+                <p>Compare special levies, staged contributions, strata-loan scenarios and legally reviewed mixed
+                    funding options. Generate per-lot impact statements and levy-notice PDF preview batches with
+                    governance evidence, owner AGM/SGM/GM voting links, hardship pathways and jurisdiction-specific
+                    notice controls for ACT, NSW, VIC, QLD, SA, WA, TAS and NT.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">💧</div>
+                <h3>Water Bills & Council Rates</h3>
+                <p>Full Icon Water billing integration with supply charge auto-calculation. Council rates tracking with
+                    payment scheduling.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📋</div>
+                <h3>GST & BAS Ledger</h3>
+                <p>ATO quarterly BAS worksheet with GST-free supply classification (water, council rates), levy output
+                    tax, and expense input tax.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">⚠️</div>
+                <h3>Debt Recovery Board</h3>
+                <p>Overdue levy tracking, payment notices, per-unit arrears analysis, payment plans, and arrears risk
+                    scoring.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📈</div>
+                <h3>Budget Projections</h3>
+                <p>Financial projections with levy simulations, 10-year sinking fund projections, and what-if budget
+                    planning tools.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🔄</div>
+                <h3>Financial Data Import</h3>
+                <p>Import from Excel, CSV, and third-party systems. Full financial year data upload including owners,
+                    levies, and categories.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Onboarding</div>
+                <div class="feature-icon">🧭</div>
+                <h3>Guided Financial Onboarding</h3>
+                <p>Track A captures current admin and sinking balances for genesis journals. Track B imports historical
+                    opening balances, ownership transfers, and financial CSVs for deeper migration work.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🧾</div>
+                <h3>AP Automation</h3>
+                <p>Supplier invoice upload, OCR extraction, ABN validation, duplicate detection, approval queue, and
+                    AP lifecycle tracking.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🏢</div>
+                <h3>Investor Intelligence</h3>
+                <p>Unit-level analysis: stress scores, True Cost of Ownership, levy trajectory, risk-adjusted yield, and
+                    investor grading (A – D).</p></div>
+        </div>
+
+        <!-- Governance Tab -->
+        <div class="tab-panel" id="tab-governance">
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📝</div>
+                <h3>Decision Register</h3>
+                <p>Formal searchable register (DEC-YYYY-NNNN) compliant with NSW SSMA 2015 and ACT Unit Titles Act. Full
+                    voting history.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🗳️</div>
+                <h3>Meetings & AGM Voting</h3>
+                <p>Schedule committee meetings, manage AGM voting, track quorums, record minutes, and publish decisions
+                    instantly.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🏷️</div>
+                <h3>Rental Certificates</h3>
+                <p>ACT Section 119A mandatory rental certificates. Issue within 14 days, $342 cap, 5-year validity, full
+                    compliance tracking.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📜</div>
+                <h3>Strata Roll</h3>
+                <p>Official strata roll with lot entitlements, unit interests, owner details, and ACAT-ready export
+                    capabilities.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">✅</div>
+                <h3>Compliance Checklists</h3>
+                <p>Building compliance tracking with regulatory checklists covering fire safety, WHS, essential
+                    services, and insurance.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🏗️</div>
+                <h3>Class A / Class B Schemes</h3>
+                <p>ACT Unit Titles Act 2001 separate levy schedules for apartments (Class A) and townhouses (Class B) —
+                    separate fund management.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🔄</div>
+                <h3>Owner Transfers</h3>
+                <p>Manage unit ownership transfers, new owner notifications, levy proration, and strata roll updates at
+                    settlement.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🔍</div>
+                <h3>Owner Name Verification</h3>
+                <p>Fraud detection: flag mismatches between registered user names and the official strata roll using
+                    fuzzy matching.</p></div>
+        </div>
+
+        <!-- Maintenance Tab -->
+        <div class="tab-panel" id="tab-maintenance">
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🔧</div>
+                <h3>Smart Request Intake</h3>
+                <p>AI-assisted and deterministic workflow triage. Automatically categorises, prioritises, and routes
+                    maintenance requests.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📋</div>
+                <h3>Work Orders</h3>
+                <p>Full lifecycle: quote requests, vendor assignment, approval workflows, invoice matching, and payment
+                    processing.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🗓️</div>
+                <h3>Preventive Maintenance (PPM)</h3>
+                <p>79-item compliance calendar with automated notifications at 30/14/7/0-day thresholds. Significantly
+                    reduce the risk of missing service due dates.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🧬</div>
+                <h3>Maintenance Intelligence</h3>
+                <p>Asset health scoring, predictive maintenance forecasts, maintenance backlog prioritisation, and
+                    10-year capital planning.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📦</div>
+                <h3>Asset Register</h3>
+                <p>Building assets inventory with lifecycle tracking, condition scoring, replacement cost estimates, and
+                    depreciation curves.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🏗️</div>
+                <h3>Digital Twin</h3>
+                <p>Building asset graph linking zones, facilities, components, and benefit groups for cost allocation
+                    and capital planning.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🚨</div>
+                <h3>Defect Reports</h3>
+                <p>Track building defects from report through investigation to remediation. Links to insurance claims
+                    and warranty tracking.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">👷</div>
+                <h3>Contractor Portal</h3>
+                <p>Dedicated service provider dashboard for receiving work orders, updating progress, uploading
+                    invoices, and getting paid.</p></div>
+        </div>
+
+        <!-- Communications Tab -->
+        <div class="tab-panel" id="tab-communications">
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📣</div>
+                <h3>Announcements & Notice Board</h3>
+                <p>Post community announcements with acknowledgment tracking. Official notices with read receipts for
+                    compliance purposes.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">💬</div>
+                <h3>Community Chat</h3>
+                <p>Group chat for community discussions by topic. Real-time messaging with moderation controls for the
+                    Strata Manager.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">✉️</div>
+                <h3>Custom Email & Domain</h3>
+                <p>Branded domain and/or email addresses (e.g. ec@yourbuilding.com.au) with webmail access and
+                    multi-recipient management.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📧</div>
+                <h3>Bulk Email Communications</h3>
+                <p>Send targeted emails to owners, tenants, or specific groups. Templates, scheduling, BCC management,
+                    and delivery tracking.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📰</div>
+                <h3>News & Blog</h3>
+                <p>Community news feed with automated property market and local news scraping. Keep residents informed
+                    without manual effort.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🔔</div>
+                <h3>Smart Notifications</h3>
+                <p>In-app, email, and bell notifications for every event. Per-user notification preferences with digest
+                    scheduling.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Disabled by default</div>
+                <div class="feature-icon">📥</div>
+                <h3>Powerhouse Conversation Shell</h3>
+                <p>Shared inbox, conversation timelines, workflow shell, AI summary, and automation-rule screens exist
+                    as gated preview modules while the production write path is completed.</p></div>
+        </div>
+
+        <!-- Intelligence Tab -->
+        <div class="tab-panel" id="tab-intelligence">
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📊</div>
+                <h3>Building Health Score</h3>
+                <p>Composite 0–100 building health dashboard across financial stability, asset condition, governance
+                    compliance, and community engagement.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🌏</div>
+                <h3>ACT Market Intelligence</h3>
+                <p>ACT-wide suburb strata density heatmap, cluster analysis, TAM calculator, and comparable property
+                    analysis.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🎯</div>
+                <h3>Global Building Risk Index</h3>
+                <p>Composite 0–100 risk score across asset health, financial stability, reserve adequacy, capital shock
+                    probability.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🏘️</div>
+                <h3>Occupancy Intelligence</h3>
+                <p>Classify lots as tenant/owner-occupied/investor-unknown using rental certificates and address
+                    matching algorithms.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📡</div>
+                <h3>Suburb Radar</h3>
+                <p>Weekly local intelligence digest every Sunday — property market movements, ESA incidents, planning
+                    applications nearby.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">⚡</div>
+                <h3>Financial Stress Early Warning</h3>
+                <p>Predictive 10-year reserve timeline with special levy forecasting. Know 3 years before a crisis, not
+                    3 weeks.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📈</div>
+                <h3>BI Analytics Hierarchy</h3>
+                <p>Platform, agency, building, and portfolio BI routes with separate feature toggles and PostgreSQL
+                    primary-mode cutover control.</p></div>
+        </div>
+
+        <!-- Community Tab -->
+        <div class="tab-panel" id="tab-community">
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🛒</div>
+                <h3>Community Marketplace</h3>
+                <p>Buy, sell, and trade within the building community. Scraped listings from realestate.com.au and
+                    domain.com.au.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📅</div>
+                <h3>Events Calendar</h3>
+                <p>View and manage community events. Building-wide calendar with RSVP tracking and reminder
+                    notifications.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🐾</div>
+                <h3>Pet Management</h3>
+                <p>Pet approval workflow with owner-approved registration, pet details, and by-law compliance tracking.
+                    EC can review and approve or decline pet requests.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🤝</div>
+                <h3>Volunteer Coordination</h3>
+                <p>Coordinate volunteer events and recognise community contributors. Levy credit integration is on the
+                    roadmap — subject to jurisdiction-specific trust accounting rules.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🗳️</div>
+                <h3>Quick Polls</h3>
+                <p>Non-binding micro-governance polls. Gauge resident sentiment before formal motions. Results in real
+                    time.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🛍️</div>
+                <h3>Group Buying</h3>
+                <p>Community bulk purchase campaigns — internet upgrades, solar, solar batteries — unlock better pricing
+                    through collective action. In development.</p></div>
+        </div>
+
+        <!-- Trust Tab -->
+        <div class="tab-panel" id="tab-trust">
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🏦</div>
+                <h3>Trust Accounting</h3>
+                <p>Multi-fund trust account management (Admin + Sinking) with journal entries, batch approvals, and
+                    audit-ready export.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Onboarding</div>
+                <div class="feature-icon">🏛️</div>
+                <h3>Trust Account Setup</h3>
+                <p>Capture bank name, BSB, masked account number, account category, and opening balance during
+                    onboarding, or add the account later from the Trust Bank Accounts page.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🔄</div>
+                <h3>Bank Reconciliation</h3>
+                <p>3-way matching (PO/invoice/receipt), bank feed integration, variance analysis, and monthly
+                    reconciliation reports.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">💳</div>
+                <h3>Levy Payment Portal</h3>
+                <p>Owner levy payment submission with verification workflow, payment plan management, and hardship
+                    applications.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">💰</div>
+                <h3>Interest Accrual</h3>
+                <p>Monthly trust account interest auto-calculation and posting. Advance levy interest tracking with
+                    per-account rates.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📄</div>
+                <h3>ABA File Generation</h3>
+                <p>Generate ABA bank transfer files for batch levy payments. Dual-approval required for financial
+                    security.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🔐</div>
+                <h3>Insurance Claims</h3>
+                <p>Building insurance claims and settlement tracking. Links to the asset register and work orders for
+                    end-to-end management.</p></div>
+        </div>
+
+        <!-- OwnerHub Tab -->
+        <div class="tab-panel" id="tab-ownerhub">
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🏠</div>
+                <h3>Landlord Platform</h3>
+                <p>Self-managed landlord portal for investment properties — tenancies, rent ledger, inspections, and
+                    maintenance requests.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">💹</div>
+                <h3>Property Health Score</h3>
+                <p>Weekly 0–100 property health: income stability, maintenance backlog, tenant tenure, capital risk, and
+                    compliance.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🧮</div>
+                <h3>True Cost of Ownership</h3>
+                <p>Annual ownership cost calculator with 10-year cashflow projection. Know your real holding costs, not
+                    just levies.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🪪</div>
+                <h3>Tenancy Passport</h3>
+                <p>Portable residency score and PDF passport for tenants. Reduces tenancy friction and improves rental
+                    continuity.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">🏘️</div>
+                <h3>Real Estate Agent Portal</h3>
+                <p>Dedicated portal for real estate agents — property listings, access requests, compliance
+                    certificates, and communications.</p></div>
+            <div class="feature-card">
+                <div class="feature-toggle-badge">Toggle</div>
+                <div class="feature-icon">📊</div>
+                <h3>My Finances Dashboard</h3>
+                <p>Complete owner financial transparency — levy breakdown, savings ledger, payment history, and building
+                    health context.</p></div>
+        </div>
+    </div>
+</section>
+
+<!-- TRUST ACCOUNTING DEEP DIVE -->
+<section class="section" id="trust-accounting">
+    <div class="container">
+        <div class="section-tag">Trust Accounting</div>
+        <h2 class="section-title">Trust Accounts Your Auditor Will Thank You For</h2>
+        <p class="section-subtitle">Australian Strata Managers are licensed professionals with trust account obligations
+            under State/Territory law. StrataOS is built to meet those obligations — not approximate them.</p>
+        <div class="trust-audit-grid" style="margin-bottom:40px;">
+            <div class="trust-audit-card">
+                <div style="font-size:32px;margin-bottom:12px;">🔄</div>
+                <h3 style="font-size:17px;font-weight:800;margin-bottom:8px;">3-Way Bank Reconciliation</h3>
+                <p style="font-size:14px;color:var(--muted);line-height:1.6;">Match bank statements to levy payments to
+                    journal entries — automatically. Monthly reconciliation reports are auditor-ready from day one.</p>
+                <div class="ta-checklist">
+                    <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:6px;">WHAT'S
+                        INCLUDED
+                    </div>
+                    ✓ Bank statement import (CSV/OFX)<br>
+                    ✓ Levy payment matching<br>
+                    ✓ Variance flagging with alerts<br>
+                    ✓ PDF reconciliation report
+                </div>
+            </div>
+            <div class="trust-audit-card">
+                <div style="font-size:32px;margin-bottom:12px;">📋</div>
+                <h3 style="font-size:17px;font-weight:800;margin-bottom:8px;">Immutable Audit Trail</h3>
+                <p style="font-size:14px;color:var(--muted);line-height:1.6;">Every journal entry, payment, and approval
+                    is timestamped and attributed to a user. Transactions are preserved through reversal entries to
+                    maintain audit integrity. ACAT and Fair Trading-ready.</p>
+                <div class="ta-checklist">
+                    <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:6px;">AUDIT EXPORTS
+                    </div>
+                    ✓ Full ledger PDF (by date range)<br>
+                    ✓ Transaction log with user attribution<br>
+                    ✓ AGM-ready financial statements<br>
+                    ✓ ATO BAS worksheet (quarterly)
+                </div>
+            </div>
+            <div class="trust-audit-card">
+                <div style="font-size:32px;margin-bottom:12px;">🔐</div>
+                <h3 style="font-size:17px;font-weight:800;margin-bottom:8px;">Dual-Approval Disbursements</h3>
+                <p style="font-size:14px;color:var(--muted);line-height:1.6;">ABA file generation for batch payments
+                    requires dual approval — protecting your trust account from a single point of failure or
+                    unauthorised withdrawals.</p>
+                <div class="ta-checklist">
+                    <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:6px;">CONTROLS</div>
+                    ✓ ABA file generation (batch pay)<br>
+                    ✓ Dual-approval workflow (2 authorisers)<br>
+                    ✓ Approval notification via email + in-app<br>
+                    ✓ Full approval audit log
+                </div>
+            </div>
+            <div class="trust-audit-card">
+                <div style="font-size:32px;margin-bottom:12px;">🏦</div>
+                <h3 style="font-size:17px;font-weight:800;margin-bottom:8px;">Admin Fund / Sinking Fund Segregation</h3>
+                <p style="font-size:14px;color:var(--muted);line-height:1.6;">Separate ledgers, separate balances,
+                    separate reporting. Class A and Class B schemes each have their own fund structure under the ACT
+                    Unit Titles Act.</p>
+                <div class="ta-checklist">
+                    <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:6px;">FUND STRUCTURE
+                    </div>
+                    ✓ Admin Fund (recurrent expenses)<br>
+                    ✓ Sinking Fund (capital reserves)<br>
+                    ✓ Class A / Class B separation (ACT)<br>
+                    ✓ Opening balance + interest tracking
+                </div>
+            </div>
+        </div>
+        <div style="background:linear-gradient(135deg,rgba(47,79,79,0.05),rgba(224,122,95,0.05));border:1.5px solid rgba(47,79,79,0.12);border-radius:20px;padding:28px 32px;display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;">
+            <div style="flex:1;min-width:260px;">
+                <div style="font-weight:800;font-size:17px;color:var(--primary);margin-bottom:10px;">Important: What we
+                    handle and what remains yours
+                </div>
+                <p style="font-size:14px;color:var(--muted);line-height:1.7;margin:0;">StrataOS manages the ledger,
+                    reconciliation, and reporting — but your strata management licence and trust account registration
+                    remain yours. We recommend all managers continue working with their licensed auditor. Our export
+                    formats are designed to make their job faster, not to replace them.</p>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;min-width:200px;">
+                <div style="background:white;border-radius:12px;padding:12px 16px;border:1px solid var(--border);">
+                    <div style="font-size:18px;font-weight:800;color:var(--primary);font-family:'Manrope',sans-serif;">
+                        ACT
+                    </div>
+                    <div style="font-size:12px;color:var(--muted);margin-top:2px;">Unit Titles (Management) Act 2011<br>Section
+                        105 trust obligations
+                    </div>
+                </div>
+                <div style="background:white;border-radius:12px;padding:12px 16px;border:1px solid var(--border);">
+                    <div style="font-size:18px;font-weight:800;color:var(--primary);font-family:'Manrope',sans-serif;">
+                        NSW
+                    </div>
+                    <div style="font-size:12px;color:var(--muted);margin-top:2px;">Strata Schemes Management Act
+                        2015<br>Section 103 financial record obligations
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- PAYMENT ENGINE SECTION -->
+<section class="section section-alt" id="payment-engine">
+    <div class="container">
+        <div class="section-tag">Trust Accounting — Payment Intelligence</div>
+        <h2 class="section-title">The 80% Problem, Solved</h2>
+        <p class="section-subtitle">Auto-Match Most Owner Payments. Investigate the Rest with Evidence. The single
+            biggest time sink in strata accounting is identifying which incoming bank transfer belongs to which lot.
+            StrataOS handles this through an eight-layer matching engine that auto-allocates the majority of payments on
+            day one and surfaces the rest for review with full evidence — not as a mystery to solve but as a decision to
+            confirm.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;">
+
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Eight-Layer Matching Engine</h3>
+                <p>Every incoming bank transaction passes through eight layers of identification logic. Exact CRN or DRN
+                    matches with verified checksums auto-allocate immediately. Partial matches, fuzzy name matches,
+                    amount-and-timing patterns, and remittance advice parsing each contribute when the obvious answer
+                    isn't available.</p>
+                <div class="ta-checklist" style="margin-top:14px;font-size:13px;line-height:1.8;color:var(--muted);">
+                    <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:6px;">WHAT THIS
+                        REPLACES
+                    </div>
+                    ✓ Manual cross-referencing of bank descriptions against owner names<br>
+                    ✓ Spreadsheet tracking of unidentified payments<br>
+                    ✓ Email chains asking owners to confirm what they paid<br>
+                    ✓ Quarterly write-offs of payments no one could trace
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔗</div>
+                <h3>Cryptographic Audit Chain</h3>
+                <p>Every financial transaction is recorded as an immutable event in an append-only ledger. At end of
+                    close, the ledger can be hashed into a Merkle seal that chains forward to the next seal.
+                    Retroactive tampering — by any user, including system administrators — is detectable when the seal
+                    is verified.</p>
+                <div class="ta-checklist" style="margin-top:14px;font-size:13px;line-height:1.8;color:var(--muted);">
+                    <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:6px;">WHAT YOUR
+                        AUDITOR GETS
+                    </div>
+                    ✓ Complete transaction history with user attribution on every line<br>
+                    ✓ Merkle seal evidence for closed ledger periods<br>
+                    ✓ Period-locked closes that cannot be reopened by accident<br>
+                    ✓ Three-way reconciliation enforced at month-end before close is permitted
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔄</div>
+                <h3>Mid-Quarter Ownership Transfers Handled Correctly</h3>
+                <p>When a unit sells halfway through a quarter, the platform tracks both who owned the lot when the levy
+                    was raised and who pays each instalment after settlement. Pro-rata calculations for solicitors at
+                    settlement are produced automatically.</p>
+                <div class="ta-checklist" style="margin-top:14px;font-size:13px;line-height:1.8;color:var(--muted);">
+                    <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:6px;">WHAT THIS
+                        PREVENTS
+                    </div>
+                    ✓ Misallocated payments after a sale<br>
+                    ✓ Owner statements mailed to the previous owner<br>
+                    ✓ Manual settlement adjustment calculations<br>
+                    ✓ Disputes about which owner is liable for which arrears
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔌</div>
+                <h3>Provider-Agnostic Payment Architecture</h3>
+                <p>The platform doesn't require any specific bank, biller, or payment provider relationship. Small
+                    agencies operate on monthly CSV bank statement uploads and supervised matching. Provider adapters
+                    can be added through the same integration boundary as external bank-feed relationships mature,
+                    without rewriting the trust ledger.</p>
+                <div class="ta-checklist" style="margin-top:14px;font-size:13px;line-height:1.8;color:var(--muted);">
+                    <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:6px;">WHAT THIS MEANS
+                        FOR YOU
+                    </div>
+                    ✓ Onboard immediately without commercial provider relationships<br>
+                    ✓ Keep bank-feed approval policy controlled per building<br>
+                    ✓ No vendor lock-in — switch providers without changing your workflow<br>
+                    ✓ Future payment rails (PayTo, Peppol e-invoicing) supported as adapters
+                </div>
+            </div>
+
+        </div>
+        <div style="background:linear-gradient(135deg,rgba(47,79,79,0.06),rgba(224,122,95,0.06));border:1.5px solid rgba(47,79,79,0.12);border-radius:20px;padding:24px 28px;margin-top:32px;">
+            <strong style="color:var(--primary);">The architecture was built for change.</strong> Australian payment
+            rails are in active flux — AusPayNet removed the June 2030 BECS decommission target (Dec 2025); a new A2A
+            Payments Roadmap is expected in 2026. PayTo is progressively replacing direct debit (18M overlay agreements
+            by end-2025), Peppol e-invoicing becomes default in federal procurement from July 2026, and Open Banking
+            access is maturing under the Consumer Data Right (non-bank lender obligations from July 2026).
+            StrataOS was designed specifically to absorb these changes as adapter swaps rather than platform rewrites.
+            Your trust ledger doesn't care which providers your buildings use.
+        </div>
+    </div>
+</section>
+
+<!-- ROI CALCULATOR -->
+<section class="section track-section" data-section="roi_calculator" id="roi-calculator">
+    <div class="container">
+        <div class="section-tag">ROI Calculator</div>
+        <h2 class="section-title">Calculate Your Time &amp; Cost Savings</h2>
+        <p class="section-subtitle">Owner communications saving only (conservative). Full automation across all task
+            categories saves up to 44hrs/manager/week — see the chart below. Adjust sliders to match your portfolio.</p>
+        <div class="calc-wrap">
+            <!-- Inputs -->
+            <div class="calc-panel">
+                <div class="calc-group">
+                    <label class="calc-lbl">How many buildings do you manage?</label>
+                    <div class="slider-row">
+                        <input class="calc-range" id="calc-buildings" max="50" min="1" oninput="updateCalc()" type="range"
+                               value="10">
+                        <span class="slider-val"><span id="calc-bval">10</span> buildings</span>
+                    </div>
+                </div>
+                <div class="calc-group">
+                    <label class="calc-lbl">Average lots per building</label>
+                    <div class="slider-row">
+                        <input class="calc-range" id="calc-lots" max="400" min="20" oninput="updateCalc()" step="10" type="range"
+                               value="80">
+                        <span class="slider-val"><span id="calc-lval">80</span> lots</span>
+                    </div>
+                </div>
+                <div class="calc-group">
+                    <label class="calc-lbl">Managers in your team</label>
+                    <div class="slider-row">
+                        <input class="calc-range" id="calc-mgrs" max="30" min="1" oninput="updateCalc()" type="range"
+                               value="5">
+                        <span class="slider-val"><span id="calc-mval">5</span> managers</span>
+                    </div>
+                </div>
+                <div class="calc-group">
+                    <label class="calc-lbl">Manager fully-loaded cost (AUD/hr)</label>
+                    <div class="slider-row">
+                        <input class="calc-range" id="calc-rate" max="120" min="40" oninput="updateCalc()" step="5" type="range"
+                               value="75">
+                        <span class="slider-val">$<span id="calc-rval">75</span>/hr</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Outputs -->
+            <div class="calc-results">
+                <div class="calc-result highlight">
+                    <span class="cr-val" id="cr-saving">$390K</span>
+                    <span class="cr-lbl">Indicative administrative cost offset</span>
+                    <span class="cr-sub">From reduced admin time</span>
+                </div>
+                <div class="calc-result">
+                    <span class="cr-val" id="cr-hours">430</span>
+                    <span class="cr-lbl">Hours freed per month</span>
+                    <span class="cr-sub">Across your whole team</span>
+                </div>
+                <div class="calc-result">
+                    <span class="cr-val" id="cr-emails">5K</span>
+                    <span class="cr-lbl">Owner emails eliminated/yr</span>
+                    <span class="cr-sub">Via self-service portals</span>
+                </div>
+                <div class="calc-result">
+                    <span class="cr-val" id="cr-capacity">+50%</span>
+                    <span class="cr-lbl">Potential portfolio capacity increase</span>
+                    <span class="cr-sub">Grow without hiring</span>
+                </div>
+            </div>
+            <!-- Bar chart -->
+            <div class="calc-chart-row">
+                <h4 style="font-weight:700;margin-bottom:6px;">Time Allocation — Before vs After StrataOS</h4>
+                <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Hours per manager per week by task
+                    category</p>
+                <canvas height="220" id="beforeAfterChart"></canvas>
+                <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Based on industry
+                    benchmarks: MRI Software <em>Voice of the Strata Manager</em> (workload) &amp; Macquarie 2026 Strata Benchmarking Report "Striking the Balance"</p>
+            </div>
+        </div>
+        <!-- Methodology accordion -->
+        <div style="margin-top:32px;border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+            <button id="methodology-btn"
+                    onclick="toggleMethodology()"
+                    style="width:100%;background:var(--light);border:none;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:'Manrope',sans-serif;font-weight:700;font-size:14px;color:var(--text);">
+                <span>📐 Calculator Methodology &amp; Assumptions</span>
+                <span id="methodology-chevron" style="transition:transform 0.3s;font-size:12px;">▼</span>
+            </button>
+            <div id="methodology-panel"
+                 style="display:none;padding:24px;background:white;border-top:1px solid var(--border);">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;font-size:13px;color:var(--text);line-height:1.7;">
+                    <div>
+                        <div style="font-weight:700;color:var(--primary);margin-bottom:6px;">Hours saved per
+                            manager/week: 20hrs
+                        </div>
+                        <div style="color:var(--muted);">Source: MRI Software <em>Voice of the Strata Manager</em> — 1 in 5 managers spends up to 80% of their working day on owner communication. We model 20hrs/week saved across communication,
+                            levy processing, compliance, maintenance admin, and reporting — a conservative estimate of
+                            automation impact.
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-weight:700;color:var(--primary);margin-bottom:6px;">Owner emails eliminated:
+                            80% of 8/lot/year
+                        </div>
+                        <div style="color:var(--muted);">Average strata lot generates ~8 owner interactions per year
+                            (levy queries, maintenance requests, document requests, etc.). Self-service portals and
+                            automated notifications eliminate ~80% of these, per industry automation benchmarks.
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-weight:700;color:var(--primary);margin-bottom:6px;">Portfolio capacity
+                            increase: 50%
+                        </div>
+                        <div style="color:var(--muted);">Based on 20hrs/week saved on a 40-hour work week = 50% time
+                            freed. In practice, managers apply this capacity to portfolio growth rather than pure
+                            headcount reduction. Actual results will vary by portfolio type and manager workflow.
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-weight:700;color:var(--primary);margin-bottom:6px;">Cost saving formula</div>
+                        <div style="color:var(--muted);">Annual saving = managers × 20hrs/week × 52 weeks × fully-loaded
+                            hourly rate. This is a labour cost calculation only. It excludes value of error reduction,
+                            compliance risk avoidance, and owner satisfaction improvements, which are harder to quantify
+                            but real.
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top:16px;padding:12px 16px;background:rgba(242,204,143,0.15);border-radius:10px;font-size:12px;color:#7a5c00;">
+                    ⚠️ These figures are estimates based on publicly available industry data and internal benchmarks
+                    from our live production building. Your results will depend on your portfolio size, workflow
+                    maturity, and how much automation you actually enable. We recommend running your own pilot before
+                    making staffing decisions.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURE TOGGLES SHOWCASE -->
+<section class="section section-alt track-section" data-section="toggles" id="toggles">
+    <div class="container">
+        <div class="section-tag">Feature Control</div>
+        <h2 class="section-title">Your Platform, Your Rules</h2>
+        <p class="section-subtitle">Every feature is independently toggle-controlled, across product modules, cutover
+            controls, safety gates, and disabled previews. Enable only what your building needs. No bloat, no noise —
+            just the features that matter to your residents today.</p>
+        <div class="chart-grid" style="grid-template-columns:1fr 1fr;">
+            <div class="chart-container">
+                <h4 style="font-weight:700;margin-bottom:16px;">Toggle Distribution by Domain</h4>
+                <canvas height="250" id="toggleChart"></canvas>
+            </div>
+            <div style="background:white;border:1px solid var(--border);border-radius:16px;padding:24px;">
+                <h4 style="font-weight:700;margin-bottom:16px;">Live Toggle Examples</h4>
+                <div class="toggle-grid" style="grid-template-columns:1fr;">
+                    <div class="toggle-item" onclick="this.querySelector('.toggle-switch').classList.toggle('on')">
+                        <div class="toggle-switch on"></div>
+                        <div>
+                            <div class="toggle-label">Rental Certificates (ACT §119A)</div>
+                            <div class="toggle-category">Governance · ACT Compliance</div>
+                        </div>
+                    </div>
+                    <div class="toggle-item" onclick="this.querySelector('.toggle-switch').classList.toggle('on')">
+                        <div class="toggle-switch on"></div>
+                        <div>
+                            <div class="toggle-label">Levy Fairness Engine</div>
+                            <div class="toggle-category">Finance · Advanced</div>
+                        </div>
+                    </div>
+                    <div class="toggle-item" onclick="this.querySelector('.toggle-switch').classList.toggle('on')">
+                        <div class="toggle-switch"></div>
+                        <div>
+                            <div class="toggle-label">Class A / Class B Schemes</div>
+                            <div class="toggle-category">Governance · ACT Unit Titles Act 2001</div>
+                        </div>
+                    </div>
+                    <div class="toggle-item" onclick="this.querySelector('.toggle-switch').classList.toggle('on')">
+                        <div class="toggle-switch on"></div>
+                        <div>
+                            <div class="toggle-label">Building Risk Index</div>
+                            <div class="toggle-category">Intelligence · Analytics</div>
+                        </div>
+                    </div>
+                    <div class="toggle-item" onclick="this.querySelector('.toggle-switch').classList.toggle('on')">
+                        <div class="toggle-switch on"></div>
+                        <div>
+                            <div class="toggle-label">Trust Accounting</div>
+                            <div class="toggle-category">Finance · Trust</div>
+                        </div>
+                    </div>
+                    <div class="toggle-item" onclick="this.querySelector('.toggle-switch').classList.toggle('on')">
+                        <div class="toggle-switch on"></div>
+                        <div>
+                            <div class="toggle-label">Bank Feed Auto-Approval Policy</div>
+                            <div class="toggle-category">Finance · Per-building setting</div>
+                        </div>
+                    </div>
+                    <div class="toggle-item" onclick="this.querySelector('.toggle-switch').classList.toggle('on')">
+                        <div class="toggle-switch"></div>
+                        <div>
+                            <div class="toggle-label">Powerhouse Conversation Shell</div>
+                            <div class="toggle-category">Powerhouse · Disabled preview</div>
+                        </div>
+                    </div>
+                </div>
+                <p style="font-size:13px;color:var(--muted);margin-top:16px;">Click any toggle above to see the control
+                    model. Product toggles, cutover toggles, and preview toggles are all managed per building.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ENTERPRISE IDENTITY & SECURITY -->
+<section class="section" id="security">
+    <div class="container">
+        <div class="section-tag">Security &amp; Identity</div>
+        <h2 class="section-title">Enterprise-Grade Security.<br>Seamless Resident Onboarding.</h2>
+        <p class="section-subtitle">Phase E delivered a complete identity layer — personalised invitation flows,
+            multi-building access control, and bank-grade data isolation between every building in your portfolio.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;margin-bottom:56px;">
+            <div style="background:white;border:2px solid rgba(47,79,79,0.12);border-radius:20px;padding:28px;transition:all 0.3s;">
+                <div style="font-size:36px;margin-bottom:16px;">✉️</div>
+                <h3 style="font-size:18px;font-weight:800;margin-bottom:10px;color:var(--primary);">Invitation-Based
+                    Onboarding</h3>
+                <p style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Residents and owners
+                    join via a personalised invitation email — no open registration, no security gaps. Known owners are
+                    pre-approved and name-matched against the strata roll automatically.</p>
+                <div style="font-size:13px;line-height:2.0;color:var(--text);">
+                    ✓ Admin invites a resident — one click per lot<br>
+                    ✓ Personalised email with a secure, expiring link<br>
+                    ✓ Smart name-matching validates against strata roll<br>
+                    ✓ Role assigned automatically — owner, tenant, or EC
+                </div>
+            </div>
+            <div style="background:white;border:2px solid rgba(47,79,79,0.12);border-radius:20px;padding:28px;transition:all 0.3s;">
+                <div style="font-size:36px;margin-bottom:16px;">🏢</div>
+                <h3 style="font-size:18px;font-weight:800;margin-bottom:10px;color:var(--primary);">Multi-Building
+                    Portfolio Management</h3>
+                <p style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Strata Managers
+                    administer any number of buildings from a single account. Switch building context instantly — each
+                    scheme has its own residents, financials, and compliance records. No separate logins per
+                    building.</p>
+                <div style="font-size:13px;line-height:2.0;color:var(--text);">
+                    ✓ One account — unlimited buildings in your portfolio<br>
+                    ✓ Instant building context switching<br>
+                    ✓ Per-building feature toggles and role assignments<br>
+                    ✓ Portfolio-level oversight for managers
+                </div>
+            </div>
+            <div style="background:white;border:2px solid rgba(47,79,79,0.12);border-radius:20px;padding:28px;transition:all 0.3s;">
+                <div style="font-size:36px;margin-bottom:16px;">🔒</div>
+                <h3 style="font-size:18px;font-weight:800;margin-bottom:10px;color:var(--primary);">Bulletproof Data
+                    Isolation</h3>
+                <p style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Every building is a
+                    completely isolated tenant. Row-Level Security enforces data boundaries at the database layer — not
+                    just in application code. Each API call carries a building-scoped JWT so residents only ever see
+                    their building's data.</p>
+                <div style="font-size:13px;line-height:2.0;color:var(--text);">
+                    ✓ Building-scoped JWT tokens on every API call<br>
+                    ✓ Row-Level Security enforced at database layer<br>
+                    ✓ Tenant isolation covered by automated security tests<br>
+                    ✓ Zero cross-building data access — by architecture
+                </div>
+            </div>
+        </div>
+
+        <!-- Invitation flow walkthrough -->
+        <div style="background:var(--light);border-radius:20px;padding:32px 36px;">
+            <h3 style="font-size:18px;font-weight:800;margin-bottom:6px;color:var(--primary);">How Scheme &amp;
+                Resident Onboarding Works</h3>
+            <p style="font-size:14px;color:var(--muted);margin-bottom:28px;">From scheme setup to logged-in resident:
+                import the strata roll, capture opening balances and trust account details, then send secure owner and
+                resident invitations. No IT support required.</p>
+            <div class="workflow-steps">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <h4>Manager Imports the Scheme</h4>
+                    <p>Create the building, import the strata roll, and preserve opening balances before go-live.</p>
+                </div>
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <h4>Trust Setup Is Captured</h4>
+                    <p>Record the bank name, BSB, masked account number, category, and starting balance for the scheme's
+                        trust account.</p>
+                </div>
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <h4>Owner Invites Are Sent</h4>
+                    <p>Known owners and committee members receive personalised, time-limited registration links.</p>
+                </div>
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <h4>Instant, Scoped Access</h4>
+                    <p>Role-appropriate access is granted immediately. Owners see financials; tenants see community
+                        features.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- STATE COMPLIANCE -->
+<section class="section track-section" data-section="compliance" id="compliance">
+    <div class="container">
+        <div class="section-tag">Legal Compliance</div>
+        <h2 class="section-title">Built for Australian Law — Every State</h2>
+        <p class="section-subtitle">Compliance features aligned to published legislative requirements. ACT is the
+            production compliance focus, with NSW coverage present in code and workflows. Other States/Territories are
+            on the roadmap with specific legislation modules.</p>
+        <div class="states-grid">
+            <!-- ACT -->
+            <div class="state-card">
+                <div class="state-header">
+                    <div class="state-flag">🏛️</div>
+                    <div>
+                        <div class="state-name">ACT — Canberra</div>
+                        <div style="font-size:13px;color:var(--muted);">Unit Titles (Management) Act 2011</div>
+                    </div>
+                    <span class="state-status status-live">✅ Production</span>
+                </div>
+                <div class="state-body">
+                    <div class="compliance-item"><span class="check-icon">✅</span><span>Section 119A Rental Certificates (Jan 2025 reform) — issue within 14 days, $342 cap</span>
+                    </div>
+                    <div class="compliance-item"><span class="check-icon">✅</span><span>Class A & Class B levy scheme split (Unit Titles Act 2001)</span>
+                    </div>
+                    <div class="compliance-item"><span class="check-icon">✅</span><span>GST/BAS quarterly worksheet with ACT levy tax treatment</span>
+                    </div>
+                    <div class="compliance-item"><span class="check-icon">✅</span><span>Owners Corporation (not "body corporate") terminology throughout</span>
+                    </div>
+                    <div class="compliance-item"><span class="check-icon">✅</span><span>ACAT-compliant record exports and dispute documentation</span>
+                    </div>
+                    <div class="compliance-item"><span class="check-icon">✅</span><span>ACT Strata Market Intelligence with suburb density mapping</span>
+                    </div>
+                    <div class="compliance-item"><span class="check-icon">✅</span><span>Occupancy intelligence using rental certificate data</span>
+                    </div>
+                </div>
+            </div>
+            <!-- NSW -->
+            <div class="state-card">
+                <div class="state-header">
+                    <div class="state-flag">🌆</div>
+                    <div>
+                        <div class="state-name">NSW — Sydney</div>
+                        <div style="font-size:13px;color:var(--muted);">Strata Schemes Management Act 2015</div>
+                    </div>
+                    <span class="state-status status-live">✅ Supported</span>
+                </div>
+                <div class="state-body">
+                    <div class="compliance-item"><span class="check-icon">✅</span><span>Section 58 — 6-monthly Strata Manager reports to owners corporation</span>
+                    </div>
+                    <div class="compliance-item"><span class="check-icon">✅</span><span>Section 182 — Strata Hub annual reporting export</span>
+                    </div>
+                    <div class="compliance-item"><span class="check-icon">✅</span><span>Decision Register (DEC-YYYY-NNNN, voting history, resolution types)</span>
+                    </div>
+                    <div class="compliance-item"><span class="check-icon">✅</span><span>Hardship statement for levy notices (NSW Fair Trading requirement)</span>
+                    </div>
+                    <div class="compliance-item"><span class="check-icon">✅</span><span>Levy payment plans (mandatory from 27 October 2025; 12-month cap; 30-day notice before recovery action)</span>
+                    </div>
+                    <div class="compliance-item"><span class="partial-icon">⚠️</span><span>Insurance commission disclosure ban (Miscellaneous Bill 2025, pending enactment) — in development</span>
+                    </div>
+                    <div class="compliance-item"><span class="partial-icon">⚠️</span><span>Independent levy certification for new schemes — planned Q3 2026</span>
+                    </div>
+                </div>
+            </div>
+            <!-- VIC -->
+            <div class="state-card">
+                <div class="state-header">
+                    <div class="state-flag">🏙️</div>
+                    <div>
+                        <div class="state-name">VIC — Melbourne</div>
+                        <div style="font-size:13px;color:var(--muted);">Owners Corporations Act 2006</div>
+                    </div>
+                    <span class="state-status status-coming">🔄 2026 Roadmap</span>
+                </div>
+                <div class="state-body">
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>Short-stay accommodation prohibition module (Short Stay Levy Act 2024)</span>
+                    </div>
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>VCAT-only fee recovery workflow (Magistrates' Court jurisdiction removed — <em>Owners Corp v Nguyen</em>, 8 Jul 2025)</span>
+                    </div>
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>2% defect bond tracking (<em>Building Legislation Amendment (Buyer Protections) Act 2025</em>, commences 1 July 2026)</span>
+                    </div>
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>Owners Corporations Act specific forms and registers</span>
+                    </div>
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>5-Tier OC management (Tier 1 = 100+ lots; Tier 2 = 51–100; Tier 3 = 10–50; Tier 4 = 3–9; Tier 5 = 2-lot/services)</span>
+                    </div>
+                </div>
+            </div>
+            <!-- QLD -->
+            <div class="state-card">
+                <div class="state-header">
+                    <div class="state-flag">🌞</div>
+                    <div>
+                        <div class="state-name">QLD — Brisbane</div>
+                        <div style="font-size:13px;color:var(--muted);">Body Corporate and Community Management Act
+                            1997
+                        </div>
+                    </div>
+                    <span class="state-status status-coming">🔄 2026 Roadmap</span>
+                </div>
+                <div class="state-body">
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>BCCM Forms 33 (dispute, application forms) — effective Aug 2025</span>
+                    </div>
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>Tenancy reform disclosures (May 2025 changes)</span>
+                    </div>
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>Body corporate manager reports (Module-specific)</span>
+                    </div>
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>CMS (Community Management Statement) tracking</span>
+                    </div>
+                </div>
+            </div>
+            <!-- WA -->
+            <div class="state-card">
+                <div class="state-header">
+                    <div class="state-flag">🏜️</div>
+                    <div>
+                        <div class="state-name">WA — Perth</div>
+                        <div style="font-size:13px;color:var(--muted);">Strata Titles Act 1985 (as amended 2020)</div>
+                    </div>
+                    <span class="state-status status-planned">📋 Planned 2027</span>
+                </div>
+                <div class="state-body">
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>Section 145 contract requirements compliance</span>
+                    </div>
+                    <div class="compliance-item"><span
+                            class="todo-icon">○</span><span>By-law consolidation obligations</span></div>
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>Lands Regulations (Community and Strata Titles) 2025 compliance</span>
+                    </div>
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>Lithium-ion battery fire safety compliance module</span>
+                    </div>
+                </div>
+            </div>
+            <!-- SA/TAS/NT -->
+            <div class="state-card">
+                <div class="state-header">
+                    <div class="state-flag">🗺️</div>
+                    <div>
+                        <div class="state-name">SA / TAS / NT</div>
+                        <div style="font-size:13px;color:var(--muted);">Community Titles Act / Strata Titles Act</div>
+                    </div>
+                    <span class="state-status status-planned">📋 Planned 2027+</span>
+                </div>
+                <div class="state-body">
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>SA: Community Titles Act 1996 compliance module</span>
+                    </div>
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>TAS: Strata Titles Act 1998 compliance</span>
+                    </div>
+                    <div class="compliance-item"><span
+                            class="todo-icon">○</span><span>NT: Unit Title Schemes Act 2009</span></div>
+                    <div class="compliance-item"><span class="todo-icon">○</span><span>National: EV Charging management (all states priority)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPLIANCE CALENDAR -->
+        <div style="margin-top:64px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
+                <div>
+                    <h3 style="font-size:20px;font-weight:800;margin-bottom:6px;">Annual Compliance Calendar — What Gets
+                        Automated</h3>
+                    <p style="font-size:14px;color:var(--muted);">Click any event to see what StrataOS does
+                        automatically. Your manager reviews exceptions, not the queue.</p>
+                </div>
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                    <button class="tab-btn active" onclick="showCalState('both',this)"
+                            style="font-size:11px;padding:6px 14px;">ACT + NSW
+                    </button>
+                    <button class="tab-btn" onclick="showCalState('act',this)" style="font-size:11px;padding:6px 14px;">
+                        ACT Only
+                    </button>
+                    <button class="tab-btn" onclick="showCalState('nsw',this)" style="font-size:11px;padding:6px 14px;">
+                        NSW Only
+                    </button>
+                </div>
+            </div>
+            <div style="overflow-x:auto;padding-bottom:8px;">
+                <div id="compliance-calendar-inner" style="min-width:680px;"></div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;font-size:12px;color:var(--muted);">
+                <span style="display:flex;align-items:center;gap:6px;"><span
+                        style="display:inline-block;width:14px;height:14px;border-radius:4px;background:var(--secondary);"></span> Deadline — notice sent automatically</span>
+                <span style="display:flex;align-items:center;gap:6px;"><span
+                        style="display:inline-block;width:14px;height:14px;border-radius:4px;background:var(--accent);"></span> Reminder window — 30/14/7-day alerts</span>
+                <span style="display:flex;align-items:center;gap:6px;"><span
+                        style="display:inline-block;width:14px;height:14px;border-radius:4px;background:rgba(47,79,79,0.18);"></span> Continuous / monthly automation</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- AUTOMATION -->
+<section class="section section-alt track-section" data-section="automation" id="automation">
+    <div class="container">
+        <div class="section-tag">Automation</div>
+        <h2 class="section-title">Automated Background Tasks Supporting Daily Operations</h2>
+        <p class="section-subtitle">While you sleep, the platform is processing levies, sending reminders, scoring
+            assets, and keeping your building compliant. Minimal manual intervention for routine tasks.</p>
+        <!-- WORKFLOW BEFORE/AFTER -->
+        <div style="margin-bottom:56px;">
+            <h3 style="font-size:18px;font-weight:800;margin-bottom:8px;color:var(--text);">What Does "Automated"
+                Actually Look Like?</h3>
+            <p style="font-size:14px;color:var(--muted);margin-bottom:0;">A levy is 14 days overdue. Here's what happens
+                in each world.</p>
+            <div class="workflow-compare">
+                <div class="wf-side wf-manual">
+                    <div class="wf-hdr" style="color:#b05040;">🔴 Without StrataOS — Manual</div>
+                    <div class="wf-step" style="--d:0.1s">
+                        <div class="wf-dot">1</div>
+                        <div>
+                            <div class="wf-title">Check arrears report</div>
+                            <div class="wf-time">30 min/week — manual run</div>
+                        </div>
+                    </div>
+                    <div class="wf-step" style="--d:0.2s">
+                        <div class="wf-dot">2</div>
+                        <div>
+                            <div class="wf-title">Look up owner contact</div>
+                            <div class="wf-time">5 min — spreadsheet/StrataMax</div>
+                        </div>
+                    </div>
+                    <div class="wf-step" style="--d:0.3s">
+                        <div class="wf-dot">3</div>
+                        <div>
+                            <div class="wf-title">Draft reminder email</div>
+                            <div class="wf-time">10 min — written from scratch</div>
+                        </div>
+                    </div>
+                    <div class="wf-step" style="--d:0.4s">
+                        <div class="wf-dot">4</div>
+                        <div>
+                            <div class="wf-title">Send and log in spreadsheet</div>
+                            <div class="wf-time">5 min — manual tracking</div>
+                        </div>
+                    </div>
+                    <div class="wf-step" style="--d:0.5s">
+                        <div class="wf-dot">5</div>
+                        <div>
+                            <div class="wf-title">Follow up if no response</div>
+                            <div class="wf-time">20 min — repeat the whole process</div>
+                        </div>
+                    </div>
+                    <div class="wf-total">~70 minutes per overdue owner · per cycle</div>
+                </div>
+                <div class="wf-vs">VS</div>
+                <div class="wf-side wf-auto">
+                    <div class="wf-hdr" style="color:var(--primary);">🟢 With StrataOS — Automated</div>
+                    <div class="wf-step right-in" style="--d:0.1s">
+                        <div class="wf-dot">1</div>
+                        <div>
+                            <div class="wf-title">System detects overdue status</div>
+                            <div class="wf-time">Scheduled — 24/7 monitoring</div>
+                        </div>
+                    </div>
+                    <div class="wf-step right-in" style="--d:0.25s">
+                        <div class="wf-dot">2</div>
+                        <div>
+                            <div class="wf-title">Personalised notice generated</div>
+                            <div class="wf-time">Backend — uses strata roll data</div>
+                        </div>
+                    </div>
+                    <div class="wf-step right-in" style="--d:0.4s">
+                        <div class="wf-dot">3</div>
+                        <div>
+                            <div class="wf-title">Email + in-app notification sent</div>
+                            <div class="wf-time">In-built — with portal link</div>
+                        </div>
+                    </div>
+                    <div class="wf-step right-in" style="--d:0.55s">
+                        <div class="wf-dot">4</div>
+                        <div>
+                            <div class="wf-title">Logged in arrears board</div>
+                            <div class="wf-time">Backend — full audit trail</div>
+                        </div>
+                    </div>
+                    <div class="wf-step right-in" style="--d:0.7s">
+                        <div class="wf-dot">5</div>
+                        <div>
+                            <div class="wf-title">Escalates to the Strata Manager at 30 days</div>
+                            <div class="wf-time">Automatic — if still unpaid</div>
+                        </div>
+                    </div>
+                    <div class="wf-total">~5 minutes — Strata Manager reviews exceptions only</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cron-grid">
+            <div class="cron-card">
+                <div class="cron-icon">💰</div>
+                <div>
+                    <div class="cron-name">Levy Reminders</div>
+                    <div class="cron-desc">Sends automated levy payment reminders and arrears notices to overdue
+                        owners.
+                    </div>
+                    <span class="cron-schedule">Daily</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">🏗️</div>
+                <div>
+                    <div class="cron-name">Capital Funding Notice Previews</div>
+                    <div class="cron-desc">Planned workflow to freeze approved funding manifests and generate special
+                        levy notice PDF preview batches for every current lot owner before dual approval. Issuance,
+                        hybrid credits and ledger posting stay behind separate disabled gates.</div>
+                    <span class="cron-schedule">On demand</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">🔄</div>
+                <div>
+                    <div class="cron-name">Financial Recompute</div>
+                    <div class="cron-desc">Nightly ledger recomputation — levies, payments, and running balances stay
+                        accurate.
+                    </div>
+                    <span class="cron-schedule">Nightly</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">🧠</div>
+                <div>
+                    <div class="cron-name">Maintenance Intelligence</div>
+                    <div class="cron-desc">Asset health scoring and predictive maintenance forecasts based on real
+                        maintenance data.
+                    </div>
+                    <span class="cron-schedule">Weekly</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">✅</div>
+                <div>
+                    <div class="cron-name">Auto-Approval</div>
+                    <div class="cron-desc">Auto-approves guest/tenant registrations after 15 minutes of no admin action
+                        (configurable).
+                    </div>
+                    <span class="cron-schedule">Every 5 min</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">📈</div>
+                <div>
+                    <div class="cron-name">Approval Escalation</div>
+                    <div class="cron-desc">Escalates pending approvals to super admins after 48 hours with secure action
+                        links.
+                    </div>
+                    <span class="cron-schedule">Hourly</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">🏦</div>
+                <div>
+                    <div class="cron-name">Trust Interest Accrual</div>
+                    <div class="cron-desc">Monthly interest calculation and posting to trust accounts with advance levy
+                        tracking.
+                    </div>
+                    <span class="cron-schedule">Monthly</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">📅</div>
+                <div>
+                    <div class="cron-name">PPM Notifications</div>
+                    <div class="cron-desc">Preventive maintenance reminders at 30/14/7/0-day thresholds — fire checks,
+                        lift services, etc.
+                    </div>
+                    <span class="cron-schedule">Daily</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">🏘️</div>
+                <div>
+                    <div class="cron-name">Occupancy Recompute</div>
+                    <div class="cron-desc">Classifies each lot as tenant/owner/investor-unknown using rental
+                        certificates and address matching.
+                    </div>
+                    <span class="cron-schedule">Weekly</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">📡</div>
+                <div>
+                    <div class="cron-name">Suburb Radar</div>
+                    <div class="cron-desc">Weekly local intelligence digest: property prices, ESA incidents, planning
+                        applications near your building.
+                    </div>
+                    <span class="cron-schedule">Sundays 5pm AEST</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">📰</div>
+                <div>
+                    <div class="cron-name">News & Property Scraper</div>
+                    <div class="cron-desc">Automatically scrapes and curates community news and nearby property listings
+                        from major portals.
+                    </div>
+                    <span class="cron-schedule">Daily</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">📋</div>
+                <div>
+                    <div class="cron-name">NSW Compliance Reminders</div>
+                    <div class="cron-desc">Strata Hub reporting deadline reminders (Section 182) and 6-monthly manager
+                        report prompts (Section 58).
+                    </div>
+                    <span class="cron-schedule">Quarterly</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">🔔</div>
+                <div>
+                    <div class="cron-name">Notification Digest</div>
+                    <div class="cron-desc">Compiles and sends daily/weekly notification digests per user per building —
+                        no notification overload.
+                    </div>
+                    <span class="cron-schedule">Daily/Weekly</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">🧹</div>
+                <div>
+                    <div class="cron-name">Retention &amp; Notification Cleanup</div>
+                    <div class="cron-desc">Dedicated cleanup scripts enforce retention and remove old notification
+                        records over HTTPS and work tirelessly without a performance hit.
+                    </div>
+                    <span class="cron-schedule">Scheduled</span></div>
+            </div>
+            <div class="cron-card">
+                <div class="cron-icon">⚙️</div>
+                <div>
+                    <div class="cron-name">Worker Processes</div>
+                    <div class="cron-desc">Separate worker modules support notifications, analytics recomputes, outbox
+                        relay, ARQ jobs, Temporal workflows, and change-stream processing.
+                    </div>
+                    <span class="cron-schedule">Separate services</span></div>
+            </div>
+        </div>
+        <!-- Automation impact charts -->
+        <div class="chart-grid" style="margin-top:48px;">
+            <div class="chart-container">
+                <h4 style="font-weight:700;margin-bottom:6px;">Tasks Automated vs Manual — Weekly Hours</h4>
+                <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Per manager per week across all major
+                    task categories</p>
+                <canvas height="280" id="automationRadar"></canvas>
+            </div>
+            <div class="chart-container">
+                <h4 style="font-weight:700;margin-bottom:6px;">Portfolio Capacity: Same Headcount, More Buildings</h4>
+                <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">How 21 automated tasks unlock growth
+                    without proportional hiring</p>
+                <canvas height="280" id="capacityChart"></canvas>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ROLES -->
+<section class="section track-section" data-section="roles" id="roles">
+    <div class="container">
+        <div class="section-tag">Access Control</div>
+        <h2 class="section-title">10 Role Types, Granular Permissions</h2>
+        <p class="section-subtitle">Role-based access control (RBAC) with feature-level overrides per user. Each user
+            sees exactly what they need and nothing more. Note: Chairman, Treasurer &amp; Secretary are EC committee
+            positions, not separate system roles.</p>
+        <div class="roles-grid">
+            <div class="role-card">
+                <div class="role-icon">👑</div>
+                <h4>Super Admin</h4>
+                <p>Full system access, multi-building management, user impersonation, all feature toggles.</p>
+                <div class="role-perms"><span class="perm-tag">All Features</span><span
+                        class="perm-tag">All Buildings</span><span class="perm-tag">Impersonation</span></div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">🏛️</div>
+                <h4>Building Admin</h4>
+                <p>Building administrator — top-level building authority. Financial reporting, governance oversight,
+                    user management, and approvals.</p>
+                <div class="role-perms"><span class="perm-tag">Finance</span><span
+                        class="perm-tag">Governance</span><span class="perm-tag">Approvals</span></div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">🏢</div>
+                <h4>Strata Manager</h4>
+                <p>Professional manager. Full operational oversight, all approvals, compliance management.</p>
+                <div class="role-perms"><span class="perm-tag">Operations</span><span class="perm-tag">Compliance</span><span
+                        class="perm-tag">Financial</span></div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">🗳️</div>
+                <h4>EC Member</h4>
+                <p>Executive Committee member. Voting rights, governance participation, maintenance approvals.</p>
+                <div class="role-perms"><span class="perm-tag">Voting</span><span
+                        class="perm-tag">Maintenance</span><span class="perm-tag">Decisions</span></div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">🏗️</div>
+                <h4>Admin Staff</h4>
+                <p>Building admin staff (also called Reception). Request handling, resident queries, schedule
+                    management.</p>
+                <div class="role-perms"><span class="perm-tag">Requests</span><span
+                        class="perm-tag">workorder.view</span><span class="perm-tag">Announcements</span></div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">🏠</div>
+                <h4>Owner</h4>
+                <p>Property owner. View finances, make payments, participate in governance, community features.</p>
+                <div class="role-perms"><span class="perm-tag">Own Finances</span><span
+                        class="perm-tag">Voting</span><span class="perm-tag">Community</span></div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">🔑</div>
+                <h4>Tenant</h4>
+                <p>Resident tenant. Maintenance requests, community features, notice board, bookings.</p>
+                <div class="role-perms"><span class="perm-tag">Maintenance</span><span class="perm-tag">Community</span><span
+                        class="perm-tag">Bookings</span></div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">👷</div>
+                <h4>Service Provider</h4>
+                <p>Contractor/vendor. Work orders, scheduling, invoice submission, progress updates.</p>
+                <div class="role-perms"><span class="perm-tag">Work Orders</span><span
+                        class="perm-tag">Scheduling</span><span class="perm-tag">Invoicing</span></div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">🧾</div>
+                <h4>Real Estate Agent</h4>
+                <p>Property agent. Listing management, OwnerHub access, compliance certificates for managed units.</p>
+                <div class="role-perms"><span class="perm-tag">OwnerHub</span><span class="perm-tag">Certificates</span><span
+                        class="perm-tag">Listings</span></div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">👤</div>
+                <h4>Guest</h4>
+                <p>Temporary visitor or prospective resident. Read-only access to public building information and
+                    community features.</p>
+                <div class="role-perms"><span class="perm-tag">Public Read</span><span class="perm-tag">Community</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ROADMAP -->
+<section class="section section-alt track-section" data-section="roadmap" id="roadmap">
+    <div class="container">
+        <div class="section-tag">Roadmap</div>
+        <h2 class="section-title">Where We're Going</h2>
+        <p class="section-subtitle">A transparent view of what's live, what's in development, and what's planned.
+            Roadmap indicative and subject to regulatory, technical, and market change.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;">
+            <div>
+                <h3 style="font-size:18px;font-weight:700;margin-bottom:24px;color:var(--primary);">✅ Available Today</h3>
+                <div class="roadmap-timeline">
+                    <div class="roadmap-item">
+                        <div class="roadmap-dot"></div>
+                        <div class="roadmap-quarter">ACT Foundation</div>
+                        <h4>Full ACT Compliance Suite</h4>
+                        <p>Rental certificates, Class A/B schemes, GST/BAS, market intelligence, and occupancy
+                            classification.</p>
+                        <div class="roadmap-tags"><span class="rtag">ACT</span><span class="rtag">Compliance</span><span
+                                class="rtag">Live</span></div>
+                    </div>
+                    <div class="roadmap-item">
+                        <div class="roadmap-dot"></div>
+                        <div class="roadmap-quarter">NSW Foundation</div>
+                        <h4>NSW SSMA 2015 Compliance</h4>
+                        <p>Strata Hub export, 6-monthly reports, decision register, hardship statements, levy payment
+                            plans.</p>
+                        <div class="roadmap-tags"><span class="rtag">NSW</span><span class="rtag">Compliance</span><span
+                                class="rtag">Live</span></div>
+                    </div>
+                    <div class="roadmap-item">
+                        <div class="roadmap-dot"></div>
+                        <div class="roadmap-quarter">Intelligence Suite</div>
+                        <h4>AI Financial & Asset Intelligence</h4>
+                        <p>Building stress score, financial forecasting, asset health, predictive maintenance, risk
+                            index.</p>
+                        <div class="roadmap-tags"><span class="rtag">AI</span><span class="rtag">Analytics</span><span
+                                class="rtag">Live</span></div>
+                    </div>
+                    <div class="roadmap-item">
+                        <div class="roadmap-dot"></div>
+                        <div class="roadmap-quarter">Enterprise Identity</div>
+                        <h4>Identity Layer &amp; Guided Onboarding</h4>
+                        <p>Invitation-based resident onboarding, strata-roll quick import, opening-balance capture,
+                            trust-account setup, multi-building portfolio access, building-scoped JWT authentication,
+                            and Row-Level Security for complete tenant isolation.</p>
+                        <div class="roadmap-tags"><span class="rtag">Security</span><span
+                                class="rtag">Identity</span><span class="rtag">Multi-Building</span><span class="rtag">Live</span>
+                        </div>
+                    </div>
+                    <div class="roadmap-item">
+                        <div class="roadmap-dot"></div>
+                        <div class="roadmap-quarter">Operations Foundation</div>
+                        <h4>BI, AP Automation &amp; Powerhouse Shell</h4>
+                        <p>BI analytics hierarchy and AP automation routes are implemented. Powerhouse conversation,
+                            inbox, workflow, AI summary, and automation-rule modules exist as disabled-by-default
+                            preview shells pending production write-path completion.</p>
+                        <div class="roadmap-tags"><span class="rtag">BI</span><span class="rtag">AP</span><span
+                                class="rtag">Preview Gates</span></div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h3 style="font-size:18px;font-weight:700;margin-bottom:24px;color:var(--secondary);">🔄 Coming
+                    2026–2027</h3>
+                <div class="roadmap-timeline">
+                    <div class="roadmap-item">
+                        <div class="roadmap-dot secondary"></div>
+                        <div class="roadmap-quarter">Q3 2026</div>
+                        <h4>VIC Owners Corporations Module</h4>
+                        <p>Foundational rule engine support for VIC is already live. Full UI coverage: short-stay
+                            prohibition, VCAT fee recovery workflow, defect bond tracking, OC tier management.</p>
+                        <div class="roadmap-tags"><span class="rtag">VIC</span><span class="rtag">Compliance</span><span
+                                class="rtag">Rule Engine Live</span></div>
+                    </div>
+                    <div class="roadmap-item">
+                        <div class="roadmap-dot secondary"></div>
+                        <div class="roadmap-quarter">Q3 2026</div>
+                        <h4>EV Charging Management</h4>
+                        <p>All-state priority. Lot owner EV installation workflow, common property charging, cost
+                            allocation.</p>
+                        <div class="roadmap-tags"><span class="rtag">All States</span><span
+                                class="rtag">Infrastructure</span></div>
+                    </div>
+                    <div class="roadmap-item">
+                        <div class="roadmap-dot secondary"></div>
+                        <div class="roadmap-quarter">Q4 2026</div>
+                        <h4>Native Mobile App (iOS/Android)</h4>
+                        <p>Push notifications, maintenance requests, levy payments, and community features on
+                            mobile.</p>
+                        <div class="roadmap-tags"><span class="rtag">iOS</span><span class="rtag">Android</span></div>
+                    </div>
+                    <div class="roadmap-item">
+                        <div class="roadmap-dot muted"></div>
+                        <div class="roadmap-quarter">Q1 2027</div>
+                        <h4>QLD BCCM Compliance Module</h4>
+                        <p>Foundational rule engine support for QLD is already live. Full UI coverage: Forms 33, body
+                            corporate manager reports, CMS tracking, tenancy reform compliance.</p>
+                        <div class="roadmap-tags"><span class="rtag">QLD</span><span class="rtag">Compliance</span><span
+                                class="rtag">Rule Engine Live</span></div>
+                    </div>
+                    <div class="roadmap-item">
+                        <div class="roadmap-dot muted"></div>
+                        <div class="roadmap-quarter">2027</div>
+                        <h4>Open Banking (CDR) Integration</h4>
+                        <p>Direct bank feed via Consumer Data Right. Real-time reconciliation without manual CSV
+                            imports.</p>
+                        <div class="roadmap-tags"><span class="rtag">Banking</span><span class="rtag">CDR</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- MIGRATION SECTION -->
+<section class="section" id="migration">
+    <div class="container">
+        <div class="section-tag">Switching Made Simple</div>
+        <h2 class="section-title">Switching from StrataMax or MRI?<br>Here's Exactly How It Works.</h2>
+        <p class="section-subtitle">Data migration is the #1 reason Strata Managers stay on legacy software. We've
+            designed a 3-phase process so you know exactly what to expect before you commit.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:48px;">
+            <div class="migration-step">
+                <div style="width:52px;height:52px;border-radius:50%;background:var(--primary);color:white;font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-family:'Manrope',sans-serif;">
+                    1
+                </div>
+                <h3 style="font-size:16px;font-weight:800;margin-bottom:10px;">Export Your Data</h3>
+                <p style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:14px;">Export your building
+                    data from your current system. We accept standard formats from all major platforms.</p>
+                <div style="font-size:13px;color:var(--text);line-height:2.1;">
+                    <div>📄 <strong>StrataMax:</strong> Levy ledger CSV, owner roll, financial statements</div>
+                    <div>📄 <strong>MRI Strata Master:</strong> Unit roll, levy schedule, transaction history</div>
+                    <div>📄 <strong>Any system:</strong> Excel/CSV with unit and owner data</div>
+                </div>
+                <div style="margin-top:14px;padding:10px 14px;background:rgba(47,79,79,0.06);border-radius:10px;font-size:12px;color:var(--muted);">
+                    ⏱ <strong>Time from you:</strong> 1–2 hours to locate and export files
+                </div>
+            </div>
+            <div class="migration-step">
+                <div style="width:52px;height:52px;border-radius:50%;background:var(--secondary);color:white;font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-family:'Manrope',sans-serif;">
+                    2
+                </div>
+                <h3 style="font-size:16px;font-weight:800;margin-bottom:10px;">We Import &amp; Validate</h3>
+                <p style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:14px;">Our team maps your data
+                    into StrataOS, validates balances against your last reconciliation, and runs a parallel test so you
+                    can verify everything before going live.</p>
+                <div style="font-size:13px;color:var(--text);line-height:2.1;">
+                    <div>✅ Unit roll, lot entitlements, unit interests</div>
+                    <div>✅ Owner names, emails, contact details</div>
+                    <div>✅ Opening levy balances per lot</div>
+                    <div>✅ Trust account opening balance</div>
+                    <div>✅ Historical levy transactions (where available)</div>
+                </div>
+                <div style="margin-top:14px;padding:10px 14px;background:rgba(47,79,79,0.06);border-radius:10px;font-size:12px;color:var(--muted);">
+                    ⏱ <strong>Our turnaround:</strong> 3–5 business days for standard migration
+                </div>
+            </div>
+            <div class="migration-step">
+                <div style="width:52px;height:52px;border-radius:50%;background:var(--success);color:white;font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-family:'Manrope',sans-serif;">
+                    3
+                </div>
+                <h3 style="font-size:16px;font-weight:800;margin-bottom:10px;">Go Live on Your Terms</h3>
+                <p style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:14px;">You choose the go-live
+                    date. We run a live training session with your team, send owner welcome emails, and stay on-call for
+                    the first 30 days.</p>
+                <div style="font-size:13px;color:var(--text);line-height:2.1;">
+                    <div>✅ Staff training session (live video call)</div>
+                    <div>✅ Owner portal welcome emails dispatched</div>
+                    <div>✅ 30-day hypercare support period</div>
+                    <div>✅ Your old system stays active throughout</div>
+                </div>
+                <div style="margin-top:14px;padding:10px 14px;background:rgba(72,187,120,0.08);border-radius:10px;font-size:12px;color:var(--muted);">
+                    ⏱ <strong>Typical total timeline:</strong> 2–4 weeks from decision to go-live
+                </div>
+            </div>
+        </div>
+        <!-- FAQ -->
+        <div style="background:var(--light);border-radius:20px;padding:28px 32px;">
+            <h3 style="font-size:17px;font-weight:800;margin-bottom:20px;">Common Questions About Switching</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;">
+                <div>
+                    <div style="font-weight:700;font-size:13px;margin-bottom:5px;">Will I lose my historical levy
+                        data?
+                    </div>
+                    <div style="font-size:13px;color:var(--muted);line-height:1.6;">No. We import all available
+                        historical transaction data. Where export capability is limited, we import opening balances as
+                        of migration date.
+                    </div>
+                </div>
+                <div>
+                    <div style="font-weight:700;font-size:13px;margin-bottom:5px;">Can I run both systems during
+                        transition?
+                    </div>
+                    <div style="font-size:13px;color:var(--muted);line-height:1.6;">Yes — and we recommend it. Your
+                        existing system stays active throughout migration and the 30-day hypercare period. Cancel it
+                        only once you're confident.
+                    </div>
+                </div>
+                <div>
+                    <div style="font-weight:700;font-size:13px;margin-bottom:5px;">What about our trust account
+                        reconciliation history?
+                    </div>
+                    <div style="font-size:13px;color:var(--muted);line-height:1.6;">Your audited accounts remain in your
+                        current system as the historical record. StrataOS takes over from migration date with a
+                        validated opening balance — your auditor can access both.
+                    </div>
+                </div>
+                <div>
+                    <div style="font-weight:700;font-size:13px;margin-bottom:5px;">What does migration cost?</div>
+                    <div style="font-size:13px;color:var(--muted);line-height:1.6;">Included at no extra cost for
+                        buildings up to 150 lots. Larger or complex portfolio migrations are quoted individually —
+                        typically $1,000–$3,000 for custom data mapping.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- GET STARTED -->
+<section class="section section-alt" id="pricing">
+    <div class="container">
+        <div class="section-tag">Get Started</div>
+        <h2 class="section-title">Built for Your Portfolio — Ready When You Are</h2>
+        <p class="section-subtitle">StrataOS is a SaaS platform with no infrastructure overhead. Evaluation is
+            straightforward — start with a single building complex and scale from there. Reach out and we'll walk you
+            through it.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:900px;margin:0 auto 36px;">
+
+            <!-- What you get -->
+            <div style="background:white;border:1px solid var(--border);border-radius:16px;padding:32px;">
+                <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:16px;">
+                    Everything Included
+                </div>
+                <div style="font-size:14px;color:var(--text);line-height:2.1;">
+                    ✓ Full platform — all 118+ feature modules<br>
+                    ✓ ACT compliance and NSW coverage<br>
+                    ✓ Trust accounting &amp; reconciliation<br>
+                    ✓ Unlimited owner &amp; tenant accounts<br>
+                    ✓ Document management &amp; e-signing<br>
+                    ✓ Levy management &amp; payment tracking<br>
+                    ✓ Maintenance workflows &amp; WHS<br>
+                    ✓ Financial intelligence &amp; forecasting<br>
+                    ✓ Data migration from existing systems<br>
+                    ✓ Role-based access (all 10 roles)<br>
+                    ✓ Multi-building portfolio dashboard<br>
+                    ✓ AU-hosted data (Canberra region)
+                </div>
+            </div>
+
+            <!-- How to engage -->
+            <div style="display:flex;flex-direction:column;gap:16px;">
+                <div style="background:var(--primary);border-radius:16px;padding:28px 28px 24px;color:white;flex:1;">
+                    <div style="font-size:22px;font-weight:800;font-family:'Manrope',sans-serif;margin-bottom:8px;">
+                        Request a Walkthrough
+                    </div>
+                    <div style="font-size:14px;color:rgba(255,255,255,0.65);line-height:1.7;margin-bottom:20px;">
+                        Tell us about your portfolio — buildings managed, current tools, biggest pain points. We'll show
+                        you how StrataOS handles your specific workflows and compliance requirements.
+                    </div>
+                    <button class="btn-primary" onclick="openTrialForm('pricing_cta'); trackClick('pricing','walkthrough_cta');"
+                            style="background:var(--secondary);font-size:15px;padding:12px 28px;">Request a
+                        Walkthrough
+                    </button>
+                </div>
+                <div style="background:white;border:1px solid var(--border);border-radius:12px;padding:18px 20px;display:flex;align-items:flex-start;gap:14px;">
+                    <div style="font-size:22px;flex-shrink:0;margin-top:2px;">📧</div>
+                    <div style="font-size:13px;color:var(--text);line-height:1.65;">
+                        <strong style="color:var(--primary);">Optional:</strong> Custom email and/or domain for your
+                        Owners' Corporation (e.g., <code style="background:#f4f4f4;padding:1px 5px;border-radius:4px;">ec@yourbuildingname.com.au</code>)
+                        — available for <strong>$50/year</strong> if required. Not needed to use the platform.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <p style="text-align:center;font-size:13px;color:var(--muted);max-width:560px;margin:0 auto;">No setup fees · No
+            infrastructure overhead · Data hosted in Australia · Scale from one building to an entire portfolio</p>
+    </div>
+</section>
+
+<!-- SIGNUP CTA -->
+<section class="signup-section" id="signup">
+    <div class="container">
+        <div class="section-tag" style="background:rgba(242,204,143,0.2);color:var(--accent);">Get in Touch</div>
+        <h2>Interested in Seeing It in Action?</h2>
+        <p>We're keen to hear how your team currently handles the day-to-day and would love to walk you through how
+            StrataOS approaches the same workflows. A brief call or screen share is all it takes.</p>
+        <button
+                class="btn-primary"
+                onclick="openTrialForm('signup'); trackClick('signup','cta_walkthrough');"
+                style="font-size:17px;padding:16px 40px;"
+        >Request a Walkthrough
+        </button>
+        <p style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:20px;">✅ No setup required &nbsp;·&nbsp; ✅ All
+            features &nbsp;·&nbsp; ✅ Data migration included &nbsp;·&nbsp; ✅ ACT compliance + NSW coverage</p>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer style="background:var(--dark);color:rgba(255,255,255,0.5);padding:40px 20px;text-align:center;">
+    <div class="container">
+        <div style="font-family:'Manrope',sans-serif;font-weight:800;font-size:18px;color:white;margin-bottom:12px;">
+            Strata<span style="color:var(--secondary);">OS</span></div>
+        <p style="font-size:14px;margin-bottom:16px;">Built for Australian Owners Corporations. ACT-first. Every feature
+            configurable under Strata Manager control.</p>
+        <div style="display:flex;gap:24px;justify-content:center;flex-wrap:wrap;font-size:13px;margin-bottom:20px;">
+            <a href="#features" style="color:rgba(255,255,255,0.5);text-decoration:none;">Features</a>
+            <a href="#compliance" style="color:rgba(255,255,255,0.5);text-decoration:none;">Compliance</a>
+            <a href="#roadmap" style="color:rgba(255,255,255,0.5);text-decoration:none;">Roadmap</a>
+            <a href="investor-pitch.html" style="color:rgba(255,255,255,0.5);text-decoration:none;">Investors</a>
+        </div>
+        <p style="font-size:12px;">© 2026 Silverfox Technologies. Built in Canberra, ACT. For Australian Strata
+            Managers.</p>
+    </div>
+</footer>
+
+<!-- TRIAL REQUEST MODAL -->
+<div aria-labelledby="trialModalTitle"
+     aria-modal="true"
+     id="trialModal" onclick="if(event.target===this)closeTrialForm();" role="dialog"
+     style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,30,30,0.75);backdrop-filter:blur(4px);overflow-y:auto;">
+    <div style="background:#fff;border-radius:16px;max-width:520px;margin:40px auto;padding:40px 36px;position:relative;box-shadow:0 24px 80px rgba(0,0,0,0.35);">
+        <button aria-label="Close"
+                onclick="closeTrialForm()"
+                style="position:absolute;top:16px;right:20px;background:none;border:none;font-size:22px;cursor:pointer;color:#999;line-height:1;">&times;
+        </button>
+        <div id="trialModalTitle"
+             style="font-family:'Manrope',sans-serif;font-weight:800;font-size:22px;color:#2F4F4F;margin-bottom:4px;">Request a Walkthrough
+        </div>
+        <p style="color:#666;font-size:14px;margin:0 0 24px;">Tell us about your portfolio and we'll be in touch within
+            1 business day to arrange a walkthrough.</p>
+
+        <div id="trialFormWrap">
+            <form id="trialForm" novalidate onsubmit="submitTrialForm(event)">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                    <div>
+                        <label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:4px;">Full
+                            Name *</label>
+                        <input autocomplete="name" id="tf-name" placeholder="Jane Smith" required style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;font-family:'Inter',sans-serif;"
+                               type="text">
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:4px;">Company
+                            / Agency *</label>
+                        <input id="tf-company" placeholder="Acme Strata" required style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;font-family:'Inter',sans-serif;"
+                               type="text">
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                    <div>
+                        <label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:4px;">Email
+                            Address *</label>
+                        <input autocomplete="email" id="tf-email" placeholder="jane@example.com.au" required
+                               style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;font-family:'Inter',sans-serif;"
+                               type="email">
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:4px;">Phone</label>
+                        <input autocomplete="tel" id="tf-phone" placeholder="0400 000 000" style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;font-family:'Inter',sans-serif;"
+                               type="tel">
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                    <div>
+                        <label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:4px;">Approx.
+                            number of lots</label>
+                        <input id="tf-lots" placeholder="e.g. 48" style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;font-family:'Inter',sans-serif;"
+                               type="text">
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:4px;">State
+                            / Territory</label>
+                        <select id="tf-state"
+                                style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;font-family:'Inter',sans-serif;background:#fff;">
+                            <option value="">— Select —</option>
+                            <option>ACT</option>
+                            <option>NSW</option>
+                            <option>VIC</option>
+                            <option>QLD</option>
+                            <option>WA</option>
+                            <option>SA</option>
+                            <option>TAS</option>
+                            <option>NT</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:4px;">Anything
+                        else you'd like us to know?</label>
+                    <textarea id="tf-message" placeholder="e.g. specific compliance needs, number of buildings..."
+                              rows="3"
+                              style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;font-family:'Inter',sans-serif;resize:vertical;"></textarea>
+                </div>
+                <div id="trialFormError"
+                     style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:13px;color:#b91c1c;margin-bottom:14px;"></div>
+                <button id="trialSubmitBtn" onmouseout="this.style.background='#2F4F4F'"
+                        onmouseover="this.style.background='#E07A5F'"
+                        style="width:100%;background:#2F4F4F;color:#fff;border:none;border-radius:999px;padding:14px;font-size:15px;font-weight:700;font-family:'Manrope',sans-serif;cursor:pointer;transition:background 0.2s;" type="submit">
+                    Send Request
+                </button>
+                <p style="font-size:11px;color:#aaa;text-align:center;margin:12px 0 0;">Protected by Google reCAPTCHA ·
+                    <a href="https://policies.google.com/privacy" style="color:#aaa;" target="_blank">Privacy</a> · <a
+                            href="https://policies.google.com/terms" style="color:#aaa;" target="_blank">Terms</a></p>
+            </form>
+        </div>
+
+        <div id="trialSuccessWrap" style="display:none;text-align:center;padding:20px 0;">
+            <div style="font-size:48px;margin-bottom:16px;">✅</div>
+            <h3 style="font-family:'Manrope',sans-serif;color:#2F4F4F;margin:0 0 8px;">Request received!</h3>
+            <p style="color:#555;font-size:14px;line-height:1.6;">Thank you — we'll be in touch within 1 business day to
+                arrange your walkthrough.</p>
+            <button onclick="closeTrialForm()"
+                    style="margin-top:20px;background:#2F4F4F;color:#fff;border:none;border-radius:999px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- PDF DOWNLOAD BUTTON -->
+<button class="pdf-btn" onclick="downloadPDF()">📄 Download PDF</button>
+
+<script>
+    // TAB SWITCHING
+    function showTab(id, btn) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + id).classList.add('active');
+        btn.classList.add('active');
+        trackView('feature_tab_' + id);
+    }
+
+    // COUNTER ANIMATION
+    function animateCounters() {
+        document.querySelectorAll('[data-count]').forEach(el => {
+            const target = parseInt(el.dataset.count);
+            let count = 0;
+            const step = Math.ceil(target / 50);
+            const timer = setInterval(() => {
+                count = Math.min(count + step, target);
+                el.textContent = count + '+';
+                if (count >= target) clearInterval(timer);
+            }, 30);
+        });
+    }
+
+    // INTERSECTION OBSERVER for animations
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                if (entry.target.dataset.section) trackView(entry.target.dataset.section);
+            }
+        });
+    }, {threshold: 0.1});
+    document.querySelectorAll('.animate-in, .track-section').forEach(el => observer.observe(el));
+
+    // CHARTS
+    window.addEventListener('load', () => {
+        animateCounters();
+
+        // Toggle distribution chart
+        const ctx = document.getElementById('toggleChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Financial (55)', 'System (31)', 'Governance (26)', 'Communication (11)', 'Community (9)', 'Facilities (8)', 'Analytics (6)', 'Landlord (6)', 'Powerhouse (6)', 'Other (27)'],
+                datasets: [{
+                    data: [55, 31, 26, 11, 9, 8, 6, 6, 6, 27],
+                    backgroundColor: ['#2F4F4F', '#E07A5F', '#F2CC8F', '#4a7c7c', '#81b29a', '#e8c99a', '#3d6666', '#c97d5a', '#a8d5a2', '#6b8f8f'],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {position: 'right', labels: {font: {family: 'Inter', size: 11}, boxWidth: 12}}
+                }
+            }
+        });
+    });
+
+
+    // PDF DOWNLOAD
+    function downloadPDF() {
+        trackClick('pdf', 'download_strata_features');
+        window.print();
+    }
+
+    // TRIAL REQUEST MODAL
+    // PLACEHOLDER: replace 6LeOF8AsAAAAABQhVsqQNn7j7kNZoDv3JsREWbsl below and in the <script src> tag above
+    const RECAPTCHA_SITE_KEY = '6LeOF8AsAAAAABQhVsqQNn7j7kNZoDv3JsREWbsl';
+    const TRIAL_API_URL = '/api/public/trial-request';
+
+    function openTrialForm(source) {
+        document.getElementById('trialModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        document.getElementById('trialForm').reset();
+        document.getElementById('trialFormError').style.display = 'none';
+        document.getElementById('trialFormWrap').style.display = 'block';
+        document.getElementById('trialSuccessWrap').style.display = 'none';
+        document.getElementById('trialSubmitBtn').disabled = false;
+        document.getElementById('trialSubmitBtn').textContent = 'Send Request';
+    }
+
+    function closeTrialForm() {
+        document.getElementById('trialModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeTrialForm();
+    });
+
+    async function submitTrialForm(event) {
+        event.preventDefault();
+        const btn = document.getElementById('trialSubmitBtn');
+        const errBox = document.getElementById('trialFormError');
+
+        const name = document.getElementById('tf-name').value.trim();
+        const company = document.getElementById('tf-company').value.trim();
+        const email = document.getElementById('tf-email').value.trim();
+        const phone = document.getElementById('tf-phone').value.trim();
+        const lots = document.getElementById('tf-lots').value.trim();
+        const state = document.getElementById('tf-state').value;
+        const message = document.getElementById('tf-message').value.trim();
+
+        if (!name || !company || !email) {
+            showFormError('Please fill in your name, company, and email address.');
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showFormError('Please enter a valid email address.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+        errBox.style.display = 'none';
+
+        try {
+            let captcha_token = 'recaptcha-not-configured';
+            if (typeof grecaptcha !== 'undefined') {
+                captcha_token = await grecaptcha.execute(RECAPTCHA_SITE_KEY, {action: 'trial_request'});
+            }
+
+            const resp = await fetch(TRIAL_API_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, company, email, phone, lots, state, message, captcha_token})
+            });
+
+            if (resp.ok) {
+                document.getElementById('trialFormWrap').style.display = 'none';
+                document.getElementById('trialSuccessWrap').style.display = 'block';
+                trackClick('trial_form', 'submit_success');
+            } else {
+                const data = await resp.json().catch(() => ( {} ));
+                showFormError(data.detail || 'Something went wrong. Please try again or email us directly.');
+                btn.disabled = false;
+                btn.textContent = 'Send Request';
+            }
+        } catch (err) {
+            showFormError('Network error. Please check your connection and try again.');
+            btn.disabled = false;
+            btn.textContent = 'Request Free Trial';
+        }
+    }
+
+    function showFormError(msg) {
+        const errBox = document.getElementById('trialFormError');
+        errBox.textContent = msg;
+        errBox.style.display = 'block';
+    }
+
+    // ROI CALCULATOR
+    function fmtNum(n) {
+        if (n >= 1000000) return '$' + ( n / 1000000 ).toFixed(1) + 'M';
+        if (n >= 1000) return n >= 10000 ? '$' + Math.round(n / 1000) + 'K' : '$' + ( n / 1000 ).toFixed(1) + 'K';
+        return n.toString();
+    }
+
+    function updateCalc() {
+        const buildings = parseInt(document.getElementById('calc-buildings').value);
+        const lots = parseInt(document.getElementById('calc-lots').value);
+        const mgrs = parseInt(document.getElementById('calc-mgrs').value);
+        const rate = parseInt(document.getElementById('calc-rate').value);
+        document.getElementById('calc-bval').textContent = buildings;
+        document.getElementById('calc-lval').textContent = lots;
+        document.getElementById('calc-mval').textContent = mgrs;
+        document.getElementById('calc-rval').textContent = rate;
+        // calculations
+        const hoursPerMgrPerWeek = 20; // industry benchmark saving
+        const totalHrsPerMonth = Math.round(mgrs * hoursPerMgrPerWeek * 4.3);
+        const annualSaving = Math.round(mgrs * hoursPerMgrPerWeek * 52 * rate);
+        const emailsPerLotPerYr = 8; // avg owner interactions automated
+        const emailsElim = Math.round(buildings * lots * emailsPerLotPerYr * 0.8);
+        const capacityPct = Math.min(Math.round(( hoursPerMgrPerWeek / 40 ) * 100), 60);
+        document.getElementById('cr-saving').textContent = fmtNum(annualSaving);
+        document.getElementById('cr-hours').textContent = totalHrsPerMonth.toLocaleString();
+        document.getElementById('cr-emails').textContent = emailsElim >= 1000 ? Math.round(emailsElim / 1000) + 'K' : emailsElim;
+        document.getElementById('cr-capacity').textContent = '+' + capacityPct + '%';
+    }
+
+    // BEFORE/AFTER CHART (in calculator section)
+    let beforeAfterChartRef = null;
+
+    function renderBeforeAfterChart() {
+        const ctx = document.getElementById('beforeAfterChart');
+        if (!ctx) return;
+        if (beforeAfterChartRef) beforeAfterChartRef.destroy();
+        beforeAfterChartRef = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Owner Comms', 'Levy Processing', 'Compliance Tracking', 'Maintenance Admin', 'Reporting', 'Onboarding'],
+                datasets: [
+                    {
+                        label: 'Manual Process (hrs/week)',
+                        data: [20, 8, 6, 10, 5, 4],
+                        backgroundColor: 'rgba(224,122,95,0.7)',
+                        borderColor: '#E07A5F',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'With StrataOS (hrs/week)',
+                        data: [4, 1, 0.5, 2, 0.5, 0.5],
+                        backgroundColor: 'rgba(47,79,79,0.75)',
+                        borderColor: '#2F4F4F',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {position: 'top', labels: {font: {family: 'Inter', size: 12}, boxWidth: 14}},
+                    tooltip: {callbacks: {label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y + ' hrs/wk'}}
+                },
+                scales: {
+                    y: {beginAtZero: true, ticks: {callback: v => v + 'h'}, grid: {color: 'rgba(0,0,0,0.04)'}}
+                }
+            }
+        });
+    }
+
+    // AUTOMATION SECTION CHARTS
+    function renderAutomationCharts() {
+        // Radar chart
+        const rCtx = document.getElementById('automationRadar');
+        if (rCtx) {
+            new Chart(rCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Owner Comms', 'Levy Processing', 'Compliance', 'Maintenance', 'Reporting', 'Onboarding'],
+                    datasets: [
+                        {
+                            label: 'Manual (hrs/wk)',
+                            data: [20, 8, 6, 10, 5, 4],
+                            borderColor: '#E07A5F',
+                            backgroundColor: 'rgba(224,122,95,0.12)',
+                            borderWidth: 2,
+                            pointRadius: 4
+                        },
+                        {
+                            label: 'With StrataOS (hrs/wk)',
+                            data: [4, 1, 0.5, 2, 0.5, 0.5],
+                            borderColor: '#2F4F4F',
+                            backgroundColor: 'rgba(47,79,79,0.12)',
+                            borderWidth: 2,
+                            pointRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {legend: {position: 'bottom', labels: {font: {size: 12}, boxWidth: 14}}},
+                    scales: {r: {beginAtZero: true, ticks: {display: false}, grid: {color: 'rgba(0,0,0,0.07)'}}}
+                }
+            });
+        }
+        // Capacity chart — portfolio growth with same headcount
+        const cCtx = document.getElementById('capacityChart');
+        if (cCtx) {
+            new Chart(cCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'],
+                    datasets: [
+                        {
+                            label: 'Without StrataOS',
+                            data: [10, 12, 14, 16, 18],
+                            borderColor: '#E07A5F',
+                            backgroundColor: 'rgba(224,122,95,0.08)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2,
+                            pointRadius: 5
+                        },
+                        {
+                            label: 'With StrataOS',
+                            data: [10, 16, 23, 31, 40],
+                            borderColor: '#2F4F4F',
+                            backgroundColor: 'rgba(47,79,79,0.08)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2.5,
+                            pointRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {position: 'bottom', labels: {font: {size: 12}, boxWidth: 14}},
+                        tooltip: {callbacks: {label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y + ' buildings'}}
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {display: true, text: 'Buildings Under Management', font: {size: 11}},
+                            ticks: {callback: v => v + ' bldgs'}
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // METHODOLOGY TOGGLE
+    function toggleMethodology() {
+        const panel = document.getElementById('methodology-panel');
+        const chevron = document.getElementById('methodology-chevron');
+        const isOpen = panel.style.display !== 'none';
+        panel.style.display = isOpen ? 'none' : 'block';
+        chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+    }
+
+    // COMPLIANCE CALENDAR
+    const CALENDAR_DATA = [
+        {
+            label: 'Q Levy Due (ACT)',
+            states: ['act', 'both'],
+            months: [0, 3, 6, 9],
+            type: 'deadline',
+            tip: 'Levy notice sent to all owners automatically'
+        },
+        {
+            label: 'Q Levy Due (NSW)',
+            states: ['nsw', 'both'],
+            months: [0, 3, 6, 9],
+            type: 'deadline',
+            tip: 'NSW levy reminder dispatched with hardship statement'
+        },
+        {
+            label: 'BAS Quarterly',
+            states: ['act', 'nsw', 'both'],
+            months: [0, 3, 6, 9],
+            type: 'reminder',
+            tip: 'BAS worksheet auto-generated for accountant review'
+        },
+        {
+            label: 'NSW §58 6-monthly',
+            states: ['nsw', 'both'],
+            months: [0, 6],
+            type: 'deadline',
+            tip: 'Strata Manager 6-monthly report auto-compiled'
+        },
+        {
+            label: 'NSW §182 Strata Hub',
+            states: ['nsw', 'both'],
+            months: [0],
+            type: 'deadline',
+            tip: 'Annual Strata Hub export generated automatically'
+        },
+        {
+            label: 'AGM Season',
+            states: ['act', 'nsw', 'both'],
+            months: [8, 9],
+            type: 'reminder',
+            tip: 'AGM notice sent, quorum tracking, voting prepared'
+        },
+        {
+            label: 'Fire Safety Annual',
+            states: ['act', 'nsw', 'both'],
+            months: [5, 11],
+            type: 'deadline',
+            tip: 'PPM reminder at 30/14/7-day thresholds'
+        },
+        {
+            label: 'ACT §119A Certs',
+            states: ['act', 'both'],
+            months: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+            type: 'always',
+            tip: 'Rental certificate auto-generated on request within 24hrs'
+        },
+        {
+            label: 'Trust Reconciliation',
+            states: ['act', 'nsw', 'both'],
+            months: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+            type: 'auto',
+            tip: 'Monthly bank reconciliation report auto-compiled'
+        },
+        {
+            label: 'Arrears Monitoring',
+            states: ['act', 'nsw', 'both'],
+            months: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+            type: 'auto',
+            tip: 'Daily arrears check — overdue notices sent automatically'
+        },
+    ];
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const TYPE_STYLE = {
+        deadline: 'c-deadline',
+        reminder: 'c-reminder',
+        auto: 'c-auto',
+        always: 'c-always',
+        empty: 'c-empty'
+    };
+
+    let currentCalState = 'both';
+
+    function showCalState(state, btn) {
+        currentCalState = state;
+        document.querySelectorAll('[data-cal-tab]').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        renderCalendar();
+    }
+
+    function renderCalendar() {
+        const el = document.getElementById('compliance-calendar-inner');
+        if (!el) return;
+        const rows = CALENDAR_DATA.filter(r => r.states.includes(currentCalState));
+        let html = '<div style="display:grid;grid-template-columns:160px repeat(12,1fr);gap:3px;margin-bottom:6px;">';
+        html += '<div></div>';
+        MONTHS.forEach(m => {
+            html += `<div style="text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0;">${m}</div>`;
+        });
+        html += '</div>';
+        rows.forEach(row => {
+            html += '<div class="cal-row">';
+            html += `<div class="cal-label">${row.label}</div>`;
+            for (let m = 0; m < 12; m++) {
+                const active = row.months.includes(m);
+                const cls = active ? TYPE_STYLE[ row.type ] : 'c-empty';
+                const icon = row.type === 'deadline' ? '!' : row.type === 'reminder' ? '~' : row.type === 'auto' ? '↺' : '·';
+                html += `<div class="cal-cell ${cls}" data-tip="${active ? row.tip : ''}">${active ? icon : ''}</div>`;
+            }
+            html += '</div>';
+        });
+        el.innerHTML = html;
+    }
+
+    // WORKFLOW ANIMATION
+    function animateWorkflow() {
+        const steps = document.querySelectorAll('.wf-step');
+        steps.forEach((step, i) => {
+            const delay = parseFloat(step.style.getPropertyValue('--d') || '0') * 1000;
+            setTimeout(() => step.classList.add('visible'), delay + i * 80);
+        });
+    }
+
+    const wfObserver = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                animateWorkflow();
+                wfObserver.unobserve(e.target);
+            }
+        });
+    }, {threshold: 0.2});
+    const wfEl = document.querySelector('.workflow-compare');
+    if (wfEl) wfObserver.observe(wfEl);
+
+    window.addEventListener('load', () => {
+        updateCalc();
+        renderBeforeAfterChart();
+        renderCalendar();
+        renderAutomationCharts();
+    });
+</script>
+</body>
+</html>

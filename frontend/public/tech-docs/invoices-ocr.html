@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Invoice OCR — Technical Reference</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #0f172a;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px 60px;
+        }
+
+        section {
+            background: #111827;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #f8fafc;
+            margin-bottom: 4px;
+        }
+
+        h2 {
+            color: #f8fafc;
+            margin-top: 0;
+        }
+
+        h3 {
+            color: #cbd5e1;
+        }
+
+        p, li {
+            color: #cbd5e1;
+        }
+
+        code, pre {
+            background: #020617;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+        }
+
+        code {
+            padding: 2px 6px;
+            font-size: 13px;
+            color: #a5f3fc;
+        }
+
+        pre {
+            padding: 16px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            border-bottom: 1px solid #334155;
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            color: #94a3b8;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            color: #cbd5e1;
+        }
+
+        .method {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: monospace;
+            margin-right: 6px;
+        }
+
+        .post {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        .get {
+            background: #1e3a5f;
+            color: #93c5fd;
+        }
+
+        .del {
+            background: #4c0519;
+            color: #fda4af;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-ok {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        .badge-warn {
+            background: #78350f;
+            color: #fcd34d;
+        }
+
+        .badge-error {
+            background: #4c0519;
+            color: #fda4af;
+        }
+
+        .sub {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Invoice OCR — Technical Reference</h1>
+    <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role lists on this page naming "chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+    <p class="sub">Feature key: <code>invoice_ocr</code> &nbsp;|&nbsp; Branch: <code>feat/parse-invoices-payment-integration</code>
+        &nbsp;|&nbsp; Updated: 2026-04-22</p>
+
+    <!-- ── Overview ── -->
+    <section>
+        <h2>Overview</h2>
+        <p>
+            The Invoice OCR pipeline allows strata managers to upload PDF and image invoices/quotes from contractors.
+            Claude Vision (Anthropic) is used as the primary OCR engine to extract vendor details, ABN, line items,
+            GST, and totals. Mindee Invoice v4 is used as a fallback when Claude Vision is unavailable or returns
+            low confidence. If both fail, an empty scaffold is returned for manual entry.
+        </p>
+        <p>On confirmation, the system:</p>
+        <ol>
+            <li>Validates the reviewed data (non-zero total, vendor name present)</li>
+            <li>Writes a <code>financial_transaction</code> expense record to the financial ledger</li>
+            <li>Generates a payment receipt PDF (stored as base64 on the document record)</li>
+            <li>Marks the <code>invoice_documents</code> record as <code>confirmed</code></li>
+        </ol>
+    </section>
+
+    <!-- ── Feature Toggle ── -->
+    <section>
+        <h2>Feature toggle</h2>
+        <table>
+            <tr>
+                <th>Key</th>
+                <td><code>invoice_ocr</code></td>
+            </tr>
+            <tr>
+                <th>Category</th>
+                <td>finance</td>
+            </tr>
+            <tr>
+                <th>Default</th>
+                <td>enabled (global, <code>building_id = null</code>)</td>
+            </tr>
+            <tr>
+                <th>Allowed roles</th>
+                <td>super_admin, chairman, strata_manager, ec_member</td>
+            </tr>
+            <tr>
+                <th>Nav path</th>
+                <td>/financials/invoices</td>
+            </tr>
+            <tr>
+                <th>Seed script</th>
+                <td><code>backend/seeds/invoice_feature_toggle.py</code></td>
+            </tr>
+        </table>
+        <p>Run once on each environment:</p>
+        <pre>cd backend &amp;&amp; source venv/bin/activate
+python3 seeds/invoice_feature_toggle.py</pre>
+    </section>
+
+    <!-- ── Configuration ── -->
+    <section>
+        <h2>Configuration (backend/.env)</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Variable</th>
+                <th>Required</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>ANTHROPIC_API_KEY</code></td>
+                <td><span class="badge badge-error">Required for Claude OCR</span></td>
+                <td>If absent, Claude step is skipped; falls back to Mindee or empty scaffold.</td>
+            </tr>
+            <tr>
+                <td><code>MINDEE_API_KEY</code></td>
+                <td><span class="badge badge-warn">Optional fallback</span></td>
+                <td>Mindee free tier covers 250 pages/month (~$0 for 5–10 invoices). If absent, Mindee step is
+                    skipped.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <p>Cost estimate: ~$0.17/month for 10 invoices via Claude Vision (claude-sonnet-4-6,
+            ~3k input tokens + 500 output tokens per invoice at $3/$15 per MTok).</p>
+    </section>
+
+    <!-- ── OCR Pipeline ── -->
+    <section>
+        <h2>OCR pipeline — <code>services/invoice_ocr_service.py</code></h2>
+        <pre>parse_invoice(file_bytes, file_type)
+  ├── ANTHROPIC_API_KEY set?
+  │     └── extract_with_claude()  → confidence >= 0.5? → return result
+  │                                  confidence  < 0.5? → fall through
+  ├── MINDEE_API_KEY set?
+  │     └── extract_with_mindee()  → return result
+  └── _empty_result()              → ocr_source="manual", all amounts 0.0</pre>
+
+        <h3>Claude Vision content block</h3>
+        <p>PDFs are sent as a <code>document</code> content block; JPEG/PNG/WebP as an <code>image</code> block.
+            No image-conversion library is required — Anthropic accepts PDF bytes directly.</p>
+        <pre>{
+  "type": "document",        // or "image" for JPEG/PNG/WebP
+  "source": {
+    "type": "base64",
+    "media_type": "application/pdf",
+    "data": "&lt;base64-encoded bytes&gt;"
+  }
+}</pre>
+
+        <h3>Extracted JSON schema (Claude prompt output)</h3>
+        <pre>{
+  "vendor_name": "ABC Plumbing Pty Ltd",
+  "abn": "12 345 678 901",
+  "invoice_number": "INV-001",
+  "invoice_date": "YYYY-MM-DD",
+  "due_date": "YYYY-MM-DD",
+  "line_items": [
+    { "description": "Emergency repair", "qty": 1.0, "unit_price": 450.00, "total": 450.00 }
+  ],
+  "subtotal": 450.00,
+  "gst": 45.00,
+  "total": 495.00,
+  "suggested_fund": "admin",
+  "confidence": 0.92,
+  "ocr_source": "claude_vision"
+}</pre>
+        <p>Markdown fences (<code>```json ... ```</code>) are stripped before JSON parsing.
+            If Claude returns non-JSON, the error is caught and execution falls through to Mindee.</p>
+    </section>
+
+    <!-- ── API Endpoints ── -->
+    <section>
+        <h2>API endpoints</h2>
+        <p>All endpoints require authentication (<code>require_feature("invoice_ocr")</code>) and
+            <code>can_manage_finances</code> permission. Roles: super_admin, chairman, strata_manager, ec_member.</p>
+
+        <h3><span class="method post">POST</span> /api/invoices/upload-and-parse</h3>
+        <p>Upload a PDF/image file. Runs OCR and creates a <code>pending_review</code> record. Returns parsed preview.
+        </p>
+        <p><strong>Content-Type:</strong> <code>multipart/form-data</code></p>
+        <table>
+            <thead>
+            <tr>
+                <th>Form field</th>
+                <th>Type</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>file</code></td>
+                <td>File</td>
+                <td>PDF, JPEG, PNG, or WebP. Max 20 MB.</td>
+            </tr>
+            <tr>
+                <td><code>document_type</code></td>
+                <td>string</td>
+                <td><code>"invoice"</code> or <code>"quote"</code>. Default: <code>"invoice"</code>.</td>
+            </tr>
+            </tbody>
+        </table>
+        <p><strong>Response:</strong> <code>InvoiceDocumentResponse</code> (see Models section). <code>file_data</code>
+            is stripped from response.</p>
+        <p><strong>Errors:</strong> 400 unsupported file type, 400 file &gt; 20 MB, 403 non-finance role.</p>
+
+        <h3><span class="method get">GET</span> /api/invoices</h3>
+        <p>List all invoice documents for the current building.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Query param</th>
+                <th>Type</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>status</code></td>
+                <td>string?</td>
+                <td>Filter: <code>pending_review</code>, <code>confirmed</code>, <code>rejected</code>.</td>
+            </tr>
+            <tr>
+                <td><code>document_type</code></td>
+                <td>string?</td>
+                <td>Filter: <code>invoice</code> or <code>quote</code>.</td>
+            </tr>
+            </tbody>
+        </table>
+        <p><strong>Response:</strong> <code>InvoiceListResponse</code>. <code>file_data</code> and
+            <code>receipt_data</code> are excluded from projection (bandwidth optimisation).</p>
+
+        <h3><span class="method get">GET</span> /api/invoices/{invoice_id}</h3>
+        <p>Get a single invoice record including full <code>parsed_data</code> and <code>confirmed_data</code>.
+            <code>file_data</code> is stripped; <code>receipt_data</code> is included (needed for receipt download
+            indicator).
+            404 if not found or belongs to a different building.</p>
+
+        <h3><span class="method post">POST</span> /api/invoices/{invoice_id}/confirm</h3>
+        <p>Confirm (possibly edited) OCR data, create a financial_transaction, generate receipt PDF.</p>
+        <p><strong>Body:</strong> <code>InvoiceConfirmRequest</code> (see Models). Validations: total &gt; 0,
+            vendor_name non-empty.</p>
+        <p><strong>Errors:</strong> 404 not found, 409 already confirmed, 400 zero total, 400 blank vendor.</p>
+        <p><strong>Side effects:</strong> inserts to <code>financial_transactions</code> (Mongo path) or posts to
+            Postgres journals via adapter (PG path); updates <code>invoice_documents</code> status to
+            <code>confirmed</code>. Finance-page expense actuals read from transaction aggregation, so
+            confirmed OCR invoices are reflected in Budget-vs-Actual/Quarterly Budget once the
+            transaction is present in <code>financial_transactions</code> (immediate on Mongo path, relay-backed on PG path).</p>
+
+        <h3><span class="method del">DELETE</span> /api/invoices/{invoice_id}</h3>
+        <p>Hard-delete a <code>pending_review</code> invoice. Confirmed invoices cannot be deleted (7-year retention).
+        </p>
+        <p><strong>Response:</strong> 204 No Content.</p>
+        <p><strong>Errors:</strong> 404 not found, 409 confirmed invoice.</p>
+
+        <h3><span class="method get">GET</span> /api/invoices/{invoice_id}/receipt</h3>
+        <p>Download the receipt PDF for a confirmed invoice. Returns <code>application/pdf</code> with
+            <code>Content-Disposition: attachment</code>.</p>
+        <p><strong>Errors:</strong> 404 not found, 404 receipt not yet generated.</p>
+        <p><strong>Important:</strong> This endpoint requires a JWT Bearer token. Do not use bare
+            <code>&lt;a href&gt;</code> links — the browser strips the Authorization header. Use a programmatic
+            axios blob download instead.</p>
+    </section>
+
+    <!-- ── Models ── -->
+    <section>
+        <h2>Pydantic models — <code>models/invoice_models.py</code></h2>
+
+        <h3>InvoiceConfirmRequest (POST body)</h3>
+        <pre>{
+  "vendor_name": "ABC Plumbing Pty Ltd",   // required, non-empty
+  "abn": "12 345 678 901",                  // optional
+  "invoice_number": "INV-001",              // optional
+  "invoice_date": "2026-04-15",             // required (YYYY-MM-DD)
+  "due_date": "2026-05-15",                 // optional
+  "line_items": [                           // optional
+    { "description": "Repair", "qty": 1.0, "unit_price": 450.00, "total": 450.00 }
+  ],
+  "subtotal": 450.00,                       // required
+  "gst": 45.00,                             // default 0.0
+  "total": 495.00,                          // required, must be > 0
+  "fund": "admin",                          // "admin" | "sinking", default "admin"
+  "category": "Plumbing",                   // optional, default "General Maintenance"
+  "document_type": "invoice"                // "invoice" | "quote"
+}</pre>
+
+        <h3>InvoiceDocumentResponse (GET/POST response)</h3>
+        <pre>{
+  "id": "uuid",
+  "building_id": "13195",
+  "status": "pending_review | confirmed | rejected",
+  "document_type": "invoice | quote",
+  "file_name": "plumbing_invoice.pdf",
+  "file_type": "application/pdf",
+  "file_size_bytes": 142000,
+  "ocr_source": "claude_vision | mindee | manual",
+  "ocr_confidence": 0.92,
+  "parsed_data": { /* OCR output dict */ },
+  "confirmed_data": { /* InvoiceConfirmRequest fields */ },
+  "transaction_id": "uuid or null",
+  "receipt_generated": false,
+  "receipt_data": "base64 PDF or null",     // present only on single-record GET and confirm response
+  "created_at": "ISO-8601",
+  "created_by": "user_id",
+  "confirmed_at": "ISO-8601 or null",
+  "confirmed_by": "user_id or null"
+}</pre>
+        <p><strong>Note:</strong> <code>file_data</code> (base64 original file) is never returned in any response.
+            <code>receipt_data</code> is excluded from list responses to reduce bandwidth.</p>
+    </section>
+
+    <!-- ── MongoDB Collection ── -->
+    <section>
+        <h2>MongoDB collection — <code>invoice_documents</code></h2>
+        <p>Building-scoped. All queries use <code>building_id</code> as the primary partition key via the
+            <code>TenantScopedDatabase</code> wrapper, which auto-injects <code>building_id</code> into every query.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Index</th>
+                <th>Fields</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Status query</td>
+                <td><code>(building_id, status)</code></td>
+                <td>List by status filter</td>
+            </tr>
+            <tr>
+                <td>Time sort</td>
+                <td><code>(building_id, created_at DESC)</code></td>
+                <td>Default list order</td>
+            </tr>
+            <tr>
+                <td>Unique lookup</td>
+                <td><code>(id, building_id)</code> unique</td>
+                <td>Single-record GET</td>
+            </tr>
+            </tbody>
+        </table>
+        <p>Indexes are created by <code>financial_repository.ensure_indexes()</code>, called at server startup.</p>
+
+        <h3>Status lifecycle</h3>
+        <pre>upload-and-parse → pending_review
+                   ↓ (confirm)
+               confirmed         ← permanent, cannot be deleted
+                   ↓ (future)
+               rejected          ← reserved, not yet implemented</pre>
+
+        <h3>Storage note</h3>
+        <p><code>file_data</code> stores the original file as base64. For the current scale (5–10 invoices/month)
+            this is acceptable. At higher volume, consider migrating to object storage (S3-compatible) and storing
+            only a URL reference.</p>
+    </section>
+
+    <!-- ── Financial Transaction ── -->
+    <section>
+        <h2>Financial transaction created on confirm</h2>
+        <p>On confirmation, <code>financial_repository.insert_transaction()</code> is called with:</p>
+        <pre>{
+  "building_id": "&lt;current building&gt;",
+  "financial_year": "&lt;derived from invoice_date year&gt;",
+  "fund_type": "admin | sinking",
+  "category_name": "&lt;category from confirm body&gt;",
+  "transaction_type": "expense",
+  "amount": &lt;total&gt;,
+  "gst_amount": &lt;gst&gt;,
+  "description": "Invoice INV-001 — ABC Plumbing Pty Ltd",
+  "reference": "&lt;invoice_number&gt;",
+  "transaction_date": "&lt;invoice_date&gt;",
+  "supplier_name": "&lt;vendor_name&gt;",
+  "created_by": "&lt;user_id&gt;",
+  "source": "invoice_ocr"
+}</pre>
+        <p>The <code>source: "invoice_ocr"</code> field allows future reports to distinguish OCR-originated
+            transactions from manually entered ones.</p>
+    </section>
+
+    <!-- ── Security ── -->
+    <section>
+        <h2>Security considerations</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Concern</th>
+                <th>Mitigation</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>File upload safety</td>
+                <td><code>scan_upload()</code> is called before OCR. File type is validated against an allowlist
+                    (<code>application/pdf</code>, <code>image/jpeg</code>, <code>image/png</code>,
+                    <code>image/webp</code>).
+                    Max 20 MB enforced server-side.
+                </td>
+            </tr>
+            <tr>
+                <td>Building isolation</td>
+                <td>All queries include <code>building_id</code>. The <code>TenantScopedDatabase</code> wrapper
+                    auto-injects the building context. Cross-building access returns 404.
+                </td>
+            </tr>
+            <tr>
+                <td>Role guard</td>
+                <td><code>_finance_roles()</code> checks <code>effective_role or role</code> — never raw
+                    <code>user["role"]</code> — to handle elevated users correctly.
+                </td>
+            </tr>
+            <tr>
+                <td>Receipt download auth</td>
+                <td>The receipt endpoint requires a JWT Bearer token. Frontend uses programmatic axios blob
+                    download (not a bare <code>&lt;a href&gt;</code>) to ensure the header is sent.
+                </td>
+            </tr>
+            <tr>
+                <td>Retention</td>
+                <td>Confirmed invoices cannot be hard-deleted (409). 7-year ACT/NSW strata retention
+                    compliance.
+                </td>
+            </tr>
+            <tr>
+                <td>Test data</td>
+                <td>All records created by tests must carry <code>is_test_data: true</code> to prevent
+                    appearing in production dashboards.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ── Error Codes ── -->
+    <section>
+        <h2>Error reference</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Status</th>
+                <th>Endpoint</th>
+                <th>Cause</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>400</td>
+                <td>upload-and-parse</td>
+                <td>Unsupported file type (not PDF/JPEG/PNG/WebP)</td>
+            </tr>
+            <tr>
+                <td>400</td>
+                <td>upload-and-parse</td>
+                <td>File exceeds 20 MB</td>
+            </tr>
+            <tr>
+                <td>400</td>
+                <td>confirm</td>
+                <td>Total amount is zero or negative</td>
+            </tr>
+            <tr>
+                <td>400</td>
+                <td>confirm</td>
+                <td>Vendor name is blank or whitespace-only</td>
+            </tr>
+            <tr>
+                <td>401</td>
+                <td>any</td>
+                <td>Missing or expired JWT token</td>
+            </tr>
+            <tr>
+                <td>403</td>
+                <td>any</td>
+                <td>Role does not have <code>can_manage_finances</code> (tenant, owner, guest)</td>
+            </tr>
+            <tr>
+                <td>403</td>
+                <td>any</td>
+                <td>Feature toggle <code>invoice_ocr</code> disabled for this building</td>
+            </tr>
+            <tr>
+                <td>404</td>
+                <td>get / confirm / delete / receipt</td>
+                <td>Invoice not found or belongs to a different building</td>
+            </tr>
+            <tr>
+                <td>404</td>
+                <td>receipt</td>
+                <td>Receipt not yet generated (invoice not confirmed)</td>
+            </tr>
+            <tr>
+                <td>409</td>
+                <td>confirm</td>
+                <td>Invoice is already confirmed</td>
+            </tr>
+            <tr>
+                <td>409</td>
+                <td>delete</td>
+                <td>Invoice is confirmed — deletion blocked by retention policy</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ── Tests ── -->
+    <section>
+        <h2>Tests</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>File</th>
+                <th>Count</th>
+                <th>Coverage</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>tests/backend/test_invoice_ocr.py</code></td>
+                <td>18</td>
+                <td>OCR service unit tests, upload/confirm/delete router tests, multi-tenant isolation</td>
+            </tr>
+            <tr>
+                <td><code>tests/frontend/unit/pages/dashboard/InvoicesPage.test.jsx</code></td>
+                <td>11</td>
+                <td>RTL tests: list render, stats, badges, modal open/close, empty state, search filter, delete, role
+                    gate
+                </td>
+            </tr>
+            <tr>
+                <td><code>tests/performance/invoice_benchmark.ts</code></td>
+                <td>k6</td>
+                <td>List and single-get endpoints. Upload excluded (Anthropic API cost). teardown() deletes
+                    perf-invoice-* records.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ── New Files ── -->
+    <section>
+        <h2>New and modified files</h2>
+        <h3>New files</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>File</th>
+                <th>Purpose</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>backend/models/invoice_models.py</code></td>
+                <td>Pydantic models: InvoiceLineItem, InvoiceConfirmRequest, InvoiceDocumentResponse,
+                    InvoiceListResponse
+                </td>
+            </tr>
+            <tr>
+                <td><code>backend/services/invoice_ocr_service.py</code></td>
+                <td>Claude Vision + Mindee extraction; parse_invoice() pipeline</td>
+            </tr>
+            <tr>
+                <td><code>backend/routers/invoices.py</code></td>
+                <td>6 REST endpoints</td>
+            </tr>
+            <tr>
+                <td><code>backend/seeds/invoice_feature_toggle.py</code></td>
+                <td>Upserts invoice_ocr global feature toggle</td>
+            </tr>
+            <tr>
+                <td><code>frontend/src/pages/dashboard/InvoicesPage.jsx</code></td>
+                <td>Invoice list page with stats, search, filter, delete</td>
+            </tr>
+            <tr>
+                <td><code>frontend/src/components/invoices/InvoiceUploadModal.jsx</code></td>
+                <td>3-step upload → review → confirm modal</td>
+            </tr>
+            <tr>
+                <td><code>frontend/src/app/(dashboard)/financials/invoices/page.tsx</code></td>
+                <td>App Router thin wrapper</td>
+            </tr>
+            </tbody>
+        </table>
+        <h3>Modified files</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>File</th>
+                <th>Change</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>backend/repositories/financial_repository.py</code></td>
+                <td>insert_invoice_record, get_invoice, list_invoices, update_invoice; 3 new indexes</td>
+            </tr>
+            <tr>
+                <td><code>backend/utils/pdf_generator.py</code></td>
+                <td>generate_invoice_receipt_pdf() added</td>
+            </tr>
+            <tr>
+                <td><code>backend/requirements.txt</code></td>
+                <td>anthropic&gt;=0.52.0, mindee&gt;=4.0.0 (installed: 0.96.0, 4.35.1)</td>
+            </tr>
+            <tr>
+                <td><code>backend/server.py</code></td>
+                <td>invoices router registered via try/except pattern</td>
+            </tr>
+            <tr>
+                <td><code>frontend/src/components/layout/DashboardLayout.tsx</code></td>
+                <td>Invoices &amp; Quotes nav item (feature-gated, isManager() guard)</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+</main>
+</body>
+</html>

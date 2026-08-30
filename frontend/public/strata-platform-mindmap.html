@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>StrataOS — Platform Feature Mind Map</title>
+    <script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.17"></script>
+    <style>
+        :root {
+            --primary: #2F4F4F;
+            --primary-light: #3d6666;
+            --secondary: #E07A5F;
+            --secondary-dark: #c45a3f;
+            --accent: #F2CC8F;
+            --accent-dark: #B8860B;
+            --bg: #FDFAF6;
+            --text: #1a2626;
+            --muted: #6b8080;
+            --border: #e0e8e8;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        /* ── PAGE HEADER ── */
+        .page-header {
+            background: linear-gradient(135deg, #2F4F4F 0%, #1a3535 100%);
+            color: white;
+            padding: 28px 48px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .page-header h1 {
+            font-size: 34px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+        }
+
+        .page-header h1 em {
+            font-style: normal;
+            color: #F2CC8F;
+        }
+
+        .page-header .tagline {
+            color: rgba(255, 255, 255, 0.65);
+            margin-top: 6px;
+            font-size: 15px;
+        }
+
+        .badge-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .buildings {
+            text-align: right;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.55);
+            line-height: 2;
+            min-width: 220px;
+        }
+
+        .buildings strong {
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 600;
+        }
+
+        /* ── LEGEND ── */
+        .persona-legend {
+            background: white;
+            border-bottom: 2px solid var(--border);
+            padding: 10px 48px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .persona-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 5px 14px;
+            border-radius: 999px;
+            border: 2px solid;
+            cursor: default;
+            user-select: none;
+        }
+
+        .chip-sm {
+            border-color: #2F4F4F;
+            color: #2F4F4F;
+            background: #e8f4f4;
+        }
+
+        .chip-ec {
+            border-color: #E07A5F;
+            color: #c45a3f;
+            background: #fdf0ec;
+        }
+
+        .chip-own {
+            border-color: #B8860B;
+            color: #7a5a00;
+            background: #fef8e4;
+        }
+
+        .legend-hint {
+            margin-left: auto;
+            font-size: 12px;
+            color: #bbb;
+        }
+
+        /* ── MINDMAP ── */
+        .mm-wrapper {
+            width: 100%;
+            height: 82vh;
+            min-height: 640px;
+            background: #fefefe;
+            position: relative;
+            border-bottom: 2px solid var(--border);
+            overflow: hidden;
+        }
+
+        .mm-wrapper .markmap {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+
+        /* markmap SVG overrides — force full-size */
+        .mm-wrapper svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ── STATS STRIP ── */
+        .stats-strip {
+            background: var(--primary);
+            padding: 0 48px;
+            display: flex;
+            overflow-x: auto;
+        }
+
+        .stat {
+            flex: 1;
+            text-align: center;
+            padding: 16px 12px;
+            border-right: 1px solid rgba(255, 255, 255, 0.12);
+            min-width: 100px;
+        }
+
+        .stat:last-child {
+            border-right: none;
+        }
+
+        .stat .num {
+            font-size: 22px;
+            font-weight: 800;
+            color: #F2CC8F;
+            line-height: 1.2;
+        }
+
+        .stat .lbl {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.55);
+            margin-top: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        /* ── SUMMARY SECTION ── */
+        .summary-section {
+            background: white;
+            padding: 14px 48px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .summary-section h2 {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .summary-pill {
+            background: #f0f4f4;
+            color: var(--text);
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .summary-pill strong {
+            color: var(--primary);
+        }
+
+        /* ── PERSONA GRID ── */
+        .feature-section {
+            padding: 40px 48px 52px;
+            background: #f7fafa;
+        }
+
+        .feature-section > h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .feature-section > p {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            max-width: 820px;
+        }
+
+        .persona-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 1100px) {
+            .persona-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .persona-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .pcard {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05), 0 4px 18px rgba(0, 0, 0, 0.04);
+        }
+
+        .pcard-hdr {
+            padding: 22px 24px 16px;
+        }
+
+        .pcard-hdr h3 {
+            font-size: 17px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .pcard-hdr p {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.72);
+            margin-top: 5px;
+            line-height: 1.55;
+        }
+
+        .pcard-hdr.sm {
+            background: linear-gradient(135deg, #2F4F4F 0%, #3d6666 100%);
+        }
+
+        .pcard-hdr.ec {
+            background: linear-gradient(135deg, #E07A5F 0%, #c45a3f 100%);
+        }
+
+        .pcard-hdr.own {
+            background: linear-gradient(135deg, #B8860B 0%, #8a6208 100%);
+        }
+
+        .pcard-body {
+            padding: 18px 22px 22px;
+        }
+
+        .cat {
+            margin-bottom: 16px;
+        }
+
+        .cat:last-child {
+            margin-bottom: 0;
+        }
+
+        .cat-title {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 7px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .tag {
+            display: inline-block;
+            background: #f0f4f4;
+            color: #2a3a3a;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 11.5px;
+            font-weight: 500;
+            line-height: 1.7;
+        }
+
+        .tag.hi {
+            background: #daeee8;
+            color: #1a4a3a;
+        }
+
+        .tag.new {
+            background: #fef3cc;
+            color: #7a5000;
+            border: 1px solid #f0c040;
+        }
+
+        .tag.ai {
+            background: #ede8f5;
+            color: #4a2080;
+        }
+
+        .tag.kpi {
+            background: #e8eef8;
+            color: #1a3080;
+        }
+
+        /* ── VALUE PROPOSITION ── */
+        .value-section {
+            padding: 40px 48px 48px;
+            background: white;
+            border-top: 3px solid var(--primary);
+        }
+
+        .value-section h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 28px;
+        }
+
+        .value-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .value-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .value-card {
+            border-left: 4px solid;
+            padding: 16px 18px;
+            border-radius: 0 12px 12px 0;
+            background: #fafafa;
+        }
+
+        .value-card.sm {
+            border-color: #2F4F4F;
+        }
+
+        .value-card.ec {
+            border-color: #E07A5F;
+        }
+
+        .value-card.own {
+            border-color: #B8860B;
+        }
+
+        .value-card h4 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .value-card.sm h4 {
+            color: #2F4F4F;
+        }
+
+        .value-card.ec h4 {
+            color: #c45a3f;
+        }
+
+        .value-card.own h4 {
+            color: #7a5a00;
+        }
+
+        .value-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .value-card ul li {
+            font-size: 13px;
+            color: #444;
+            padding: 3px 0;
+            padding-left: 14px;
+            position: relative;
+        }
+
+        .value-card ul li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #bbb;
+            font-size: 11px;
+            top: 5px;
+        }
+
+        /* ── AUTOMATION SECTION ── */
+        .auto-section {
+            padding: 36px 48px 44px;
+            background: #f7fafa;
+            border-top: 1px solid var(--border);
+        }
+
+        .auto-section h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        .auto-section p {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .auto-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+        }
+
+        @media (max-width: 900px) {
+            .auto-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .auto-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 18px;
+            border: 1px solid var(--border);
+        }
+
+        .auto-card .icon {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .auto-card h4 {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        .auto-card p {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .auto-card .freq {
+            font-size: 10px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-top: 6px;
+            font-weight: 600;
+        }
+
+        /* ── FOOTER ── */
+        .footer {
+            background: #1a3535;
+            padding: 18px 48px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .footer a {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        @media print {
+            .mm-wrapper {
+                height: 90vh;
+                page-break-after: always;
+            }
+
+            .persona-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ HEADER -->
+<div class="page-header">
+    <div>
+        <h1>Strata<em>OS</em></h1>
+        <div class="tagline">Strata Management Platform — Complete Feature Mind Map for Business Stakeholders</div>
+        <div class="badge-row">
+            <span class="badge">Multi-Tenant SaaS</span>
+            <span class="badge">ACT &amp; NSW Compliant</span>
+            <span class="badge">2 Active Buildings</span>
+            <span class="badge">AI-Powered</span>
+            <span class="badge">730+ API Endpoints</span>
+            <span class="badge">Phase F-Zero — Platform Reset</span>
+        </div>
+    </div>
+    <div class="buildings">
+        <div><strong>East Gate Residences</strong> · Denman Prospect (13195) · Production</div>
+        <div><strong>Sierra</strong> · Gungahlin (16244) · Demo</div>
+        <div><strong>Harbourview Residences</strong> (18932) · Demo</div>
+        <div style="margin-top:8px;font-size:11px;">Generated May 2026</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ LEGEND -->
+<div class="persona-legend">
+    <span class="legend-label">Personas</span>
+    <span class="persona-chip chip-sm">🏢 Strata Manager</span>
+    <span class="persona-chip chip-ec">👥 Executive Committee</span>
+    <span class="persona-chip chip-own">🏠 Owners &amp; Residents</span>
+    <span class="legend-hint">Click nodes to expand · Scroll to zoom · Drag to pan</span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ MIND MAP -->
+<div class="mm-wrapper">
+    <div class="markmap" style="height:100%;width:100%">
+        # StrataOS Platform
+
+        ## 🏢 Strata Manager
+
+        ### 💰 Financial Management
+        #### Levy Administration
+        - Quarterly and annual levy calculation
+        - Unit levy ledger and balance tracking
+        - Collection rate analytics (real-time %)
+        - Levy KPI dashboard
+        - Special levy creation and approval
+        - Payment plan management (NSW Form 1)
+        #### Trust Accounting
+        - 3-way bank reconciliation (portal / bank / internal)
+        - Merkle-sealed audit ledger (tamper-proof)
+        - Double-entry journal management
+        - ABA payment file generation
+        - Period close workflow (Temporal durable saga)
+        - Monthly interest accruals on trust balances
+        #### Accounts Payable
+        - Invoice OCR — Claude Vision AI parsing
+        - ABN validation
+        - AP approval queue (state machine lifecycle)
+        - Supplier invoice upload portal
+        - GST/BAS quarterly reporting
+        - ATO-ready tax worksheets
+        #### Arrears Management
+        - Real-time arrears dashboard with aging
+        - Risk scoring (CRITICAL / HIGH / MODERATE / LOW)
+        - Automated reminder escalation (configurable cadence)
+        - Hardship flagging and payment plans
+        - Year-on-year arrears comparison
+        #### Bank Feed Integration
+        - Bank statement CSV upload
+        - 8-layer intelligent transaction matching engine
+        - Auto-allocate transactions (90%+ score threshold)
+        - Reconciliation exception review queue
+        - Real-time balance dashboard
+        #### Financial Intelligence
+        - 5-year projections (CPI-adjusted, category-level)
+        - Budget vs actual variance analysis
+        - Cashflow modelling
+        - Anomaly detection and automated alerts
+        - Financial health score (0–100)
+        - Spending category trend analysis
+
+        ### 🔧 Maintenance and Operations
+        #### Work Orders
+        - Work order creation and contractor assignment
+        - Quote approval workflow with thresholds
+        - Before and after photographic evidence
+        - Invoice lifecycle tracking
+        - WHS / SWMS compliance document attachment
+        - Contractor performance scoring
+        #### Preventive Maintenance (PPM)
+        - 79-item statutory compliance schedule
+        - Automated work order generation on schedule
+        - 30 / 14 / 7 / 0-day email notifications
+        - Compliance log per service item
+        - SLA tracking and breach alerts
+        #### Asset Management
+        - Digital twin — zone, facility and component registry
+        - Asset health score (0–100)
+        - Capital replacement schedule (15-year horizon)
+        - AI-driven maintenance cost forecasting
+        - Benefit group cost allocation engine
+        #### Defects and Issues
+        - Defect snagging list with photos
+        - SLA tracking and breach notifications
+        - Outstanding issues dashboard
+        - Contractor liability tracking
+
+        ### ⚖️ Compliance and Governance
+        #### Meeting Management
+        - AGM scheduling and agenda management
+        - Meeting minutes and attendance tracking
+        - Motion tracking and proxy voting
+        - Decision register (DEC-YYYY-NNNN format)
+        #### Regulatory Compliance
+        - ACT / NSW / VIC / QLD rules engine (data-driven, not hardcoded)
+        - Essential services compliance log (lift, fire, HVAC, cooling tower)
+        - Pool safety inspection register with certificate storage
+        - WHS incident and safety induction management
+        - Conflict of interest register with motion-level linking
+        - Compliance checklist and full audit trail
+        #### Strata Administration
+        - Strata roll management and sync
+        - Owner transfer workflow (7-year audit trail)
+        - Tenancy approvals and lease management
+        - Rental certificates (ACT Section 119A)
+        - By-laws repository and acknowledgment tracking
+        - Class A/B scheme levy split management
+
+        ### 📢 Communication and Documents
+        #### Communication Tools
+        - Segmented announcement broadcasting (per-unit or per-group)
+        - Official levy and compliance notices with acknowledgment tracking
+        - Automated letter generation (WeasyPrint PDF renderer)
+        - PDF annotation layer for collaborative document review
+        - Group chat and private messaging
+        - Custom domain email system with webmail access
+        #### Document Management
+        - Document upload with version control and access permissions
+        - Folder structure with building-scoped organisation
+        - PDF preview with annotation comments
+        - OCR-powered document text extraction and conversion
+
+        ### 📊 Analytics and Intelligence
+        #### Building Health Scoring
+        - Building stress score (7 components: reserves, expenses, arrears, compliance)
+        - Reserve adequacy analysis vs statutory minimums
+        - Capital shock risk modelling
+        - Building risk index composite score (0–100)
+        #### Portfolio Analytics
+        - Multi-building portfolio dashboard for managers
+        - Cross-building KPI comparison
+        - Occupancy intelligence (owner / tenant / investor classification %)
+        - ACT market intelligence and suburb-level radar
+        #### Operational Analytics
+        - Customisable BI analytics dashboard with chart builder
+        - Expense concentration and spending category heatmaps
+        - Maintenance cost trends and predictive forecasting
+
+        ### ⚙️ Platform Administration
+        #### System Management
+        - 130+ feature toggles with per-building granularity
+        - RBAC and ABAC user and role management
+        - Audit logs, IP security logs and rate limiting
+        - Admin impersonation for support purposes
+        #### Identity & Security Layer
+        - Postgres identity layer — `identity_core` is PG write-primary for East Gate
+        - Row-Level Security (RLS) — database-enforced tenant isolation
+        - Invitation-based user onboarding (email claim tokens)
+        - Multi-tenant JWT (tenant_id + building_id claims)
+        - Alembic-managed identity schema (migrations 0013–0015)
+        #### MongoDB → PostgreSQL Cutover
+        - Settings and occupancy are PostgreSQL read-primary and awaiting write-promotion smoke tests
+        - Finance ledger has posted levy-income data but remains blocked by shadow diffs and expense/reconciliation gaps
+        - Trust and reconciliation are PostgreSQL read-primary but require V2 comparator evidence before write promotion
+        - Governance is PostgreSQL read-primary with partial genesis data; decisions remain empty
+        #### Data Management
+        - Financial data import from CSV and Excel
+        - MRI legacy system migration with staging validation
+        - Versioned external API with scope-controlled access
+        - Multi-building onboarding wizard
+        - Strata sync and third-party data federation
+
+        ---
+
+        ## 👥 Executive Committee
+
+        ### 💵 Financial Oversight
+        #### Fund Status Dashboard
+        - Admin fund balance and health status
+        - Sinking fund reserve adequacy percentage
+        - Real-time levy collection rate
+        - Budget vs actual breakdown by category
+        - Levy arrears aging overview
+        #### Financial Approvals
+        - Invoice approval queue above threshold
+        - Special levy creation approval
+        - Work order quote approval (above committee threshold)
+        - Budget category configuration
+
+        ### 🏛️ Governance
+        #### Committee Operations
+        - Meeting scheduling and minutes review
+        - Proposal creation and community voting
+        - Decision register access and search
+        - Conflict of interest declarations per motion
+        - AGM attendance, motions and proxy voting
+        #### Rules and Compliance
+        - By-laws repository and update management
+        - Compliance register visibility across all categories
+        - Essential services (lift, fire, pool) compliance status
+        - Outstanding issues dashboard with SLA status
+
+        ### 🔍 Strategic Intelligence
+        #### Capital Risk and Reserve Planning
+        - Building risk index (0–100 composite score)
+        - Capital risk assessment by asset category
+        - Capital shock scenario analysis (major vs minor)
+        - Reserve fund stress testing against depletion scenarios
+        #### Investment Intelligence
+        - Building investment grade (A through F rating)
+        - Risk-adjusted yield estimates for owner-investors
+        - Market benchmarking against ACT suburb median data
+        #### Levy Fairness and Strategy
+        - Levy fairness index (LBFI — lot-by-lot breakdown)
+        - Unit contribution vs benefit analysis
+        - Cross-subsidy map (who pays for which facilities)
+        - What-if levy scenario modelling
+        - 10-year levy stability projections with CPI bands
+
+        ### 🔨 Operations Oversight
+        - Work order approval above governance threshold
+        - Contractor performance visibility and comparison
+        - Defect status and SLA tracking
+        - Preventive maintenance schedule status
+        - Building compliance status and overdue items
+        - WHS incident summary
+
+        ---
+
+        ## 🏠 Owners and Residents
+
+        ### 💳 Personal Finances
+        #### My Levy Account
+        - Current levy balance and arrears status
+        - Upcoming due date and instalment amount
+        - Quarterly payment schedule (all four quarters)
+        - Full payment history and downloadable receipts
+        - One-click online payment
+        - Download levy notices and invoices as PDF
+        #### Financial Transparency
+        - Admin fund and sinking fund health (my share)
+        - True cost of ownership (levies + rates + utilities, 10-year view)
+        - Council rates and land tax per lot
+        - Icon Water supply charge breakdown
+        - Building insurance per-unit share
+
+        ### 🏡 My Property (Owner Hub)
+        #### Property Dashboard
+        - Multi-unit ownership dashboard (for investors with multiple lots)
+        - Weekly property health score (0–100)
+        - Tenancy management and lease tracking
+        - Rental certificate requests (ACT Section 119A)
+        - Rent ledger and tenant arrears overview
+        - Digital tenancy passport (portable residency score)
+        - Inspection reports history
+
+        ### 🔔 Requests and Maintenance
+        #### Smart Requests
+        - NLP-powered smart request intake (natural language)
+        - Real-time request status and tracking
+        - Before and after photo evidence visibility
+        - PPM schedule — upcoming maintenance calendar
+        - Facility bookings (common areas, visitor parking, gyms)
+        - Parcel arrival and collection notifications
+
+        ### 🤝 Community and Social
+        #### Community Hub
+        - Building announcements and notice reading
+        - Resident directory (privacy-controlled opt-in)
+        - Community marketplace (buy, sell, trade, services)
+        - Events calendar with invitations
+        - Group chat and private resident messaging
+        - Building blog and suburb news digest
+        - Quick polls (non-binding community input)
+        #### Participation Programs
+        - Volunteer credits program (earn levy offsets)
+        - Pet register and management
+        - Community group buying campaigns
+        - Building health score visibility
+
+        ### 🗳️ Governance Participation
+        - AGM attendance registration and proxy submission
+        - Community proposal voting
+        - Meeting minutes access and history
+        - Decision register viewing
+        - Fund health and capital works transparency
+        - By-laws access and digital acknowledgment
+        - Compliance status overview (my building)
+
+        ### 📱 Digital Experience
+        - Adaptive navigation (learns and reorders by usage)
+        - Building switcher (multi-building owners and managers)
+        - Two-factor authentication (TOTP hardware-key compatible)
+        - Email and notification preferences self-service
+        - Profile and unit credentials management
+        - Mobile-responsive design across all features
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ STATS -->
+<div class="stats-strip">
+    <div class="stat">
+        <div class="num">730+</div>
+        <div class="lbl">API Endpoints</div>
+    </div>
+    <div class="stat">
+        <div class="num">108</div>
+        <div class="lbl">Backend Routers</div>
+    </div>
+    <div class="stat">
+        <div class="num">130+</div>
+        <div class="lbl">Feature Toggles</div>
+    </div>
+    <div class="stat">
+        <div class="num">180+</div>
+        <div class="lbl">DB Collections</div>
+    </div>
+    <div class="stat">
+        <div class="num">20</div>
+        <div class="lbl">Automated Jobs</div>
+    </div>
+    <div class="stat">
+        <div class="num">90%+</div>
+        <div class="lbl">Collection Rate</div>
+    </div>
+    <div class="stat">
+        <div class="num">ACT · NSW</div>
+        <div class="lbl">Jurisdictions</div>
+    </div>
+    <div class="stat">
+        <div class="num">7-Year</div>
+        <div class="lbl">Audit Retention</div>
+    </div>
+    <div class="stat">
+        <div class="num">3</div>
+        <div class="lbl">Live Buildings</div>
+    </div>
+    <div class="stat">
+        <div class="num">AI-OCR</div>
+        <div class="lbl">Invoice Parsing</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ WHAT THE DATA TELLS YOU -->
+<div class="summary-section">
+    <h2>What the platform tracks in real time</h2>
+    <div class="summary-pills">
+        <div class="summary-pill">Levy collected vs levied <strong>→ collection rate %</strong></div>
+        <div class="summary-pill">Bank balance vs portal balance <strong>→ reconciliation gap</strong></div>
+        <div class="summary-pill">Budget vs actual spend <strong>→ variance per category</strong></div>
+        <div class="summary-pill">Sinking fund vs capital plan <strong>→ reserve adequacy %</strong></div>
+        <div class="summary-pill">Asset age vs replacement schedule <strong>→ capital shock risk</strong></div>
+        <div class="summary-pill">Maintenance SLAs <strong>→ breach count &amp; severity</strong></div>
+        <div class="summary-pill">Unit contribution vs facility use <strong>→ levy fairness index</strong></div>
+        <div class="summary-pill">Occupancy mix <strong>→ owner / tenant / investor %</strong></div>
+        <div class="summary-pill">Arrears aging <strong>→ CRITICAL / HIGH / MODERATE / LOW risk</strong></div>
+        <div class="summary-pill">Compliance items due <strong>→ overdue alert count</strong></div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ PERSONA FEATURE GRID -->
+<div class="feature-section">
+    <h2>Feature Summary by Persona</h2>
+    <p>All features are building-agnostic and activated via per-building feature toggles. Role access is enforced at
+        every API endpoint via RBAC with effective-role elevation support for temporarily elevated EC members. Tags
+        marked <span class="tag hi" style="font-size:11px">green</span> are strategic differentiators; <span
+                class="tag new" style="font-size:11px">gold</span> are recently added (2026); <span class="tag ai"
+                                                                                                    style="font-size:11px">purple</span>
+        are AI-powered.</p>
+
+    <div class="persona-grid">
+
+        <!-- ─── STRATA MANAGER ─── -->
+        <div class="pcard">
+            <div class="pcard-hdr sm">
+                <h3>🏢 Strata Manager</h3>
+                <p>Full platform access — financial administration, compliance, maintenance, communication, analytics
+                    and reporting</p>
+            </div>
+            <div class="pcard-body">
+
+                <div class="cat">
+                    <div class="cat-title">💰 Financial Management</div>
+                    <div class="tags">
+                        <span class="tag hi">Levy Collection &amp; KPIs</span>
+                        <span class="tag hi">Trust Accounting</span>
+                        <span class="tag hi">3-Way Bank Reconciliation</span>
+                        <span class="tag ai">Invoice OCR (Claude Vision AI)</span>
+                        <span class="tag">AP Approval Queue</span>
+                        <span class="tag">ABA Payment File Generation</span>
+                        <span class="tag">GST / BAS Quarterly Reporting</span>
+                        <span class="tag hi">5-Year Financial Projections</span>
+                        <span class="tag hi">Arrears Management</span>
+                        <span class="tag new">Payment Plans (NSW Form 1)</span>
+                        <span class="tag hi">8-Layer Bank Transaction Matching</span>
+                        <span class="tag">Council Rates &amp; Water Bills</span>
+                        <span class="tag">Special Levy Creation</span>
+                        <span class="tag">Savings &amp; Cost Events Tracking</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">🔧 Maintenance &amp; Operations</div>
+                    <div class="tags">
+                        <span class="tag">Work Orders (full lifecycle)</span>
+                        <span class="tag hi">79-Item PPM Schedule</span>
+                        <span class="tag">Contractor Management</span>
+                        <span class="tag hi">Digital Twin Asset Registry</span>
+                        <span class="tag">Before &amp; After Photo Evidence</span>
+                        <span class="tag new">WHS / SWMS Compliance</span>
+                        <span class="tag">Defect Snagging List</span>
+                        <span class="tag ai">AI Maintenance Forecasting</span>
+                        <span class="tag">15-Year Capital Replacement Schedule</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">⚖️ Compliance &amp; Governance</div>
+                    <div class="tags">
+                        <span class="tag">AGM &amp; Meeting Management</span>
+                        <span class="tag">Decision Register (DEC-YYYY-NNNN)</span>
+                        <span class="tag hi">ACT / NSW Rules Engine</span>
+                        <span class="tag new">Conflict of Interest Register</span>
+                        <span class="tag">Essential Services Compliance</span>
+                        <span class="tag new">Pool Safety Register</span>
+                        <span class="tag">Rental Certificates (ACT s.119A)</span>
+                        <span class="tag">Strata Roll Management</span>
+                        <span class="tag">7-Year Owner Transfer Audit Trail</span>
+                        <span class="tag">Class A/B Scheme Levy Split</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">📊 Analytics &amp; Intelligence</div>
+                    <div class="tags">
+                        <span class="tag hi">Portfolio Multi-Building Dashboard</span>
+                        <span class="tag hi">Building Stress Score (7 components)</span>
+                        <span class="tag">Capital Risk &amp; Shock Modelling</span>
+                        <span class="tag hi">Levy Fairness Index (LBFI)</span>
+                        <span class="tag">Occupancy Intelligence</span>
+                        <span class="tag">ACT Market Intelligence</span>
+                        <span class="tag">Customisable BI Dashboard</span>
+                        <span class="tag">Investor Grade (A–F rating)</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">📢 Communication &amp; Documents</div>
+                    <div class="tags">
+                        <span class="tag">Segmented Announcement Broadcasting</span>
+                        <span class="tag">Official Notices &amp; Acknowledgments</span>
+                        <span class="tag hi">Automated Letter Generation (PDF)</span>
+                        <span class="tag new">PDF Annotation Layer</span>
+                        <span class="tag">Custom Domain Email System</span>
+                        <span class="tag">Document Version Control</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">⚙️ Administration</div>
+                    <div class="tags">
+                        <span class="tag hi">130+ Per-Building Feature Toggles</span>
+                        <span class="tag">RBAC + ABAC User Management</span>
+                        <span class="tag">Full Audit Trail &amp; IP Security Logs</span>
+                        <span class="tag">Admin Impersonation for Support</span>
+                        <span class="tag">Financial Data Import (CSV/Excel)</span>
+                        <span class="tag">External Versioned API</span>
+                        <span class="tag">Multi-Building Onboarding Wizard</span>
+                        <span class="tag new">Postgres Identity Layer (dual-write)</span>
+                        <span class="tag new">Row-Level Security (RLS tenant isolation)</span>
+                        <span class="tag new">Invitation-Based User Onboarding</span>
+                        <span class="tag new">Multi-Tenant JWT (tenant_id claim)</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ─── EXECUTIVE COMMITTEE ─── -->
+        <div class="pcard">
+            <div class="pcard-hdr ec">
+                <h3>👥 Executive Committee</h3>
+                <p>Financial oversight, governance decisions, strategic planning, capital risk assessment and approval
+                    authority</p>
+            </div>
+            <div class="pcard-body">
+
+                <div class="cat">
+                    <div class="cat-title">💵 Financial Oversight</div>
+                    <div class="tags">
+                        <span class="tag hi">Admin Fund Balance &amp; Health</span>
+                        <span class="tag hi">Sinking Fund Reserve Adequacy</span>
+                        <span class="tag hi">Real-Time Collection Rate (%)</span>
+                        <span class="tag">Budget vs Actual by Category</span>
+                        <span class="tag">Levy Arrears Aging Overview</span>
+                        <span class="tag">Invoice Approval Queue</span>
+                        <span class="tag">Special Levy Approval</span>
+                        <span class="tag">Work Order Quote Approval</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">🏛️ Governance Decisions</div>
+                    <div class="tags">
+                        <span class="tag hi">Meeting Minutes &amp; Resolutions</span>
+                        <span class="tag hi">Community Proposal Voting</span>
+                        <span class="tag">Decision Register (search &amp; filter)</span>
+                        <span class="tag new">Conflict of Interest Declarations</span>
+                        <span class="tag">AGM Attendance &amp; Motions</span>
+                        <span class="tag">By-Laws Repository</span>
+                        <span class="tag">Compliance Status Overview</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">🔍 Strategic Intelligence</div>
+                    <div class="tags">
+                        <span class="tag hi">Building Risk Index (0–100 Score)</span>
+                        <span class="tag">Capital Risk Assessment</span>
+                        <span class="tag hi">Capital Shock Scenario Analysis</span>
+                        <span class="tag">Reserve Fund Stress Testing</span>
+                        <span class="tag hi">Investment Grade (A–F Rating)</span>
+                        <span class="tag hi">Levy Fairness Index (LBFI)</span>
+                        <span class="tag">Cross-Subsidy Map (lot vs facility)</span>
+                        <span class="tag">Suburb Market Benchmarking</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">📈 Levy Strategy &amp; Forecasting</div>
+                    <div class="tags">
+                        <span class="tag hi">What-If Levy Scenario Modelling</span>
+                        <span class="tag hi">10-Year Reserve Timeline</span>
+                        <span class="tag hi">5-Year Expenditure Forecast</span>
+                        <span class="tag">CPI-Adjusted Levy Projections</span>
+                        <span class="tag">Levy Stability Band Analysis</span>
+                        <span class="tag">Building Financial Stress Test</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">🔨 Operations Oversight</div>
+                    <div class="tags">
+                        <span class="tag">Work Order Approvals (above threshold)</span>
+                        <span class="tag">Contractor Performance Visibility</span>
+                        <span class="tag">Defect Status &amp; SLA Tracking</span>
+                        <span class="tag">PPM Schedule Status</span>
+                        <span class="tag">Outstanding Issues Dashboard</span>
+                        <span class="tag">WHS Incident Summary</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">🤝 Community &amp; Communication</div>
+                    <div class="tags">
+                        <span class="tag">Announcements (create &amp; broadcast)</span>
+                        <span class="tag">Resident Engagement Metrics</span>
+                        <span class="tag">Building Health Score</span>
+                        <span class="tag">Marketplace Oversight</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ─── OWNERS ─── -->
+        <div class="pcard">
+            <div class="pcard-hdr own">
+                <h3>🏠 Owners &amp; Residents</h3>
+                <p>Personal finances, property management, community participation, maintenance requests and governance
+                    voting</p>
+            </div>
+            <div class="pcard-body">
+
+                <div class="cat">
+                    <div class="cat-title">💳 Personal Finances</div>
+                    <div class="tags">
+                        <span class="tag hi">Levy Balance &amp; Arrears Status</span>
+                        <span class="tag hi">Payment History &amp; PDF Receipts</span>
+                        <span class="tag">Upcoming Due Dates &amp; Amounts</span>
+                        <span class="tag">One-Click Online Payment</span>
+                        <span class="tag">Download Levy Notices</span>
+                        <span class="tag hi">True Cost of Ownership (10-Year)</span>
+                        <span class="tag">Council Rates Visibility</span>
+                        <span class="tag">Water Bill Breakdown per Lot</span>
+                        <span class="tag">Building Insurance Share</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">🏡 Owner Hub — My Property</div>
+                    <div class="tags">
+                        <span class="tag hi">Weekly Property Health Score (0–100)</span>
+                        <span class="tag">Multi-Unit Ownership Dashboard</span>
+                        <span class="tag">Tenancy Management &amp; Lease Tracking</span>
+                        <span class="tag">Rental Certificate Requests (s.119A)</span>
+                        <span class="tag">Rent Ledger &amp; Tenant Arrears</span>
+                        <span class="tag new">Digital Tenancy Passport</span>
+                        <span class="tag">Inspection History &amp; Reports</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">🔔 Requests &amp; Maintenance</div>
+                    <div class="tags">
+                        <span class="tag ai hi">NLP Smart Request Intake</span>
+                        <span class="tag hi">Real-Time Request Status Tracking</span>
+                        <span class="tag">Before/After Photo Evidence</span>
+                        <span class="tag">Facility Bookings (common areas)</span>
+                        <span class="tag">Parcel Arrival Notifications</span>
+                        <span class="tag">Upcoming PPM Calendar</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">🤝 Community &amp; Social</div>
+                    <div class="tags">
+                        <span class="tag">Building Announcements</span>
+                        <span class="tag hi">Community Marketplace</span>
+                        <span class="tag">Resident Directory (opt-in, private)</span>
+                        <span class="tag">Events Calendar</span>
+                        <span class="tag">Group Chat &amp; Messaging</span>
+                        <span class="tag">Building Blog &amp; Suburb News</span>
+                        <span class="tag new">Volunteer Credits (Levy Offsets)</span>
+                        <span class="tag">Pet Register</span>
+                        <span class="tag">Community Quick Polls</span>
+                        <span class="tag">Group Buying Campaigns</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">🗳️ Governance Participation</div>
+                    <div class="tags">
+                        <span class="tag">AGM Attendance &amp; Proxy Submission</span>
+                        <span class="tag hi">Community Proposal Voting</span>
+                        <span class="tag">Meeting Minutes Access</span>
+                        <span class="tag">Fund Health Dashboard</span>
+                        <span class="tag">Capital Works Timeline View</span>
+                        <span class="tag">By-Laws Access &amp; Acknowledgment</span>
+                    </div>
+                </div>
+
+                <div class="cat">
+                    <div class="cat-title">📱 Smart Digital Experience</div>
+                    <div class="tags">
+                        <span class="tag ai">Adaptive Navigation (learns habits)</span>
+                        <span class="tag">Building Switcher (multi-building)</span>
+                        <span class="tag">Two-Factor Authentication (TOTP)</span>
+                        <span class="tag">Email &amp; Notification Preferences</span>
+                        <span class="tag">Profile &amp; Credentials Self-Service</span>
+                        <span class="tag">Mobile-Responsive Design</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ VALUE PROPOSITION -->
+<div class="value-section">
+    <h2>How the Platform Creates Value — by Persona</h2>
+    <div class="value-grid">
+
+        <div class="value-card sm">
+            <h4>🏢 For the Strata Manager</h4>
+            <ul>
+                <li>Replace spreadsheets with a live levy ledger — know who owes what, right now</li>
+                <li>Trust reconciliation runs automatically — bank balance, portal balance and internal ledger always
+                    agree (or flag exceptions)
+                </li>
+                <li>Invoice OCR eliminates manual data entry — AI extracts vendor, amount, ABN and GST line items</li>
+                <li>79-item PPM schedule auto-generates work orders and notifies contractors — nothing falls through the
+                    cracks
+                </li>
+                <li>Regulatory compliance (ACT/NSW) rules are encoded as data — stay ahead of statutory changes without
+                    code releases
+                </li>
+                <li>One dashboard shows all three buildings — portfolio-level KPIs in a single view</li>
+                <li>130+ feature toggles let you roll out or restrict features per building without any code
+                    deployment
+                </li>
+            </ul>
+        </div>
+
+        <div class="value-card ec">
+            <h4>👥 For the Executive Committee</h4>
+            <ul>
+                <li>See the building's financial health score (0–100) and reserve adequacy at a glance — no waiting for
+                    the manager's report
+                </li>
+                <li>Capital shock modelling shows what happens to levies if a major asset fails unexpectedly</li>
+                <li>Levy fairness index reveals whether apartments subsidise townhouses (or vice versa) — data for levy
+                    reform decisions
+                </li>
+                <li>Investment grade (A–F) gives an objective picture of how the building compares to the market</li>
+                <li>Conflict of interest register makes governance transparent — declarations are logged against
+                    specific motions
+                </li>
+                <li>What-if levy scenarios let the committee test different levy increase options before the AGM</li>
+                <li>All approvals (invoices, quotes, special levies) are tracked with a full decision audit trail</li>
+            </ul>
+        </div>
+
+        <div class="value-card own">
+            <h4>🏠 For Owners &amp; Residents</h4>
+            <ul>
+                <li>See exactly what is owed, when it is due and download receipts — no phone calls to the manager
+                    needed
+                </li>
+                <li>True cost of ownership shows levies + council rates + water + insurance in one 10-year view</li>
+                <li>Property health score updated weekly — know the building's condition without reading reports</li>
+                <li>Submit a maintenance request in plain English — the NLP engine routes it to the right contractor
+                    automatically
+                </li>
+                <li>Vote on community proposals and AGM motions from a phone — no need to be physically present</li>
+                <li>Volunteer credits program rewards community contribution with levy offsets</li>
+                <li>Community marketplace, chat and directory build genuine neighbourly engagement</li>
+            </ul>
+        </div>
+
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ AUTOMATION -->
+<div class="auto-section">
+    <h2>What Runs Automatically — 24/7 Background Processes</h2>
+    <p>These 20 scheduled jobs run without manual intervention, keeping data fresh and sending alerts at the right
+        moment.</p>
+    <div class="auto-grid">
+        <div class="auto-card">
+            <div class="icon">💰</div>
+            <h4>Financial Recompute</h4>
+            <p>Nightly recompute of forecasts, anomalies, lot summaries and cashflow projections across all
+                buildings</p>
+            <div class="freq">Nightly</div>
+        </div>
+        <div class="auto-card">
+            <div class="icon">📬</div>
+            <h4>Levy Reminder Engine</h4>
+            <p>Escalating reminder emails (pre-due → overdue) with per-building cadence configuration</p>
+            <div class="freq">Quarterly / On-demand</div>
+        </div>
+        <div class="auto-card">
+            <div class="icon">🏦</div>
+            <h4>Trust Interest Accrual</h4>
+            <p>Monthly interest posting on trust accounts — calculates and posts journal entries automatically</p>
+            <div class="freq">Monthly</div>
+        </div>
+        <div class="auto-card">
+            <div class="icon">⚠️</div>
+            <h4>Arrears Risk Scoring</h4>
+            <p>Daily risk classification (CRITICAL / HIGH / MODERATE / LOW) per unit based on aging and payment
+                history</p>
+            <div class="freq">Daily</div>
+        </div>
+        <div class="auto-card">
+            <div class="icon">🔧</div>
+            <h4>PPM Work Order Generator</h4>
+            <p>Instantiates work orders for scheduled preventive maintenance items and sends contractor
+                notifications</p>
+            <div class="freq">Daily</div>
+        </div>
+        <div class="auto-card">
+            <div class="icon">🤖</div>
+            <h4>Maintenance Intelligence</h4>
+            <p>AI-driven asset risk scoring, maintenance cost forecasting and capital works planning update</p>
+            <div class="freq">Nightly</div>
+        </div>
+        <div class="auto-card">
+            <div class="icon">📰</div>
+            <h4>News &amp; Property Scraper</h4>
+            <p>Scrapes local suburb news and ACT property listings for market intelligence and community blog</p>
+            <div class="freq">Daily / Weekly</div>
+        </div>
+        <div class="auto-card">
+            <div class="icon">🏙️</div>
+            <h4>Occupancy Recompute</h4>
+            <p>Classifies each lot as owner-occupied, rented or investor-held based on registration and tenancy data</p>
+            <div class="freq">Daily</div>
+        </div>
+        <div class="auto-card">
+            <div class="icon">🔔</div>
+            <h4>Notification Digest</h4>
+            <p>Compiles weekly activity digests for each user — activity summaries, upcoming payments, open items</p>
+            <div class="freq">Daily compilation</div>
+        </div>
+        <div class="auto-card">
+            <div class="icon">📋</div>
+            <h4>Compliance Checker</h4>
+            <p>Scans compliance registers and essential services logs — sends overdue alerts to manager and EC</p>
+            <div class="freq">Daily</div>
+        </div>
+        <div class="auto-card">
+            <div class="icon">🛡️</div>
+            <h4>Tenancy Expiry Checker</h4>
+            <p>Detects tenant/guest accounts nearing expiry and sends renewal or expiry notifications</p>
+            <div class="freq">Daily</div>
+        </div>
+        <div class="auto-card">
+            <div class="icon">🧭</div>
+            <h4>Adaptive Navigation</h4>
+            <p>Reorders sidebar navigation items per user based on click frequency — most-used features float to the
+                top</p>
+            <div class="freq">Daily</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ FOOTER -->
+<div class="footer">
+    <div>StrataOS Platform · Multi-Tenant Strata Management SaaS · East Gate Residences · Acme Strata Demo
+    </div>
+    <div>Generated May 2026 · Phase F-Zero (Platform Reset) · All features subject to per-building feature toggles ·
+        ACT Unit Titles (Management) Act 2011 &amp; NSW SSMA 2015 Compliant
+    </div>
+</div>
+
+</body>
+</html>

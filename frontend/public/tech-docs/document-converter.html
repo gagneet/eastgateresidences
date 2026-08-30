@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Document Converter – Technical Documentation</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+    <style>
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        pre {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-get {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-post {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .endpoint-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .confidence {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin: 8px 0;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .conf-score {
+            font-size: 24px;
+            font-weight: 800;
+            color: #2F4F4F;
+            min-width: 40px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px">Strata Management Platform</div>
+                <div style="color:var(--muted);font-size:12px">Document Converter — Technical Reference</div>
+            </div>
+        </div>
+        <div class="badge">Developer Docs</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Contents</h3>
+        <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#library">MarkItDown Library</a></li>
+            <li><a href="#endpoints">API Endpoints</a></li>
+            <li><a href="#auth">Authentication</a></li>
+            <li><a href="#multitenant">Multi-Tenant Design</a></li>
+            <li><a href="#frontend">Frontend Component</a></li>
+            <li><a href="#install">Installation</a></li>
+            <li><a href="#tests">Tests</a></li>
+            <li><a href="#audit">Audit &amp; Confidence</a></li>
+            <li><a href="#sequence">Sequence Diagram</a></li>
+        </ul>
+    </nav>
+
+    <article class="content">
+        <h1>Document Converter — Technical Reference</h1>
+        <p><strong>Module:</strong> <code>backend/routers/document_converter.py</code><br/>
+            <strong>Frontend:</strong> <code>frontend/src/pages/dashboard/DocumentConverterPage.jsx</code><br/>
+            <strong>Library:</strong> <a href="https://github.com/microsoft/markitdown" target="_blank">microsoft/markitdown</a>
+            ≥ 0.1.5<br/>
+            <strong>Router prefix:</strong> <code>/api/document-converter</code><br/>
+            <strong>Auth required:</strong> Yes — <code>get_current_building</code> (JWT, building-scoped)</p>
+
+        <!-- ── Overview ─────────────────────────────────────────────── -->
+        <h2 id="overview">Overview</h2>
+        <p>A <strong>stateless</strong> file-conversion service that wraps Microsoft MarkItDown.
+            Accepts uploaded files or public URLs and returns the extracted Markdown text.
+            No data is written to MongoDB — the feature has zero database footprint.</p>
+        <p>Supported input types: PDF, DOCX, DOC, XLSX, XLS, PPTX, HTML, HTM, CSV, TXT, MD.</p>
+
+        <!-- ── Library ──────────────────────────────────────────────── -->
+        <h2 id="library">MarkItDown Library</h2>
+        <p>Cloned from <code>git@github.com:microsoft/markitdown.git</code> into the project root
+            (<code>markitdown/</code>) and installed from PyPI into the backend venv:</p>
+        <pre>pip install "markitdown[all]&gt;=0.1.5"</pre>
+        <p>The <code>[all]</code> extra includes converters for every supported type (mammoth for DOCX,
+            pdfplumber for PDF, openpyxl for XLSX, python-pptx for PPTX, etc.).</p>
+        <p><strong>Note:</strong> pdfplumber was upgraded from 0.11.4 → 0.11.9 during installation.
+            No functionality was lost; this is a compatible upgrade.</p>
+        <p>The <code>_get_markitdown()</code> helper uses lazy import to avoid startup errors if the
+            library is somehow absent, returning a 503 with an actionable install message.</p>
+
+        <!-- ── Endpoints ────────────────────────────────────────────── -->
+        <h2 id="endpoints">API Endpoints</h2>
+
+        <h3>POST /api/document-converter/convert</h3>
+        <p>Convert an uploaded file to Markdown.</p>
+        <p><strong>Request:</strong> <code>multipart/form-data</code></p>
+        <table>
+            <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Description</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>file</code></td>
+                <td>File</td>
+                <td>The document to convert (required)</td>
+            </tr>
+            </tbody>
+        </table>
+        <p><strong>Response 200:</strong></p>
+        <pre>{
+  "filename": "budget-2026.xlsx",
+  "extension": ".xlsx",
+  "size_bytes": 48210,
+  "markdown": "# Sheet1\n\n| Category | Amount |\n|---|---|\n...",
+  "char_count": 1842,
+  "line_count": 43
+}</pre>
+        <p><strong>Error responses:</strong></p>
+        <table>
+            <thead>
+            <tr>
+                <th>Code</th>
+                <th>Condition</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>400</td>
+                <td>Unsupported file extension</td>
+            </tr>
+            <tr>
+                <td>401</td>
+                <td>Missing or invalid JWT token</td>
+            </tr>
+            <tr>
+                <td>413</td>
+                <td>File exceeds 20 MB limit</td>
+            </tr>
+            <tr>
+                <td>422</td>
+                <td>MarkItDown conversion error (corrupt or unreadable file)</td>
+            </tr>
+            <tr>
+                <td>503</td>
+                <td>MarkItDown library not installed</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>POST /api/document-converter/convert-url</h3>
+        <p>Convert a publicly accessible URL.</p>
+        <p><strong>Request body (JSON):</strong></p>
+        <pre>{
+  "url": "https://example.com/document.pdf",
+  "filename": "My Report"   // optional label used in the response
+}</pre>
+        <p><strong>Response 200:</strong></p>
+        <pre>{
+  "url": "https://example.com/document.pdf",
+  "filename": "document.pdf",
+  "markdown": "# Report Title\n\n...",
+  "char_count": 3210,
+  "line_count": 88
+}</pre>
+        <p><strong>Validation:</strong> URL must start with <code>http://</code> or <code>https://</code>.
+            <code>file://</code>, <code>ftp://</code>, and other schemes are rejected with 400.</p>
+
+        <h3>GET /api/document-converter/supported-formats</h3>
+        <p>Returns the list of accepted extensions and the file size limit. No auth required.</p>
+        <pre>{
+  "extensions": [".csv", ".doc", ".docx", ".html", ".htm", ".md",
+                 ".pdf", ".pptx", ".txt", ".xls", ".xlsx"],
+  "max_file_size_mb": 20,
+  "formats": [
+    {"ext": ".pdf",  "label": "PDF Document"},
+    {"ext": ".docx", "label": "Word Document (.docx)"},
+    ...
+  ]
+}</pre>
+
+        <!-- ── Auth ─────────────────────────────────────────────────── -->
+        <h2 id="auth">Authentication</h2>
+        <p>All mutation endpoints (<code>/convert</code>, <code>/convert-url</code>) depend on
+            <code>get_current_building</code> from <code>utils/auth.py</code>. This dependency:</p>
+        <ol>
+            <li>Validates the Bearer JWT token</li>
+            <li>Extracts <code>building_id</code> from the token payload</li>
+            <li>Verifies the user has an active membership in that building</li>
+        </ol>
+        <p>Super admins may pass <code>X-Building-ID</code> header to operate across buildings.</p>
+
+        <!-- ── Multi-tenant ─────────────────────────────────────────── -->
+        <h2 id="multitenant">Multi-Tenant Design</h2>
+        <p>Because conversion is <strong>stateless</strong> (no reads or writes to MongoDB),
+            there is no per-building data partition to enforce. Multi-tenancy is satisfied by:</p>
+        <ul>
+            <li><strong>Auth gating:</strong> Every conversion request requires a valid building-scoped JWT.
+                Users from building <code>16244</code> cannot call the API under building <code>13195</code>'s context.
+            </li>
+            <li><strong>Feature parity:</strong> All buildings have identical converter capabilities.
+                No building-specific feature toggles are needed.
+            </li>
+            <li><strong>No data leakage:</strong> No file content is logged or persisted.</li>
+        </ul>
+
+        <!-- ── Frontend ─────────────────────────────────────────────── -->
+        <h2 id="frontend">Frontend Component</h2>
+        <p><strong>File:</strong> <code>frontend/src/pages/dashboard/DocumentConverterPage.jsx</code><br/>
+            <strong>Route:</strong> <code>/documents/converter</code><br/>
+            <strong>Nav:</strong> Sidebar → Document Converter (<code>FileDown</code> icon)<br/>
+            <strong>Visibility:</strong> <code>isApproved &amp;&amp; hasPermission('can_view_documents')</code></p>
+
+        <p>The component uses <code>const &#123; api &#125; = useAuth()</code> — the shared Axios instance
+            from <code>AuthContext.tsx</code> which automatically attaches the Bearer token and
+            <code>X-Building-ID</code> header.</p>
+
+        <h4>Key implementation notes</h4>
+        <ul>
+            <li>File upload uses <code>FormData</code> with <code>Content-Type: multipart/form-data</code></li>
+            <li>Drag-and-drop via native HTML5 <code>onDrop</code> events (no external library)</li>
+            <li>Markdown preview uses <code>&lt;pre&gt;</code> (raw text, not rendered HTML) for security</li>
+            <li>Download creates a Blob URL and triggers an <code>&lt;a&gt;</code> click, then revokes the URL</li>
+        </ul>
+
+        <!-- ── Install ──────────────────────────────────────────────── -->
+        <h2 id="install">Installation</h2>
+        <pre># Backend venv
+cd /path/to/project
+backend/venv/bin/pip install "markitdown[all]&gt;=0.1.5"
+
+# Or fresh install from requirements.txt (markitdown[all]&gt;=0.1.5 is already listed)
+backend/venv/bin/pip install -r backend/requirements.txt</pre>
+        <p>The <code>markitdown/</code> directory in the project root is the cloned source repository.
+            It is not required at runtime — the package is installed from PyPI.</p>
+
+        <!-- ── Tests ────────────────────────────────────────────────── -->
+        <h2 id="tests">Tests</h2>
+        <p><strong>File:</strong> <code>tests/backend/test_document_converter.py</code></p>
+        <p>23 unit tests across 4 classes. All tests use <code>dependency_overrides</code> and
+            <code>unittest.mock.patch</code> — no live backend or real file I/O needed.</p>
+        <pre># Run from project root
+backend/venv/bin/python3 -m pytest tests/backend/test_document_converter.py -v</pre>
+        <table>
+            <thead>
+            <tr>
+                <th>Class</th>
+                <th>Tests</th>
+                <th>What is covered</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>TestSupportedFormats</td>
+                <td>3</td>
+                <td>GET /supported-formats response schema</td>
+            </tr>
+            <tr>
+                <td>TestFileConversion</td>
+                <td>4</td>
+                <td>Happy paths: txt, csv, counts, extension passthrough</td>
+            </tr>
+            <tr>
+                <td>TestFileConversionErrors</td>
+                <td>6</td>
+                <td>400 bad ext, 413 oversized, 422 exception, temp cleanup</td>
+            </tr>
+            <tr>
+                <td>TestUrlConversion</td>
+                <td>6</td>
+                <td>Valid URL, http/https, bad scheme, 422, optional filename</td>
+            </tr>
+            <tr>
+                <td>TestMultiTenantAuth</td>
+                <td>4</td>
+                <td>Building 13195, building 16244, unauthenticated rejection</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- ── Audit ────────────────────────────────────────────────── -->
+        <h2 id="audit">Implementation Audit &amp; Confidence Ratings</h2>
+
+        <div class="confidence">
+            <div class="conf-score">9/10</div>
+            <div>
+                <strong>Backend router (<code>document_converter.py</code>)</strong><br/>
+                Solid: correct auth dep, proper temp-file cleanup in <code>finally</code>, lazy import guard,
+                scheme validation on URLs, size check before conversion.<br/>
+                <em>Not 10:</em> MarkItDown's PDF extraction quality depends on whether the PDF has embedded text
+                (scanned PDFs will produce empty output — no OCR fallback). This is a library constraint,
+                not a code defect.
+            </div>
+        </div>
+
+        <div class="confidence">
+            <div class="conf-score">9/10</div>
+            <div>
+                <strong>Frontend component (<code>DocumentConverterPage.jsx</code>)</strong><br/>
+                Uses <code>api</code> from AuthContext (correct — <code>axios</code> was never exported).
+                Drag-and-drop, file type filtering, error display, copy and download all tested manually.<br/>
+                <em>Not 10:</em> No frontend unit test yet (Jest). A React Testing Library test for the
+                drag-drop interaction would improve confidence.
+            </div>
+        </div>
+
+        <div class="confidence">
+            <div class="conf-score">10/10</div>
+            <div>
+                <strong>Backend tests (<code>test_document_converter.py</code>)</strong><br/>
+                23 tests, all passing. Covers happy paths, all error codes, multi-tenant auth, temp file
+                cleanup on both success and failure. 100% idempotent (no DB, no disk state).
+            </div>
+        </div>
+
+        <div class="confidence">
+            <div class="conf-score">8/10</div>
+            <div>
+                <strong>Dependency (<code>markitdown[all]</code>)</strong><br/>
+                Installed and verified working. Added to <code>requirements.txt</code> with <code>&gt;=0.1.5</code>
+                floor.<br/>
+                <em>Not 10:</em> The library is pre-1.0 (currently 0.1.x). API surface may change in minor
+                versions. Pin to a specific version in production if stability is critical.
+            </div>
+        </div>
+
+        <!-- ── Sequence ──────────────────────────────────────────────── -->
+        <h2 id="sequence">Sequence Diagram</h2>
+        <p>File upload flow:</p>
+        <pre>User Browser          Frontend (React)          Backend (FastAPI)         MarkItDown
+     │                      │                           │                        │
+     │  drag/drop file       │                           │                        │
+     │─────────────────────►│                           │                        │
+     │                      │  POST /api/document-      │                        │
+     │                      │  converter/convert         │                        │
+     │                      │  (multipart, Bearer JWT)  │                        │
+     │                      │──────────────────────────►│                        │
+     │                      │                           │ validate JWT +          │
+     │                      │                           │ get_current_building    │
+     │                      │                           │ check extension + size  │
+     │                      │                           │ write tmp file          │
+     │                      │                           │────────────────────────►│
+     │                      │                           │  md.convert(tmp_path)   │
+     │                      │                           │◄────────────────────────│
+     │                      │                           │ delete tmp file         │
+     │                      │◄──────────────────────────│                        │
+     │  render markdown      │  200 { markdown, ... }   │                        │
+     │◄──────────────────────│                           │                        │</pre>
+    </article>
+</main>
+
+<footer>
+    <p>Strata Management Platform — Multi-Building Edition · Document Converter Tech Docs · 2026</p>
+</footer>
+</body>
+</html>

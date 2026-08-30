@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Agency Portfolio Analytics Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform</div>
+            </div>
+        </div>
+        <div class="badge">User Guide</div>
+    </div>
+</header>
+
+<main style="display:block">
+    <article class="content">
+
+        <h1>Agency Portfolio Analytics Guide</h1>
+        <p>This guide is for <strong>Strata Admins</strong> who manage a portfolio of buildings. The Agency Analytics
+            dashboard gives you a cross-building view of your entire portfolio's performance — without having to
+            open each building one by one.</p>
+
+        <h2>Accessing Agency Analytics</h2>
+        <ol>
+            <li>Log in as a strata admin.</li>
+            <li>From the main navigation, go to <strong>Dashboard → Agency Analytics</strong>.</li>
+            <li>The dashboard loads showing aggregate data across all buildings assigned to your company.</li>
+        </ol>
+
+        <div class="card callout success">
+            <strong>Tip:</strong> You can filter the agency analytics by management entity (team or office)
+            if your company is structured into multiple teams. Use the <strong>Entity</strong> filter at the
+            top of the page to narrow down to a specific group of buildings.
+        </div>
+
+        <h2>Viewing Cross-Building KPIs</h2>
+        <p>The top section of the Agency Analytics page shows portfolio-wide summary cards:</p>
+        <ul>
+            <li><strong>Total buildings managed</strong> — number of active buildings in your portfolio.</li>
+            <li><strong>Overall levy collection rate</strong> — the weighted average collection rate across
+                all buildings. Aim for above 90%.</li>
+            <li><strong>Total arrears</strong> — the combined arrears balance owed across all buildings. This
+                is the number your principal is most likely to ask about.</li>
+            <li><strong>Compliance overdue (portfolio)</strong> — total count of overdue compliance items
+                across all buildings. Even one building with a critical overdue item will show here.</li>
+            <li><strong>SLA breach count</strong> — total number of maintenance requests in breach across
+                the portfolio, broken down by building.</li>
+            <li><strong>Buildings needing attention</strong> — a quick count of buildings currently rated
+                red or amber, with links to each.</li>
+        </ul>
+
+        <h2>Identifying Underperforming Buildings</h2>
+        <p>The <strong>Building Performance Table</strong> lists every building in your portfolio with a
+            row-level RAG status. Columns include:</p>
+        <ul>
+            <li>Collection rate (this quarter)</li>
+            <li>Arrears as a percentage of annual levy</li>
+            <li>Compliance items overdue</li>
+            <li>Open maintenance requests</li>
+            <li>SLA breach count</li>
+            <li>Budget vs. actual variance</li>
+        </ul>
+        <p>Sort by any column to identify your worst performers. Buildings coloured red in three or more
+            columns may need a management review or additional resource allocation.</p>
+
+        <div class="card callout warn">
+            <strong>Important:</strong> A building that appears red on levy collection but green on compliance
+            and maintenance is a different risk profile from one that is red across the board. Consider each
+            building's combination of signals before escalating.
+        </div>
+
+        <h2>Arrears Hotspots Across the Portfolio</h2>
+        <p>Click <strong>Arrears Deep Dive</strong> on the Agency Analytics page to see:</p>
+        <ul>
+            <li>Which buildings have the highest total arrears in dollar terms.</li>
+            <li>Which buildings have arrears that are increasing month on month.</li>
+            <li>The average days overdue for unpaid levies, by building.</li>
+            <li>A breakdown of arrears by age bucket (0–30 days, 31–60 days, 60+ days) across the portfolio.</li>
+        </ul>
+        <p>Use this view to decide where to apply additional follow-up resources or escalate to a debt
+            collection referral conversation with the EC.</p>
+
+        <h2>Compliance Overdue Across the Portfolio</h2>
+        <p>The <strong>Compliance Overview</strong> panel shows a grid of compliance categories (fire safety,
+            lifts, pool, electrical, etc.) across all buildings. Red cells indicate an item that is currently
+            overdue for that building. You can:</p>
+        <ul>
+            <li>Click any red cell to open that building's compliance detail directly.</li>
+            <li>Export the grid as a spreadsheet for reporting to your principal.</li>
+            <li>Set up automatic email alerts for any compliance item that becomes overdue (available in
+                Agency Settings).</li>
+        </ul>
+
+        <h2>Budget vs. Actual for Each Building</h2>
+        <p>The <strong>Financial Variance</strong> panel shows each building's budget adherence for the
+            current financial year. Buildings that are significantly over budget in any category are
+            highlighted in amber or red.</p>
+        <ul>
+            <li>Over-budget categories are listed with the variance amount and the responsible manager.</li>
+            <li>This view helps you identify where buildings may need a budget revision or where unexpected
+                costs have occurred.</li>
+        </ul>
+
+        <h2>Drilling Down into a Specific Building</h2>
+        <p>From any panel on the Agency Analytics page, you can click a building name or any highlighted
+            figure to go directly into that building's detailed view. The portal switches your building context
+            automatically — you do not need to use the building switcher manually.</p>
+        <p>To return to the agency-level view, use the <strong>Back to Portfolio</strong> link at the top
+            of the screen.</p>
+
+    </article>
+</main>
+
+<footer>
+    <span data-bldg="name">your building</span> | Executive Committee | Strata Manager &nbsp;·&nbsp; E: <a
+        data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC email</a>
+    &nbsp;·&nbsp; P: <span data-bldg="contact_phone">(contact number)</span>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

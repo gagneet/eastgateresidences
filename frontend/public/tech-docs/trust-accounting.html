@@ -1,0 +1,1521 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Trust Accounting – StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">StrataOS</div>
+            <div class="sub">Technical Documentation · Trust Accounting</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Feature Domains</div>
+            <a class="active" data-page="trust-accounting.html" href="trust-accounting.html"><span class="icon">🏦</span>
+                Trust Accounting</a>
+            <a data-page="feature-toggles.html" href="feature-toggles.html"><span class="icon">🎛️</span> Feature Toggles</a>
+            <a data-page="compliance.html" href="compliance.html"><span class="icon">✅</span> Compliance</a>
+            <a data-page="seed-reference.html" href="seed-reference.html"><span class="icon">🌱</span> Seed Reference</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#overview">Overview</a>
+            <a href="#trust-config">Trust Config</a>
+            <a href="#collections">Collections</a>
+            <a href="#posting-rules">Posting Rules</a>
+            <a href="#api-endpoints">API Endpoints</a>
+            <a href="#period-lock-flow">Period Lock Flow</a>
+            <a href="#phase2-ledger-hardening">Phase 2: Ledger Hardening</a>
+            <a href="#production-constraints">Production Constraints</a>
+            <a href="#seed-commands">Seed Commands</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <h1>Trust Accounting</h1>
+        <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role lists on this page naming "chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+        <p>
+            The Trust Accounting module implements a <strong>double-entry bookkeeping system</strong> for strata trust
+            funds.
+            All monetary amounts are stored as <strong>integer cents</strong> to eliminate floating-point rounding
+            errors.
+            The system is fully multi-tenant — every collection record is partitioned by <code>building_id</code> and no
+            cross-building queries are possible.
+        </p>
+        <div class="callout">
+            <strong>Cutover status.</strong> Trust writes still preserve the legacy path, but the read surfaces in
+            <code>routers/trust_accounting.py</code> and <code>routers/trust_reconciliation.py</code> can now switch
+            to PostgreSQL through <code>trust_pg_ledger_enabled</code> and
+            <code>trust_reconciliation_pg_enabled</code>. The PostgreSQL read models live in
+            <code>backend/services/trust_read_service.py</code>; MongoDB remains the compatibility fallback while a
+            scheme is soaking.
+        </div>
+
+        <section id="overview">
+            <div class="callout-warn">
+                <strong>⚠️ This document describes the legacy V1 trust ledger (`trust_ledger_accounts`,
+                `trust_ledger_entries`, `trust_ledger_batches` — routers/trust_accounting.py, mounted at
+                `/api/trust/*`).</strong> V1 is deprecated and staged for retirement (BUG-TRUST-001). The
+                live system is V2 (`trust_accounts_v2`, `trust_transactions_v2` — routers/trust_phase1.py,
+                mounted at `/api/trust/v2/*`), documented in <code class="tech-badge">trust-accounting.md</code>
+                (see its section 2b, "Current Cutover Surface," and section 4 for V2's collections). This
+                HTML page is retained as a historical reference for the V1 ledger model — do not build new
+                integrations against the routes/collections described below.
+            </div>
+            <h2>Overview</h2>
+            <p>
+                Strata corporations in the ACT are required by law to maintain separate trust accounts for the
+                <strong>Admin Fund</strong> (day-to-day operating expenses) and the <strong>Sinking Fund / Capital Works
+                Fund</strong>
+                (long-term capital maintenance). This module enforces those legal boundaries at the data layer.
+            </p>
+            <div class="two-col">
+                <div class="card">
+                    <h3>Admin Fund</h3>
+                    <ul>
+                        <li>Day-to-day operating expenses (insurance, gardens, cleaning)</li>
+                        <li>Quarterly levy collections from owners</li>
+                        <li>Supplier invoice disbursements via ABA batches</li>
+                        <li>Account code prefix: <code>1001</code> (Trust Bank — Admin)</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Capital Works Fund (Sinking)</h3>
+                    <ul>
+                        <li>Long-term capital maintenance and replacement</li>
+                        <li>Sourced from sinking fund levy component</li>
+                        <li>Ring-fenced — cannot be used for admin expenses</li>
+                        <li>Account code: <code>1002</code> (Trust Bank — Capital Works)</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="two-col">
+                <div class="card">
+                    <h3>Design Principles</h3>
+                    <ul>
+                        <li>All values stored as <strong>integer cents</strong> — no floats in the ledger</li>
+                        <li>Every journal entry satisfies <code>SUM(debits) == SUM(credits)</code></li>
+                        <li>Immutability — posted entries are never modified; reversals create new entries</li>
+                        <li>Period locks prevent backdating after periods are closed</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Multi-Tenant Isolation</h3>
+                    <ul>
+                        <li>Every collection document carries <code>building_id</code> as the first indexed field</li>
+                        <li>No cross-building aggregations are possible via the API</li>
+                        <li>Trust config is embedded per building in the <code>buildings</code> collection</li>
+                        <li>Biller codes, bank details and budgets are all per-building</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="trust-config">
+            <h2>Trust Config</h2>
+            <p>
+                Per-building trust configuration is embedded as a subdocument (<code>trust_config</code>) inside the
+                <code>buildings</code> collection. This keeps all per-building financial parameters co-located
+                with the building record and avoids a separate lookup on every request.
+            </p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Default</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>current_financial_year</code></td>
+                        <td>string</td>
+                        <td><code>null</code></td>
+                        <td>e.g. <code>"2026-27"</code> — set by Strata Manager at FY setup</td>
+                    </tr>
+                    <tr>
+                        <td><code>admin_fund_annual_budget_cents</code></td>
+                        <td>int</td>
+                        <td><code>0</code></td>
+                        <td>Admin fund budget for the current FY, in cents (non-negative)</td>
+                    </tr>
+                    <tr>
+                        <td><code>sinking_fund_annual_budget_cents</code></td>
+                        <td>int</td>
+                        <td><code>0</code></td>
+                        <td>Sinking fund budget for the current FY, in cents (non-negative)</td>
+                    </tr>
+                    <tr>
+                        <td><code>quarterly_due_dates</code></td>
+                        <td>string[4]</td>
+                        <td><code>[]</code></td>
+                        <td>ISO date strings for the 4 quarterly levy due dates, e.g. <code>["2026-03-01","2026-06-01","2026-09-01","2026-12-01"]</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>grace_period_days</code></td>
+                        <td>int</td>
+                        <td><code>14</code></td>
+                        <td>Days after due date before overdue status is applied</td>
+                    </tr>
+                    <tr>
+                        <td><code>arrears_interest_rate</code></td>
+                        <td>float</td>
+                        <td><code>0.10</code></td>
+                        <td>Statutory interest rate on overdue levies (ACT: 10% p.a. = 0.10). Range: 0–1.</td>
+                    </tr>
+                    <tr>
+                        <td><code>total_uoe</code></td>
+                        <td>int</td>
+                        <td><code>0</code></td>
+                        <td>Cached sum of all active units' Unit of Entitlement values. Invalidated on unit UOE
+                            changes.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>deft_biller_code_admin</code></td>
+                        <td>string</td>
+                        <td><code>null</code></td>
+                        <td>DEFT/BPAY biller code for admin fund levy payments</td>
+                    </tr>
+                    <tr>
+                        <td><code>deft_biller_code_sinking</code></td>
+                        <td>string</td>
+                        <td><code>null</code></td>
+                        <td>DEFT/BPAY biller code for sinking fund levy payments</td>
+                    </tr>
+                    <tr>
+                        <td><code>bank_name</code></td>
+                        <td>string</td>
+                        <td><code>null</code></td>
+                        <td>Trust account bank name (administrative reference only)</td>
+                    </tr>
+                    <tr>
+                        <td><code>arrears_reminder_days</code></td>
+                        <td>int</td>
+                        <td><code>14</code></td>
+                        <td>Days overdue before first arrears reminder is sent</td>
+                    </tr>
+                    <tr>
+                        <td><code>arrears_formal_notice_days</code></td>
+                        <td>int</td>
+                        <td><code>21</code></td>
+                        <td>Days overdue before formal Section 83 notice is issued</td>
+                    </tr>
+                    <tr>
+                        <td><code>arrears_interest_charge_days</code></td>
+                        <td>int</td>
+                        <td><code>30</code></td>
+                        <td>Days overdue before interest accrual begins</td>
+                    </tr>
+                    <tr>
+                        <td><code>arrears_legal_flag_days</code></td>
+                        <td>int</td>
+                        <td><code>60</code></td>
+                        <td>Days overdue before DCA legal flag is set</td>
+                    </tr>
+                    <tr>
+                        <td><code>manager_alert_email</code></td>
+                        <td>string</td>
+                        <td><code>null</code></td>
+                        <td>Strata manager email for internal alerts (arrears, unmatched DEFT)</td>
+                    </tr>
+                    <tr>
+                        <td><code>is_trust_configured</code></td>
+                        <td>bool</td>
+                        <td><code>false</code></td>
+                        <td>Set to <code>true</code> on first valid save via PUT /trust/buildings/{id}/trust-config</td>
+                    </tr>
+                    <tr>
+                        <td><code>trust_configured_at</code></td>
+                        <td>datetime</td>
+                        <td><code>null</code></td>
+                        <td>ISO timestamp of first configuration</td>
+                    </tr>
+                    <tr>
+                        <td><code>trust_configured_by</code></td>
+                        <td>ObjectId</td>
+                        <td><code>null</code></td>
+                        <td>User ID of the Strata Manager who configured the trust</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="callout">
+                <strong>Levy calculation formula:</strong>
+                <code>unit_levy_cents = round(unit.uoe / trust_config.total_uoe &times; quarterly_budget_cents)</code>.
+                Never hardcode <code>total_uoe</code> — always read it from <code>trust_config</code> and
+                recalculate if it is zero (query the <code>units</code> collection and sum <code>uoe</code> for active
+                units).
+            </div>
+        </section>
+
+        <section id="collections">
+            <h2>Collections</h2>
+            <p>All collections are partitioned by <code>building_id</code> (string). The index on
+                <code>building_id</code> is always the leading index component.</p>
+
+            <h3>trust_ledger_accounts — Chart of Accounts</h3>
+            <p>One document per account per building/fund. Defines the chart of accounts used for double-entry
+                posting.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>building_id</code></td>
+                        <td>string</td>
+                        <td>Tenant partition key</td>
+                    </tr>
+                    <tr>
+                        <td><code>account_code</code></td>
+                        <td>string</td>
+                        <td>Unique code within building, e.g. <code>"1001"</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>account_name</code></td>
+                        <td>string</td>
+                        <td>Human-readable name, e.g. <code>"NAB Trust — Admin Fund"</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>account_type</code></td>
+                        <td>string</td>
+                        <td><code>Asset | Liability | Income | Expense | Equity</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>fund_type</code></td>
+                        <td>string</td>
+                        <td><code>admin_fund | capital_works_fund | special_levy</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>normal_balance</code></td>
+                        <td>string</td>
+                        <td><code>debit | credit</code> — standard accounting normal balance side</td>
+                    </tr>
+                    <tr>
+                        <td><code>current_balance_cents</code></td>
+                        <td>int</td>
+                        <td>Legacy V1 denormalised balance. V2 reads compute displayed balances from opening balance plus immutable transactions.</td>
+                    </tr>
+                    <tr>
+                        <td><code>is_active</code></td>
+                        <td>bool</td>
+                        <td>Inactive accounts cannot receive new postings</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>trust_ledger_entries — Double-Entry Journal Lines</h3>
+            <p>
+                Each financial event produces two or more journal lines (debit and credit sides).
+                A batch of lines sharing the same <code>batch_id</code> forms one balanced journal entry.
+                <strong>Posted entries are immutable</strong> — reversals create new equal-and-opposite entries.
+            </p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>building_id</code></td>
+                        <td>string</td>
+                        <td>Tenant partition key</td>
+                    </tr>
+                    <tr>
+                        <td><code>batch_id</code></td>
+                        <td>string</td>
+                        <td>Groups debit and credit lines of one transaction</td>
+                    </tr>
+                    <tr>
+                        <td><code>account_code</code></td>
+                        <td>string</td>
+                        <td>Target account from chart of accounts</td>
+                    </tr>
+                    <tr>
+                        <td><code>fund_type</code></td>
+                        <td>string</td>
+                        <td><code>admin_fund | capital_works_fund | special_levy</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>debit_cents</code></td>
+                        <td>int</td>
+                        <td>Debit amount in cents (0 if credit side)</td>
+                    </tr>
+                    <tr>
+                        <td><code>credit_cents</code></td>
+                        <td>int</td>
+                        <td>Credit amount in cents (0 if debit side)</td>
+                    </tr>
+                    <tr>
+                        <td><code>narration</code></td>
+                        <td>string</td>
+                        <td>Human-readable description, e.g. <code>"Q2-2026 Admin Levy — Unit TH017"</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>reference</code></td>
+                        <td>string</td>
+                        <td>External reference (DEFT CRN, ABA batch ID, invoice number)</td>
+                    </tr>
+                    <tr>
+                        <td><code>status</code></td>
+                        <td>string</td>
+                        <td><code>posted | voided</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>is_reversed</code></td>
+                        <td>bool</td>
+                        <td>True if a subsequent reversal entry exists for this line</td>
+                    </tr>
+                    <tr>
+                        <td><code>reversal_of_id</code></td>
+                        <td>string</td>
+                        <td>ID of the original entry this line reverses (null if not a reversal)</td>
+                    </tr>
+                    <tr>
+                        <td><code>period</code></td>
+                        <td>string</td>
+                        <td>Accounting period, e.g. <code>"2026-03"</code> (YYYY-MM)</td>
+                    </tr>
+                    <tr>
+                        <td><code>posted_at</code></td>
+                        <td>datetime</td>
+                        <td>ISO timestamp of posting</td>
+                    </tr>
+                    <tr>
+                        <td><code>posted_by</code></td>
+                        <td>string</td>
+                        <td>User ID of the operator who posted the entry</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>trust_ledger_batches — Payment Batches</h3>
+            <p>Groups one or more payments for bulk approval and ABA file generation.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>building_id</code></td>
+                        <td>string</td>
+                        <td>Tenant partition key</td>
+                    </tr>
+                    <tr>
+                        <td><code>batch_type</code></td>
+                        <td>string</td>
+                        <td><code>ABA | BPAY | manual | direct</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>status</code></td>
+                        <td>string</td>
+                        <td><code>draft | pending_approval | approved | rejected | exported</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>total_cents</code></td>
+                        <td>int</td>
+                        <td>Sum of all payments in this batch, in cents</td>
+                    </tr>
+                    <tr>
+                        <td><code>payment_ids</code></td>
+                        <td>string[]</td>
+                        <td>List of invoice or transaction IDs included in the batch</td>
+                    </tr>
+                    <tr>
+                        <td><code>aba_file_content</code></td>
+                        <td>string</td>
+                        <td>Generated ABA file content (set after approval)</td>
+                    </tr>
+                    <tr>
+                        <td><code>approved_by</code></td>
+                        <td>string</td>
+                        <td>User ID of the approver (chairman or strata_manager)</td>
+                    </tr>
+                    <tr>
+                        <td><code>approved_at</code></td>
+                        <td>datetime</td>
+                        <td>Approval timestamp</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>trust_period_locks — Locked Accounting Periods</h3>
+            <p>
+                Once a period is locked, no new journal entries can be posted into it and existing entries cannot be
+                modified. Reversals must use the current open period as the posting date.
+            </p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>building_id</code></td>
+                        <td>string</td>
+                        <td>Tenant partition key</td>
+                    </tr>
+                    <tr>
+                        <td><code>period</code></td>
+                        <td>string</td>
+                        <td>YYYY-MM format, e.g. <code>"2026-03"</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>locked_at</code></td>
+                        <td>datetime</td>
+                        <td>Timestamp when the period was locked</td>
+                    </tr>
+                    <tr>
+                        <td><code>locked_by</code></td>
+                        <td>string</td>
+                        <td>User ID of the operator who locked the period</td>
+                    </tr>
+                    <tr>
+                        <td><code>reason</code></td>
+                        <td>string</td>
+                        <td>Optional reason for locking (e.g. <code>"AGM approved financials"</code>)</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>trust_reconciliation_runs — Bank Reconciliation History</h3>
+            <p>Each run represents one reconciliation session comparing bank statement lines to ledger entries.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>building_id</code></td>
+                        <td>string</td>
+                        <td>Tenant partition key</td>
+                    </tr>
+                    <tr>
+                        <td><code>period</code></td>
+                        <td>string</td>
+                        <td>Reconciliation period (YYYY-MM)</td>
+                    </tr>
+                    <tr>
+                        <td><code>status</code></td>
+                        <td>string</td>
+                        <td><code>in_progress | completed | needs_review</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>statement_opening_cents</code></td>
+                        <td>int</td>
+                        <td>Opening balance on the bank statement, in cents</td>
+                    </tr>
+                    <tr>
+                        <td><code>statement_closing_cents</code></td>
+                        <td>int</td>
+                        <td>Closing balance on the bank statement, in cents</td>
+                    </tr>
+                    <tr>
+                        <td><code>ledger_balance_cents</code></td>
+                        <td>int</td>
+                        <td>Ledger balance at period end, in cents</td>
+                    </tr>
+                    <tr>
+                        <td><code>unmatched_count</code></td>
+                        <td>int</td>
+                        <td>Number of unmatched bank statement lines</td>
+                    </tr>
+                    <tr>
+                        <td><code>completed_at</code></td>
+                        <td>datetime</td>
+                        <td>Timestamp when reconciliation was marked complete</td>
+                    </tr>
+                    <tr>
+                        <td><code>completed_by</code></td>
+                        <td>string</td>
+                        <td>User ID of the operator</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>trust_reconciliation_matches — Matched Transaction Pairs</h3>
+            <p>Records each matched pair between a bank statement line and a ledger entry.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>building_id</code></td>
+                        <td>string</td>
+                        <td>Tenant partition key</td>
+                    </tr>
+                    <tr>
+                        <td><code>run_id</code></td>
+                        <td>string</td>
+                        <td>Parent reconciliation run ID</td>
+                    </tr>
+                    <tr>
+                        <td><code>bank_line_id</code></td>
+                        <td>string</td>
+                        <td>ID of the matched bank statement line</td>
+                    </tr>
+                    <tr>
+                        <td><code>ledger_entry_id</code></td>
+                        <td>string</td>
+                        <td>ID of the matched ledger entry</td>
+                    </tr>
+                    <tr>
+                        <td><code>match_type</code></td>
+                        <td>string</td>
+                        <td><code>exact | fuzzy | manual</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>confidence_score</code></td>
+                        <td>float</td>
+                        <td>Match confidence 0.0–1.0 (1.0 = exact amount + date)</td>
+                    </tr>
+                    <tr>
+                        <td><code>matched_by</code></td>
+                        <td>string</td>
+                        <td>User ID (null if auto-matched)</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>bank_statement_lines — Raw Imported Bank Data</h3>
+            <p>Raw transactions imported from bank statement CSVs or the live bank feed. Never modified after
+                import.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>building_id</code></td>
+                        <td>string</td>
+                        <td>Tenant partition key</td>
+                    </tr>
+                    <tr>
+                        <td><code>feed_run_id</code></td>
+                        <td>string</td>
+                        <td>Parent bank feed run ID</td>
+                    </tr>
+                    <tr>
+                        <td><code>transaction_date</code></td>
+                        <td>string</td>
+                        <td>ISO date of the bank transaction</td>
+                    </tr>
+                    <tr>
+                        <td><code>amount_cents</code></td>
+                        <td>int</td>
+                        <td>Amount in cents (positive = credit to account, negative = debit)</td>
+                    </tr>
+                    <tr>
+                        <td><code>description</code></td>
+                        <td>string</td>
+                        <td>Bank-provided narration</td>
+                    </tr>
+                    <tr>
+                        <td><code>reference</code></td>
+                        <td>string</td>
+                        <td>Bank reference / BSB / cheque number</td>
+                    </tr>
+                    <tr>
+                        <td><code>is_matched</code></td>
+                        <td>bool</td>
+                        <td>True once this line has been matched to a ledger entry</td>
+                    </tr>
+                    <tr>
+                        <td><code>match_id</code></td>
+                        <td>string</td>
+                        <td>ID of the reconciliation match record (null if unmatched)</td>
+                    </tr>
+                    <tr>
+                        <td><code>source</code></td>
+                        <td>string</td>
+                        <td><code>csv_import | bank_feed | manual</code></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>bank_feed_runs — Bank Feed Ingestion Logs</h3>
+            <p>Audit log of each bank feed ingestion run.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>building_id</code></td>
+                        <td>string</td>
+                        <td>Tenant partition key</td>
+                    </tr>
+                    <tr>
+                        <td><code>started_at</code></td>
+                        <td>datetime</td>
+                        <td>Run start timestamp</td>
+                    </tr>
+                    <tr>
+                        <td><code>completed_at</code></td>
+                        <td>datetime</td>
+                        <td>Run completion timestamp (null if in progress)</td>
+                    </tr>
+                    <tr>
+                        <td><code>status</code></td>
+                        <td>string</td>
+                        <td><code>running | success | failed | partial</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>lines_imported</code></td>
+                        <td>int</td>
+                        <td>Number of bank statement lines ingested</td>
+                    </tr>
+                    <tr>
+                        <td><code>lines_duplicate</code></td>
+                        <td>int</td>
+                        <td>Lines skipped as duplicates (idempotent import)</td>
+                    </tr>
+                    <tr>
+                        <td><code>error_message</code></td>
+                        <td>string</td>
+                        <td>Error detail if status is <code>failed</code></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="posting-rules">
+            <h2>Posting Rules</h2>
+            <p>
+                Every financial event generates a balanced journal entry. Positive amounts only — the debit/credit
+                column
+                determines sign. Normal balances follow standard accounting convention:
+                Asset and Expense accounts increase on debit; Liability, Income and Equity accounts increase on credit.
+            </p>
+
+            <h3>Account Code Reference</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Account Name</th>
+                        <th>Type</th>
+                        <th>Fund</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>1001</code></td>
+                        <td>NAB Trust — Admin Fund</td>
+                        <td>Asset</td>
+                        <td>admin_fund</td>
+                    </tr>
+                    <tr>
+                        <td><code>1002</code></td>
+                        <td>NAB Trust — Capital Works Fund</td>
+                        <td>Asset</td>
+                        <td>capital_works_fund</td>
+                    </tr>
+                    <tr>
+                        <td><code>1003</code></td>
+                        <td>NAB Trust — Special Levy</td>
+                        <td>Asset</td>
+                        <td>special_levy</td>
+                    </tr>
+                    <tr>
+                        <td><code>2001</code></td>
+                        <td>Levy Income Receivable</td>
+                        <td>Asset</td>
+                        <td>admin_fund / capital_works_fund</td>
+                    </tr>
+                    <tr>
+                        <td><code>2002</code></td>
+                        <td>Owners Levy Liability</td>
+                        <td>Liability</td>
+                        <td>admin_fund / capital_works_fund</td>
+                    </tr>
+                    <tr>
+                        <td><code>3001</code></td>
+                        <td>Admin Fund Levy Income</td>
+                        <td>Income</td>
+                        <td>admin_fund</td>
+                    </tr>
+                    <tr>
+                        <td><code>3002</code></td>
+                        <td>Sinking Fund Levy Income</td>
+                        <td>Income</td>
+                        <td>capital_works_fund</td>
+                    </tr>
+                    <tr>
+                        <td><code>3003</code></td>
+                        <td>Special Levy Income</td>
+                        <td>Income</td>
+                        <td>special_levy</td>
+                    </tr>
+                    <tr>
+                        <td><code>4001</code></td>
+                        <td>Supplier Expenses</td>
+                        <td>Expense</td>
+                        <td>admin_fund</td>
+                    </tr>
+                    <tr>
+                        <td><code>4002</code></td>
+                        <td>Bank Charges</td>
+                        <td>Expense</td>
+                        <td>admin_fund</td>
+                    </tr>
+                    <tr>
+                        <td><code>4003</code></td>
+                        <td>Arrears Interest Income</td>
+                        <td>Income</td>
+                        <td>admin_fund</td>
+                    </tr>
+                    <tr>
+                        <td><code>5001</code></td>
+                        <td>Accounts Payable</td>
+                        <td>Liability</td>
+                        <td>admin_fund</td>
+                    </tr>
+                    <tr>
+                        <td><code>5002</code></td>
+                        <td>Owner Credit / Overpayment Liability</td>
+                        <td>Liability</td>
+                        <td>admin_fund</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Posting Rule Summary</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Transaction Type</th>
+                        <th>DR Account</th>
+                        <th>CR Account</th>
+                        <th>Fund</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Levy charge generation</td>
+                        <td>2001 Receivable</td>
+                        <td>3001/3002/3003 Income</td>
+                        <td>per fund</td>
+                    </tr>
+                    <tr>
+                        <td>Levy receipt (DEFT/manual)</td>
+                        <td>1001 Trust Bank</td>
+                        <td>2001 Receivable</td>
+                        <td>per fund</td>
+                    </tr>
+                    <tr>
+                        <td>Overpayment (excess levy receipt)</td>
+                        <td>1001 Trust Bank</td>
+                        <td>5002 Owner Credit Liability</td>
+                        <td>admin</td>
+                    </tr>
+                    <tr>
+                        <td>Supplier payment (ABA/BPAY)</td>
+                        <td>5001 Accounts Payable</td>
+                        <td>1001 Trust Bank</td>
+                        <td>admin</td>
+                    </tr>
+                    <tr>
+                        <td>Owner refund</td>
+                        <td>5002 Owner Credit</td>
+                        <td>1001 Trust Bank</td>
+                        <td>admin</td>
+                    </tr>
+                    <tr>
+                        <td>Dishonour / payment bounce</td>
+                        <td>2001 Receivable</td>
+                        <td>1001 Trust Bank</td>
+                        <td>per fund</td>
+                    </tr>
+                    <tr>
+                        <td>Dishonour fee</td>
+                        <td>2001 Receivable</td>
+                        <td>3001 Admin Levy Income</td>
+                        <td>admin</td>
+                    </tr>
+                    <tr>
+                        <td>Arrears interest charge</td>
+                        <td>2001 Receivable</td>
+                        <td>4003 Interest Income</td>
+                        <td>admin</td>
+                    </tr>
+                    <tr>
+                        <td>Bank fee</td>
+                        <td>4002 Bank Charges</td>
+                        <td>1001 Trust Bank</td>
+                        <td>admin</td>
+                    </tr>
+                    <tr>
+                        <td>Fund transfer (admin side, out)</td>
+                        <td>Clearing</td>
+                        <td>1001 Trust Bank — Admin</td>
+                        <td>admin</td>
+                    </tr>
+                    <tr>
+                        <td>Fund transfer (capital works side, in)</td>
+                        <td>1002 Trust Bank — CWF</td>
+                        <td>Clearing</td>
+                        <td>capital_works</td>
+                    </tr>
+                    <tr>
+                        <td>Reversal (any type)</td>
+                        <td>Mirror of original CR lines</td>
+                        <td>Mirror of original DR lines</td>
+                        <td>same as original</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout">
+                <strong>Immutability contract.</strong> The original <code>trust_ledger_entries</code> document is never
+                deleted or
+                modified. Reversals set <code>is_reversed=true</code> and <code>voided_at</code> on the original, and
+                create a
+                new equal-and-opposite entry with <code>reversal_of_id</code> pointing back. Both entries remain
+                queryable in the audit trail.
+            </div>
+
+            <h3>Key Rule Examples</h3>
+            <pre><code># Levy receipt — Unit TH017 pays $1,772.51 admin levy
+# All amounts stored as integer cents
+
+DR  1001 Trust Bank — Admin     177,251 cents
+CR  2001 Levy Income Receivable  177,251 cents
+# Narration: "Levy receipt — DEFT — TH017 — Q2-2026"
+
+# Supplier payment — Ace Plumbing invoice $550.00 incl. GST
+DR  5001 Accounts Payable        55,000 cents
+CR  1001 Trust Bank — Admin      55,000 cents
+# Narration: "INV-2026-0042 — Ace Plumbing — ABA batch B-20260317"
+
+# Fund transfer $20,000 admin to capital works
+# Admin fund journal:
+DR  Clearing                  2,000,000 cents
+CR  1001 Trust Bank — Admin   2,000,000 cents
+# Capital works fund journal (same reference):
+DR  1002 Trust Bank — CWF     2,000,000 cents
+CR  Clearing                  2,000,000 cents</code></pre>
+        </section>
+
+        <section id="api-endpoints">
+            <h2>API Endpoints</h2>
+            <p>
+                All trust endpoints require <code>trust.view</code> permission for reads and <code>trust.manage</code>
+                for writes. Roles: <code>super_admin</code> and <code>strata_manager</code> have
+                <code>trust.manage</code>;
+                <code>chairman</code> and <code>ec_member</code> have <code>trust.view</code>.
+            </p>
+            <div class="callout">
+                <strong>Read-path split.</strong> The following read endpoints now have a PostgreSQL-backed path:
+                <code>GET /trust/accounts</code>, <code>GET /trust/journal</code>,
+                <code>GET /trust/journal/{entry_id}</code>, <code>GET /trust/balance</code>,
+                <code>GET /trust/trial-balance</code>, <code>GET /trust/reconciliation/runs</code>,
+                <code>GET /trust/reconciliation/runs/{run_id}</code>,
+                <code>GET /trust/reconciliation/runs/{run_id}/statement-lines</code>, and
+                <code>GET /trust/reconciliation/runs/{run_id}/summary</code>.
+            </div>
+
+            <h3>Ledger Accounts — routers/trust_accounting.py</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Permission</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/trust/accounts</code></td>
+                        <td>trust.view</td>
+                        <td>List all accounts for the current building. Supports <code>?fund_type=admin_fund</code>
+                            filter.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/trust/accounts</code></td>
+                        <td>trust.manage</td>
+                        <td>Create a new account. Account codes must be unique within a building.</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/trust/accounts</code></td>
+                        <td>trust.view</td>
+                        <td>Read-side list/detail payloads can now be served from PostgreSQL when
+                            <code>trust_pg_ledger_enabled</code> is enabled for the scheme.</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/trust/balance</code> and <code>/trust/trial-balance</code></td>
+                        <td>trust.manage</td>
+                        <td>Current-balance summaries can now be read from PostgreSQL without changing the write path.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Ledger Entries — routers/trust_accounting.py</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Permission</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/trust/journal</code></td>
+                        <td>trust.view</td>
+                        <td>List journal entries. Filters: <code>period</code>, <code>fund_type</code>, <code>account_code</code>,
+                            <code>status</code>.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/trust/journal</code></td>
+                        <td>trust.manage</td>
+                        <td>Post a new journal entry. Body must include balanced debit/credit lines. Rejected with HTTP
+                            422 if <code>SUM(debits) != SUM(credits)</code>.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/trust/journal/{id}</code></td>
+                        <td>trust.view</td>
+                        <td>Get a single entry with all its lines.</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/trust/journal/{id}/void</code></td>
+                        <td>trust.manage</td>
+                        <td>Void a journal entry on the legacy write path. Read-side journal lookups can already come
+                            from the PostgreSQL ledger service.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Payment Batches — routers/trust_accounting.py</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Permission</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/trust/batches</code></td>
+                        <td>trust.view</td>
+                        <td>List payment batches. Filters: <code>status</code>, <code>batch_type</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/trust/batches</code></td>
+                        <td>trust.manage</td>
+                        <td>Create a draft batch with a list of payment IDs.</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/trust/batches/{id}/approve</code></td>
+                        <td>trust.manage</td>
+                        <td>Approve batch. Generates ABA file, posts supplier payment journal, updates batch status to
+                            <code>approved</code>.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/trust/batches/{id}/aba</code></td>
+                        <td>trust.manage</td>
+                        <td>Download the generated ABA file for an approved batch.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Period Locks — routers/trust_phase1.py</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Permission</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/trust/period-locks</code></td>
+                        <td>trust.view</td>
+                        <td>List all locked periods for the building.</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/trust/period-locks</code></td>
+                        <td>trust.manage</td>
+                        <td>Lock a period. Requires <code>period</code> (YYYY-MM) and optional <code>reason</code>.
+                            Cannot lock the current open period.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Reconciliation — routers/trust_reconciliation.py</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Permission</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/trust/reconciliation/runs</code></td>
+                        <td>trust.manage</td>
+                        <td>Start a new reconciliation run. Accepts bank statement CSV or JSON. Returns run ID.</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/trust/reconciliation/runs</code></td>
+                        <td>trust.view</td>
+                        <td>List reconciliation runs. Filters: <code>period</code>, <code>status</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/trust/reconciliation/runs/{id}</code></td>
+                        <td>trust.view</td>
+                        <td>Get run details including match summary and unmatched line count.</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/trust/reconciliation/runs/{id}/statement-lines</code></td>
+                        <td>trust.view</td>
+                        <td>List imported or PostgreSQL-backed bank statement lines for the run.</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/trust/reconciliation/runs/{id}/summary</code></td>
+                        <td>trust.view</td>
+                        <td>Return reconciliation totals and confidence. This read endpoint now has a PostgreSQL-backed
+                            cutover path behind <code>trust_reconciliation_pg_enabled</code>.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="period-lock-flow">
+            <h2>Period Lock Flow</h2>
+            <p>
+                Accounting periods follow a lifecycle from open through posting to locked and immutable.
+                A period lock is irreversible — contact the super admin to investigate if a period must be amended after
+                locking.
+            </p>
+
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    stateDiagram-v2
+                    [*] --> Open : New period begins
+                    Open --> PostingActive : Strata Manager starts posting
+                    PostingActive --> PostingActive : Journal entries posted\n(levies, receipts, disbursements)
+                    PostingActive --> ReconciliationInProgress : Bank statement imported
+                    ReconciliationInProgress --> ReconciliationComplete : All lines matched or noted
+                    ReconciliationComplete --> Locked : POST /trust/period-locks\n(requires trust.manage)
+                    Locked --> [*] : Period is immutable\nNo backdating allowed
+                </div>
+                <div class="diagram-caption">Period lifecycle — once locked, entries in that period are read-only.
+                    Corrections post into the next open period.
+                </div>
+            </div>
+
+            <div class="callout">
+                <strong>Backdating prevention.</strong> When a new entry is posted, the system checks whether the
+                entry's <code>period</code> field matches a locked period in <code>trust_period_locks</code>. If it
+                does,
+                the request is rejected with HTTP 409. Reversals always use the current open period as the posting date,
+                not the original entry's period.
+            </div>
+        </section>
+
+        <section id="production-constraints">
+            <h2>Production Constraints</h2>
+            <div class="callout" style="border-color: var(--danger);">
+                <strong>East Gate (building_id "13195") — Production Data.</strong>
+                Trust config is seeded for East Gate (budgets, biller codes, due dates). However,
+                <strong>no demo transaction data</strong> is ever seeded for East Gate. All ledger entries,
+                batches and reconciliation runs in the East Gate database are real financial records.
+                Never run demo seed scripts against building_id "13195".
+            </div>
+            <div class="two-col">
+                <div class="card">
+                    <h3>East Gate 13195 — Restrictions</h3>
+                    <ul>
+                        <li>Trust config seeded: YES (budgets, due dates, biller codes)</li>
+                        <li>Demo transactions seeded: NO</li>
+                        <li>Ledger entries: REAL — never overwrite</li>
+                        <li>Admin fund budget 2026-27: $340,870.20</li>
+                        <li>Sinking fund budget 2026-27: $99,504.90</li>
+                        <li>Quarterly due dates: Mar 1, Jun 1, Sep 1, Dec 1</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Sierra 16244 / Harbourside View — Demo</h3>
+                    <ul>
+                        <li>Full demo data seeded (config + transactions)</li>
+                        <li>Safe to reset and re-seed at any time</li>
+                        <li>Used for testing new trust features before East Gate deployment</li>
+                        <li>Demo reconciliation runs and matched statements included</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="phase2-ledger-hardening">
+            <h2>Phase 2: Ledger Hardening</h2>
+            <p>
+                Phase 2 introduces formal period lifecycle management, Merkle-chained audit seals, and a
+                three-way reconciliation requirement. These features harden the trust ledger against retroactive
+                tampering and provide an auditable chain of custody for period close.
+            </p>
+
+            <h3>POST /trust/journal — Period-Guarded Journal Entry</h3>
+            <p>
+                The <code>POST /trust/journal</code> endpoint now accepts an optional <code>period_id</code>
+                query parameter. When supplied, the endpoint enforces the period lifecycle rules before accepting the
+                entry.
+            </p>
+            <p>
+                Cutover note: <code>/api/trust/*</code> is now the legacy V1 compatibility surface. Routed
+                responses include deprecation headers and point callers to <code>/api/trust/v2</code>. New account
+                and transaction reads should use the V2 computed-balance service behind <code>/api/trust/v2/*</code>;
+                production access logs still need review before V1 writes are disabled.
+            </p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Location</th>
+                        <th>Type</th>
+                        <th>Required</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>period_id</code></td>
+                        <td>query string</td>
+                        <td>string</td>
+                        <td>No</td>
+                        <td>
+                            ID of a <code>financial_periods</code> document. If supplied, the period must be in
+                            <code>OPEN</code> state or the request is rejected with HTTP 409.
+                            Omit for legacy / unguarded posting (backwards compatible).
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p>
+                When <code>period_id</code> is provided, the endpoint also stores
+                <code>debit_total_cents</code>, <code>credit_total_cents</code>, and <code>period_id</code>
+                on the created journal entry documents for downstream reporting.
+            </p>
+            <div class="callout">
+                <strong>HTTP 404 vs 409.</strong> If <code>period_id</code> refers to a period that does not exist
+                for the building, the endpoint returns <strong>404</strong>. If the period exists but its state is
+                anything other than <code>OPEN</code>, it returns <strong>409</strong> with a reversal hint in the
+                <code>detail</code> field directing the operator to post a reversal in the current open period instead.
+            </div>
+
+            <h3>Period States and Lifecycle</h3>
+            <p>
+                Financial periods (<code>financial_periods</code> collection) follow a strict state machine.
+                Only <code>OPEN</code> periods accept new journal postings.
+            </p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>State</th>
+                        <th>Can Post?</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>OPEN</code></td>
+                        <td>Yes</td>
+                        <td>Active posting period. Journal entries accepted.</td>
+                    </tr>
+                    <tr>
+                        <td><code>RECONCILING</code></td>
+                        <td>No</td>
+                        <td>Bank reconciliation in progress. Posting suspended pending three-way reconciliation
+                            completion.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>CLOSED</code></td>
+                        <td>No</td>
+                        <td>Period is closed and reconciled. Merkle seal has been computed.</td>
+                    </tr>
+                    <tr>
+                        <td><code>AUDITED</code></td>
+                        <td>No</td>
+                        <td>External auditor has reviewed and acknowledged the period.</td>
+                    </tr>
+                    <tr>
+                        <td><code>LOCKED</code></td>
+                        <td>No</td>
+                        <td>Permanently immutable. AGM or regulatory sign-off applied.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p>
+                Valid state transitions (enforced by <code>validate_transition()</code> in
+                <code>backend/domain/period_lifecycle.py</code>):
+                <code>OPEN → RECONCILING → CLOSED → AUDITED → LOCKED</code>.
+                Any other transition raises a <code>ValueError</code>.
+            </p>
+
+            <h3>Domain Model Invariants</h3>
+            <p>
+                The following invariants are enforced by Pydantic validators in <code>backend/domain/journals.py</code>
+                and will raise HTTP 422 if violated:
+            </p>
+            <ul>
+                <li>A journal must have <strong>at least 2 lines</strong> (≥1 debit, ≥1 credit).</li>
+                <li><strong>Sum of all debit amounts must equal sum of all credit amounts exactly</strong> — integer
+                    cents, no float tolerance.
+                </li>
+                <li>All <code>amount_cents</code> values must be positive integers (no negatives, no zero, no floats).
+                </li>
+            </ul>
+
+            <h3>Merkle Seal</h3>
+            <p>
+                At period close, <code>backend/workers/merkle_seal.py</code> computes a tamper-evident
+                SHA-256 Merkle root over all journal entries in the period. The seal is chained to the prior period's
+                seal (the previous root hash is included in the hash input), and the <code>building_id</code> is
+                included in each leaf hash to prevent cross-building substitution attacks.
+            </p>
+            <p>
+                Seal documents are stored in the <code>trust_ledger_seals</code> collection and also exported
+                to the filesystem path configured by <code>SEAL_EXPORT_PATH</code>. In production this should be
+                an S3-backed mount with 7-year Object Lock (NSW Strata Schemes Management Act 2015 s.180 compliance).
+            </p>
+            <p>
+                <strong>Verification:</strong> To verify a seal, recompute the Merkle root from the raw journal entries
+                for the period and compare it to the stored <code>merkle_root</code> in <code>trust_ledger_seals</code>.
+                A mismatch indicates retroactive tampering with the posted entries.
+            </p>
+
+            <h3>Three-Way Reconciliation</h3>
+            <p>
+                Before a period can transition from <code>RECONCILING</code> to <code>CLOSED</code>,
+                <code>three_way_reconcile()</code> in <code>backend/domain/reconciliation.py</code> must pass
+                with zero tolerance. The three-way check requires:
+            </p>
+            <ul>
+                <li><code>adjusted_bank</code> balance == <code>ledger</code> balance == <code>subledger</code> balance
+                </li>
+                <li>All three values are compared as integers (cents). No rounding or epsilon tolerance is applied.</li>
+            </ul>
+            <p>
+                The result is captured in a frozen <code>ReconciliationResult</code> dataclass. Any discrepancy
+                surfaces as an error — investigate unmatched bank lines or missing subledger entries before retrying.
+            </p>
+
+            <h3>New Phase 2 Collections</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Collection</th>
+                        <th>Purpose</th>
+                        <th>Key Fields</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>financial_periods</code></td>
+                        <td>Tracks the lifecycle state of each accounting period per building.</td>
+                        <td><code>building_id</code>, <code>period_id</code>, <code>state</code> (PeriodState enum),
+                            <code>opened_at</code>, <code>closed_at</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>trust_ledger_seals</code></td>
+                        <td>Stores Merkle seal records linking period entries to a tamper-evident root hash, chained to
+                            the prior period seal.
+                        </td>
+                        <td><code>building_id</code>, <code>period_id</code>, <code>merkle_root</code>, <code>prior_seal_hash</code>,
+                            <code>sealed_at</code>, <code>entry_count</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>reconciliation_items</code></td>
+                        <td>Stores individual items captured during three-way reconciliation for audit and dispute
+                            resolution.
+                        </td>
+                        <td><code>building_id</code>, <code>period_id</code>, <code>item_type</code>,
+                            <code>amount_cents</code>, <code>source</code> (bank|ledger|subledger), <code>status</code>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout">
+                <strong>Migration required.</strong> Run
+                <code>migration_012_create_ledger_hardening_collections.py</code>
+                before enabling Phase 2 in any environment. The migration creates the three new collections with their
+                required indexes.
+                <pre><code>cd backend && venv/bin/python3 scripts/migrations/migration_012_create_ledger_hardening_collections.py</code></pre>
+            </div>
+        </section>
+
+        <section id="seed-commands">
+            <h2>Seed Commands</h2>
+            <pre><code># Seed demo buildings only (full trust config + sample transactions)
+cd backend && venv/bin/python3 seeds/trust_accounting.py --buildings 16244 18932
+
+# Seed East Gate trust config only (NO transactions — config only)
+cd backend && venv/bin/python3 seeds/trust_accounting.py --buildings 13195 --config-only
+
+# Create MongoDB indexes for trust collections
+cd backend && venv/bin/python3 scripts/db/create_indexes.py --collections trust
+
+# Verify trust config for a building
+cd backend && venv/bin/python3 -c "
+import asyncio
+from motor.motor_asyncio import AsyncIOMotorClient
+import os
+from dotenv import load_dotenv
+load_dotenv('.env')
+async def check():
+    db = AsyncIOMotorClient(os.environ['MONGO_URL'])[os.environ['DB_NAME']]
+    bld = await db.buildings.find_one({'building_id': '13195'})
+    print(bld.get('trust_config', {}))
+asyncio.run(check())
+"</code></pre>
+
+            <div class="callout">
+                <strong>Index requirements.</strong> All trust collections require a compound index on
+                <code>(building_id, period)</code> and a single-field index on <code>building_id</code>.
+                <code>trust_ledger_accounts</code> requires a unique compound index on <code>(building_id,
+                account_code)</code>.
+                Run <code>scripts/db/create_indexes.py</code> after any new deployment that adds trust collections.
+            </div>
+        </section>
+    </main>
+</div>
+<footer>East Gate Residences · Technical Documentation · Trust Accounting · Super Admin Only · 2026 · A vision by:
+    Silverfox Technologies, Australia · Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad: true, theme: 'dark'});</script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Demo Customer Seed — Technical Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="container">
+    <h1>Demo Customer Seed</h1>
+    <p class="subtitle">Technical reference for <code>backend/seeds/demo_customer.py</code> — Phase F-Zero (May 2026)</p>
+
+    <h2>Overview</h2>
+    <p>
+        The demo customer seed creates a fully-populated demonstration tenant — <strong>Acme Strata</strong> —
+        with scheme number <code>UP-DEMO-001</code>. It is idempotent (safe to re-run), wired into
+        <code>scripts/deployment/deploy.sh</code>, and produces a self-consistent 6-layer dataset
+        for showcasing all platform features.
+    </p>
+
+    <h2>Seed layers</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>#</th>
+            <th>Layer</th>
+            <th>Key records</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>1</td>
+            <td>Organisation</td>
+            <td>Acme Strata Management Pty Ltd — SM org with branding, contact details</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>Scheme / Building</td>
+            <td>UP-DEMO-001 — 14 lots, ACT jurisdiction, scheme class A</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>Tenant</td>
+            <td>Postgres <code>core.tenants</code> row linked to scheme; <code>is_demo=true</code></td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td>Lots</td>
+            <td>14 <code>core.lots</code> rows; lot numbers 1–14 with entitlement schedule</td>
+        </tr>
+        <tr>
+            <td>5</td>
+            <td>Users / personas</td>
+            <td>manager@acme-demo.com · owner@acme-demo.com · tenant@acme-demo.com; all in MongoDB + Postgres</td>
+        </tr>
+        <tr>
+            <td>6</td>
+            <td>Levies</td>
+            <td>Current-year admin + sinking levy schedule in MongoDB <code>annual_levies</code></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Running the seed</h2>
+    <div class="code-block">
+<pre>cd backend
+# Via deploy.sh (recommended — auto-runs on every deploy)
+bash scripts/deployment/deploy.sh --seed
+
+# Manual run (idempotent)
+source venv/bin/activate
+python3 seeds/demo_customer.py</pre>
+    </div>
+
+    <h2>Idempotency rules</h2>
+    <ul>
+        <li>All upserts use <code>ON CONFLICT DO NOTHING</code> (Postgres) and <code>update_one(upsert=True)</code> (MongoDB).</li>
+        <li>Users are matched by email — re-running does <em>not</em> reset passwords.</li>
+        <li>Levy records are keyed by <code>(building_id, year, fund_type)</code> — re-running patches the existing row.</li>
+        <li><code>is_demo=true</code> is set on the scheme; all seed data includes <code>is_test_data=false</code>
+            (demo data is real demo content, not transient test data).</li>
+    </ul>
+
+    <h2>Multi-tenant isolation</h2>
+    <p>
+        All MongoDB documents use <code>building_id: "UP-DEMO-001"</code>. All Postgres rows use the
+        <code>tenant_id</code> UUID resolved from <code>core.tenants WHERE scheme_number = 'UP-DEMO-001'</code>.
+        East Gate data (<code>building_id: "13195"</code>) is never touched.
+    </p>
+
+    <h2>Feature toggles</h2>
+    <p>
+        Demo building inherits global feature toggle defaults. Building-level overrides can be applied via
+        the admin console. The Acme demo rollout now enables the canonical Postgres cutover toggle set for
+        current-balance finance and trust reads, with <code>banking.provider</code> and
+        <code>banking.mode</code> both set to <code>mock</code>. The broader external API levy-summary toggle
+        remains OFF until levy runs/items are migrated into Postgres for the demo scheme.
+    </p>
+
+    <h2>Removing demo data</h2>
+    <p>
+        Demo data is flagged with <code>is_demo=true</code> on the scheme. To remove the demo customer,
+        use the soft-archive API (<code>DELETE /portfolio/buildings/UP-DEMO-001</code>) — never hard-delete.
+    </p>
+
+    <h2>Related files</h2>
+    <ul>
+        <li><code>backend/seeds/demo_customer.py</code> — seed script</li>
+        <li><code>scripts/deployment/deploy.sh</code> — wires <code>--seed</code> flag</li>
+        <li><code>tests/backend/test_demo_customer_seed.py</code> — 33 tests covering all 6 layers</li>
+        <li><code>docs/runbooks/2026_05_phase_f_zero_reset.md</code> — Step 4 of the production reset runbook</li>
+    </ul>
+</div>
+</body>
+</html>

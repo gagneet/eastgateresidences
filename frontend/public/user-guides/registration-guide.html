@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Registration Guide — StrataOS</title>
+    <!-- Last updated: 2026-05-02 — Phase E: dual-write identity layer, invitation-link flow, building-scoped sessions -->
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .step-badge {
+            display: inline-block;
+            background: #2F4F4F;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 13px;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .step-row {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+
+        .step-content h3 {
+            margin: 0 0 4px 0;
+            font-size: 15px;
+        }
+
+        .step-content p {
+            margin: 0;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .callout-info {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .callout-warn {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .callout-success {
+            background: #f0fdf4;
+            border-left: 4px solid #16a34a;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .tech-badge {
+            display: inline-block;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            margin: 2px 4px 2px 0;
+        }
+
+        .role-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+
+        .flow-diagram {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← User Guides</a>
+        <h1>Registration Guide</h1>
+        <p>How to create a new account on the StrataOS platform — via self-registration or an invitation link.</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2>Overview</h2>
+        <p>StrataOS is a <strong>multi-building platform</strong> where each strata building is a completely isolated
+            environment. When you register, the system:</p>
+        <ol>
+            <li>Creates a secure account linked to your building</li>
+            <li>Assigns you a role (Owner, Tenant, or Staff) with appropriate access</li>
+            <li>Scopes your session so you only see your building's data</li>
+        </ol>
+        <p>Users from different buildings <strong>cannot see each other's data</strong>.</p>
+    </section>
+
+    <section>
+        <h2>Who can register?</h2>
+        <p>Registration is typically available to:</p>
+        <ul>
+            <li><strong>Building owners</strong> — self-registration after unit purchase</li>
+            <li><strong>Tenants</strong> — self-registration if the building allows it</li>
+            <li><strong>Strata managers</strong> — invited by super admin</li>
+            <li><strong>Staff</strong> — invited by strata manager</li>
+        </ul>
+
+        <div class="callout-info">
+            <strong>Note:</strong> Clean-slate installations begin with only 2 super admin accounts. All other users are
+            invited by administrators.
+        </div>
+    </section>
+
+    <section>
+        <h2>Registration Flow</h2>
+
+        <div class="flow-diagram">
+            User clicks "Register" (or opens an invitation link)
+            ↓
+            Enter email, password, full name, phone
+            ↓
+            System validates email and unit number
+            ↓
+            Account is created and linked to your building
+            ↓
+            You're automatically logged in
+            ↓
+            Your session is scoped to your building only
+        </div>
+
+        <p><strong>Key points:</strong></p>
+        <ul>
+            <li><strong>Email</strong> — Must be unique within your building</li>
+            <li><strong>Password security</strong> — Passwords are securely hashed; never stored in plain text</li>
+            <li><strong>Building assignment</strong> — Your account is automatically linked to your building</li>
+            <li><strong>Session scoping</strong> — All your activity is scoped to your building only</li>
+            <li><strong>Data isolation</strong> — Other buildings' data is never accessible from your account</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Step-by-Step: Self Registration</h2>
+
+        <div class="step-row">
+            <div class="step-badge">1</div>
+            <div class="step-content">
+                <h3>Navigate to registration page</h3>
+                <p>Go to the <strong>Register</strong> link on the login page or the building's public portal.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">2</div>
+            <div class="step-content">
+                <h3>Select your role (if applicable)</h3>
+                <p>Choose whether you're registering as an <strong>Owner</strong> or <strong>Tenant</strong>. The form
+                    may be pre-filled if the building restricts registration.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">3</div>
+            <div class="step-content">
+                <h3>Enter your details</h3>
+                <p>Provide:</p>
+                <ul style="margin: 8px 0; padding-left: 20px;">
+                    <li><strong>Email address</strong> — Must be unique (case-insensitive)</li>
+                    <li><strong>Full name</strong> — As it appears on title deed or lease</li>
+                    <li><strong>Phone number</strong> — For notifications and recovery</li>
+                    <li><strong>Unit number</strong> — Your apartment or townhouse number</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">4</div>
+            <div class="step-content">
+                <h3>Create a password</h3>
+                <p>Choose a strong password (at least 12 characters, mix of uppercase, lowercase, numbers, symbols). You
+                    can also use a passphrase.</p>
+                <p style="color: #991b1b; font-weight: 600; margin-top: 8px;">⚠️ Store your password securely. We cannot
+                    retrieve it if lost.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">5</div>
+            <div class="step-content">
+                <h3>Accept terms and register</h3>
+                <p>Review the privacy policy and terms of service, then click <strong>Create Account</strong>.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">6</div>
+            <div class="step-content">
+                <h3>You're registered!</h3>
+                <p>Your account has been created. You're automatically logged in and can access your building's
+                    dashboard.</p>
+            </div>
+        </div>
+
+        <div class="callout-success">
+            <strong>✓ Success:</strong> You now have an account scoped to your building. All your data access is
+            automatically filtered to your building only.
+        </div>
+    </section>
+
+    <section>
+        <h2>Registration via Invitation Link</h2>
+
+        <p>Your strata manager or administrator may send you a <strong>personalised invitation link</strong> instead of
+            asking you to self-register. This is the preferred method for staff, EC members, and managed buildings.</p>
+
+        <div class="callout-info">
+            <strong>How it works:</strong> The invitation email contains a secure link that is unique to you. When you
+            click it, the registration form opens with your email address and role already pre-filled.
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">1</div>
+            <div class="step-content">
+                <h3>Receive the invitation email</h3>
+                <p>You'll receive an email from the platform with a subject like <em>"You've been invited to [Building
+                    Name]"</em>. Check your spam folder if you don't see it.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">2</div>
+            <div class="step-content">
+                <h3>Click the invitation link</h3>
+                <p>The link is valid for <strong>14 days</strong>. After that, ask your administrator to resend the
+                    invitation.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">3</div>
+            <div class="step-content">
+                <h3>Complete your profile</h3>
+                <p>Your email address and assigned role are pre-filled. You only need to enter your full name, phone
+                    number, and choose a password.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">4</div>
+            <div class="step-content">
+                <h3>Your account is ready</h3>
+                <p>Once you submit, your account is created and you're logged in automatically. Your access level
+                    matches the role your administrator assigned.</p>
+            </div>
+        </div>
+
+        <div class="callout-warn">
+            <strong>⚠️ Invitation links are single-use.</strong> Each link can only be used once to create one account.
+            If you accidentally close the page, contact your administrator to resend.
+        </div>
+
+        <section>
+            <h2>Building-Scoped Access: Why It Matters</h2>
+
+            <p>Each building on the platform is completely isolated. When you log in, your session is automatically
+                scoped to your building — you can only see your own building's residents, finances, documents, and
+                communications.</p>
+
+            <p>This means:</p>
+            <ol>
+                <li>You cannot accidentally view or edit another building's data</li>
+                <li>Residents, owners, and staff from other buildings cannot see your building's information</li>
+                <li>If you belong to multiple buildings (e.g. a property portfolio owner or multi-site strata manager),
+                    you will see a <strong>building selector</strong> on login to choose which building to work in
+                </li>
+            </ol>
+
+            <div class="callout-info">
+                <strong>Building Selector:</strong> Super Admins and multi-building users see a building switcher in the
+                top navigation bar. Switching buildings changes all data displayed — no information crosses between
+                buildings.
+            </div>
+        </section>
+
+        <section>
+            <h2>Troubleshooting</h2>
+
+            <h3>Email already exists</h3>
+            <p>If you see "Email already registered," that email is already in use within your building. Try:</p>
+            <ul>
+                <li>Checking if you already have an account</li>
+                <li>Using a different email address</li>
+                <li>Contacting your strata manager if you believe this is an error</li>
+            </ul>
+
+            <h3>Password rejected</h3>
+            <p>Passwords must be:</p>
+            <ul>
+                <li>At least 12 characters long</li>
+                <li>Include uppercase letters, lowercase letters, numbers, and symbols</li>
+                <li>Not a common phrase or pattern</li>
+            </ul>
+
+            <h3>Can't see my building in the list</h3>
+            <p>Your building may have a registration restriction. Contact your strata manager or administrator to:</p>
+            <ul>
+                <li>Enable public registration</li>
+                <li>Send you an invitation link</li>
+                <li>Manually create your account</li>
+            </ul>
+
+            <h3>Session or login error after registration</h3>
+            <p>If you see an error after registering or logging in:</p>
+            <ul>
+                <li>Clear your browser cache and cookies</li>
+                <li>Log out and log back in</li>
+                <li>Try a different browser or device</li>
+                <li>Contact support if the issue persists</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>For Administrators: Registration Settings</h2>
+
+            <p><strong>Super Admins</strong> and <strong>Strata Managers</strong> can control registration for their
+                building:</p>
+
+            <div class="role-card">
+                <h4>Registration Feature Toggle</h4>
+                <p><strong>Setting:</strong> Dashboard → Building Settings → Registration</p>
+                <ul>
+                    <li><strong>Public Registration Enabled</strong> — Anyone can self-register as Owner or Tenant</li>
+                    <li><strong>Managers Only</strong> — Only invited staff can register</li>
+                    <li><strong>Closed</strong> — No self-registration; super admin must manually invite users</li>
+                </ul>
+            </div>
+
+            <div class="role-card">
+                <h4>Building Context</h4>
+                <p>When you invite a user, the system automatically assigns them to your building. Their account is
+                    scoped to your building from the moment they accept the invitation — they only ever see your
+                    building's data.</p>
+                <p>If they need access to another building, a separate invitation must be sent by that building's
+                    administrator.</p>
+            </div>
+        </section>
+
+        <section>
+            <h2>Security Best Practices</h2>
+
+            <ul>
+                <li><strong>Use a unique password</strong> — Don't reuse passwords from other services</li>
+                <li><strong>Enable 2FA if available</strong> — Add an extra layer of security</li>
+                <li><strong>Keep your email private</strong> — Don't share it publicly or in forums</li>
+                <li><strong>Log out on shared computers</strong> — Always log out when using public or shared devices
+                </li>
+                <li><strong>Report suspicious activity</strong> — Contact your strata manager immediately if you notice
+                    unauthorized access
+                </li>
+            </ul>
+
+            <div class="callout-warn">
+                <strong>⚠️ Keep your login details private:</strong> Never share your password or account credentials.
+                If you believe your account has been accessed without your permission, contact your strata manager
+                immediately to have your account secured.
+            </div>
+        </section>
+
+        <section>
+            <h2>Related Guides</h2>
+            <ul>
+                <li><a href="building-onboarding-guide.html">Building Onboarding Guide</a> — How to add a new building
+                    (Admin)
+                </li>
+                <li><a href="staff-invitations-guide.html">Staff Invitations Guide</a> — How to invite managers and
+                    staff (Admin)
+                </li>
+                <li><a href="building-onboarding-guide.html">Multi-Tenant Architecture</a> — Setting up new buildings
+                    and managing cross-building access (Admin)
+                </li>
+            </ul>
+        </section>
+
+</main>
+
+<footer>
+    <p>StrataOS User Guides | Last updated: May 2, 2026</p>
+    <p>Questions? Contact your strata manager or visit the <a href="https://eastgateresidences.com.au/support">support
+        center</a>.</p>
+</footer>
+
+</body>
+</html>

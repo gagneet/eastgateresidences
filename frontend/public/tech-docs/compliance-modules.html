@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Compliance Modules — Technical Reference</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #0f172a;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px 60px;
+        }
+
+        section {
+            background: #111827;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #f8fafc;
+            margin-bottom: 4px;
+        }
+
+        h2 {
+            color: #f8fafc;
+            margin-top: 0;
+        }
+
+        h3 {
+            color: #cbd5e1;
+        }
+
+        p, li {
+            color: #cbd5e1;
+        }
+
+        code, pre {
+            background: #020617;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+        }
+
+        code {
+            padding: 2px 6px;
+            font-size: 13px;
+            color: #a5f3fc;
+        }
+
+        pre {
+            padding: 16px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            border-bottom: 1px solid #334155;
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            color: #94a3b8;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            color: #cbd5e1;
+        }
+
+        .method {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: monospace;
+            margin-right: 6px;
+        }
+
+        .post {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        .get {
+            background: #1e3a5f;
+            color: #93c5fd;
+        }
+
+        .put {
+            background: #4c1d95;
+            color: #c4b5fd;
+        }
+
+        .del {
+            background: #4c0519;
+            color: #fda4af;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-ok {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        .badge-warn {
+            background: #78350f;
+            color: #fcd34d;
+        }
+
+        .badge-error {
+            background: #4c0519;
+            color: #fda4af;
+        }
+
+        .sub {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-top: 0;
+        }
+
+        .toc {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .toc a {
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .module-header {
+            border-bottom: 1px solid #334155;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Compliance Modules — Technical Reference</h1>
+    <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role lists on this page naming "chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+    <p class="sub">Covers: Essential Services Log (GAP-COM-008) &nbsp;|&nbsp; Conflict of Interest Register
+        (GAP-GOV-007) &nbsp;|&nbsp; Updated: 2026-04-23</p>
+
+    <!-- ── TOC ── -->
+    <section>
+        <h2>Contents</h2>
+        <div class="toc">
+            <a href="#essential-services">1. Essential Services Log</a>
+            <a href="#es-feature-toggle">&nbsp;&nbsp;&nbsp;Feature Toggle</a>
+            <a href="#es-endpoints">&nbsp;&nbsp;&nbsp;API Endpoints</a>
+            <a href="#es-models">&nbsp;&nbsp;&nbsp;Pydantic Models</a>
+            <a href="#es-collection">&nbsp;&nbsp;&nbsp;MongoDB Collection</a>
+            <a href="#es-security">&nbsp;&nbsp;&nbsp;Security &amp; Roles</a>
+            <a href="#conflict-of-interest">2. Conflict of Interest Register</a>
+            <a href="#coi-feature-toggle">&nbsp;&nbsp;&nbsp;Feature Toggle</a>
+            <a href="#coi-endpoints">&nbsp;&nbsp;&nbsp;API Endpoints</a>
+            <a href="#coi-models">&nbsp;&nbsp;&nbsp;Pydantic Models</a>
+            <a href="#coi-collection">&nbsp;&nbsp;&nbsp;MongoDB Collection</a>
+            <a href="#coi-security">&nbsp;&nbsp;&nbsp;Security &amp; Roles</a>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- ESSENTIAL SERVICES                                                      -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+    <section id="essential-services">
+        <div class="module-header">
+            <h2>1. Essential Services Log</h2>
+            <p class="sub">GAP-COM-008 &nbsp;|&nbsp; Router: <code>backend/routers/essential_services.py</code> &nbsp;|&nbsp;
+                Tag: <code>Compliance</code></p>
+        </div>
+        <p>
+            Records compliance-driven service events for building essential services: cooling towers, HVAC,
+            backflow prevention devices, lifts, fire pumps, emergency lighting, and exit lighting. Each entry
+            captures the technician, company, licence number, service date, status, certificate URL, and
+            next-due date (optionally auto-calculated from an interval).
+        </p>
+        <p>
+            The <code>/overdue</code> endpoint surfaces all entries where <code>next_due</code> is in the past
+            and status is not <code>compliant</code>, with a computed <code>days_overdue</code> field.
+        </p>
+    </section>
+
+    <section id="es-feature-toggle">
+        <h2>Essential Services — Feature Toggle</h2>
+        <table>
+            <tr>
+                <th>Key</th>
+                <td><code>essential_services</code></td>
+            </tr>
+            <tr>
+                <th>Category</th>
+                <td>compliance</td>
+            </tr>
+            <tr>
+                <th>Default</th>
+                <td>enabled (global, <code>building_id = null</code>)</td>
+            </tr>
+            <tr>
+                <th>Allowed roles</th>
+                <td>super_admin, chairman, strata_manager, ec_member (write); owner, tenant (read)</td>
+            </tr>
+            <tr>
+                <th>Nav path</th>
+                <td>/compliance/essential-services</td>
+            </tr>
+        </table>
+        <p>Add to <code>backend/seeds/feature_toggles.py</code> and run:</p>
+        <pre>cd backend &amp;&amp; source venv/bin/activate
+python3 seeds/feature_toggles.py</pre>
+    </section>
+
+    <section id="es-endpoints">
+        <h2>Essential Services — API Endpoints</h2>
+        <p>All endpoints require authentication. Write operations require manager roles; read operations are
+            accessible to owners and tenants. All responses are building-scoped.</p>
+
+        <h3><span class="method post">POST</span> /api/essential-services</h3>
+        <p>Log a new service event. Returns the created document with its assigned <code>id</code> (MongoDB ObjectId as
+            string).</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>service_type</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>One of the SERVICE_TYPES enum. See model below.</td>
+            </tr>
+            <tr>
+                <td><code>asset_name</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>Human-readable label for the equipment, min 2 chars.</td>
+            </tr>
+            <tr>
+                <td><code>service_date</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>ISO-8601 date (<code>YYYY-MM-DD</code>).</td>
+            </tr>
+            <tr>
+                <td><code>technician</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>Technician full name, min 2 chars.</td>
+            </tr>
+            <tr>
+                <td><code>status</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Default: <code>compliant</code>. See SERVICE_STATUSES.</td>
+            </tr>
+            <tr>
+                <td><code>interval_months</code></td>
+                <td>int</td>
+                <td>No</td>
+                <td>1–120. If provided and <code>next_due</code> absent, auto-computes <code>next_due = service_date +
+                    interval_months</code>.
+                </td>
+            </tr>
+            <tr>
+                <td><code>next_due</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>ISO-8601 date. Takes precedence over <code>interval_months</code> if both provided.</td>
+            </tr>
+            <tr>
+                <td><code>asset_id</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Reference to <code>building_assets._id</code>.</td>
+            </tr>
+            <tr>
+                <td><code>company</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Contractor company name.</td>
+            </tr>
+            <tr>
+                <td><code>licence_number</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Technician licence or accreditation number.</td>
+            </tr>
+            <tr>
+                <td><code>certificate_url</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>URL to the compliance certificate.</td>
+            </tr>
+            <tr>
+                <td><code>notes</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Free-text notes.</td>
+            </tr>
+            <tr>
+                <td><code>tags</code></td>
+                <td>string[]</td>
+                <td>No</td>
+                <td>Optional tag list. Default: <code>[]</code>.</td>
+            </tr>
+            </tbody>
+        </table>
+        <p><strong>Role guard:</strong> <code>_require_manager()</code> — super_admin, strata_manager, chairman,
+            ec_member, admin_staff.</p>
+        <p><strong>Errors:</strong> 400 invalid service_type, 400 invalid status, 403 insufficient role.</p>
+
+        <h3><span class="method get">GET</span> /api/essential-services</h3>
+        <p>List log entries for the building (paginated, sorted by <code>service_date DESC</code>).</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Query param</th>
+                <th>Type</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>service_type</code></td>
+                <td>string?</td>
+                <td>Filter by service type.</td>
+            </tr>
+            <tr>
+                <td><code>status</code></td>
+                <td>string?</td>
+                <td>Filter by status.</td>
+            </tr>
+            <tr>
+                <td><code>date_from</code></td>
+                <td>string?</td>
+                <td>Filter service_date &gt;= (ISO-8601).</td>
+            </tr>
+            <tr>
+                <td><code>date_to</code></td>
+                <td>string?</td>
+                <td>Filter service_date &lt;= (ISO-8601).</td>
+            </tr>
+            <tr>
+                <td><code>page</code></td>
+                <td>int</td>
+                <td>Default 1.</td>
+            </tr>
+            <tr>
+                <td><code>page_size</code></td>
+                <td>int</td>
+                <td>Default 20, max 100.</td>
+            </tr>
+            </tbody>
+        </table>
+        <p><strong>Role guard:</strong> <code>_require_view()</code> — managers + owner + tenant.</p>
+        <p><strong>Response:</strong> <code>{ data: [...], total: int, page: int, page_size: int }</code></p>
+
+        <h3><span class="method get">GET</span> /api/essential-services/overdue</h3>
+        <p>Returns all entries where <code>next_due &lt; today</code> AND <code>status != "compliant"</code>.
+            Sorted by <code>next_due ASC</code> (most overdue first). Adds a computed <code>days_overdue</code> integer
+            to each document.</p>
+        <p><strong>Response:</strong> <code>{ data: [...], total: int, as_of: "YYYY-MM-DD" }</code></p>
+        <p><strong>Note:</strong> This route is declared before <code>/{entry_id}</code> — FastAPI must see it first to
+            avoid routing to the single-entry handler.</p>
+
+        <h3><span class="method get">GET</span> /api/essential-services/{entry_id}</h3>
+        <p>Get a single log entry. <code>entry_id</code> is a MongoDB ObjectId string. Returns 400 for malformed IDs,
+            404 if not found or cross-building.</p>
+
+        <h3><span class="method put">PUT</span> /api/essential-services/{entry_id}</h3>
+        <p>Update a log entry — typically to add a certificate URL or change status. Partial update: only provided
+            fields are changed. Requires at least one field.</p>
+        <p><strong>Updatable fields:</strong> <code>status</code>, <code>certificate_url</code>, <code>next_due</code>,
+            <code>notes</code>, <code>tags</code>.</p>
+        <p><strong>Role guard:</strong> manager only. Adds <code>updated_at</code> and <code>updated_by</code>.</p>
+        <p><strong>Errors:</strong> 400 invalid status, 400 no fields to update, 404 not found.</p>
+    </section>
+
+    <section id="es-models">
+        <h2>Essential Services — Pydantic Models</h2>
+
+        <h3>Service type enum</h3>
+        <pre>SERVICE_TYPES = [
+  "cooling_tower", "hvac", "backflow_prevention", "lift",
+  "fire_pump", "emergency_lighting", "exit_lighting", "other"
+]</pre>
+
+        <h3>Status enum</h3>
+        <pre>SERVICE_STATUSES = [
+  "compliant", "non_compliant", "advisory", "pending_certificate"
+]</pre>
+
+        <h3>EssentialServiceCreate (POST body)</h3>
+        <pre>{
+  "service_type": "lift",                           // required; one of SERVICE_TYPES
+  "asset_name": "Passenger Lift — North Core",       // required, min 2 chars
+  "service_date": "2026-04-10",                      // required, ISO-8601
+  "technician": "John Doe",                          // required, min 2 chars
+  "company": "Schindler Pty Ltd",                    // optional
+  "licence_number": "EL-123456",                     // optional
+  "status": "compliant",                             // optional, default "compliant"
+  "certificate_url": "https://example.com/cert.pdf", // optional
+  "next_due": null,                                  // optional — set directly or via interval_months
+  "interval_months": 6,                              // optional; auto-computes next_due if next_due absent
+  "notes": "Completed annual test; no defects found.",
+  "tags": ["annual", "statutory"]
+}</pre>
+
+        <h3>EssentialServiceUpdate (PUT body)</h3>
+        <pre>{
+  "status": "compliant",                             // optional
+  "certificate_url": "https://example.com/cert.pdf", // optional
+  "next_due": "2026-10-10",                          // optional
+  "notes": "Certificate received 2026-04-12.",       // optional
+  "tags": ["annual", "statutory"]                    // optional
+}</pre>
+
+        <h3>Response document shape</h3>
+        <pre>{
+  "id": "&lt;MongoDB ObjectId as string&gt;",
+  "building_id": "&lt;building_id&gt;",
+  "service_type": "lift",
+  "asset_id": null,
+  "asset_name": "Passenger Lift — North Core",
+  "service_date": "2026-04-10",
+  "technician": "John Doe",
+  "company": "Schindler Pty Ltd",
+  "licence_number": "EL-123456",
+  "status": "compliant",
+  "certificate_url": "https://example.com/cert.pdf",
+  "next_due": "2026-10-10",          // auto-computed or provided
+  "notes": "...",
+  "tags": [],
+  "created_by": "&lt;user_id&gt;",
+  "created_at": "ISO-8601",
+  "updated_at": "ISO-8601",
+  // Overdue endpoint adds:
+  "days_overdue": 5                  // computed at read time
+}</pre>
+    </section>
+
+    <section id="es-collection">
+        <h2>Essential Services — MongoDB Collection</h2>
+        <p>Collection: <code>essential_services_log</code>. Building-scoped via <code>TenantScopedDatabase</code>.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Recommended Index</th>
+                <th>Fields</th>
+                <th>Purpose</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Primary filter</td>
+                <td><code>(building_id, service_type, service_date)</code></td>
+                <td>Filtered list queries</td>
+            </tr>
+            <tr>
+                <td>Overdue query</td>
+                <td><code>(building_id, next_due, status)</code></td>
+                <td>Overdue endpoint performance</td>
+            </tr>
+            <tr>
+                <td>Default sort</td>
+                <td><code>(building_id, service_date DESC)</code></td>
+                <td>Default list order</td>
+            </tr>
+            </tbody>
+        </table>
+        <p>Documents use MongoDB <code>_id</code> (ObjectId) as the primary key, mapped to <code>"id"</code> in API
+            responses. Extra indexes should be created via <code>financial_repository.ensure_indexes()</code> or a
+            migration script.</p>
+    </section>
+
+    <section id="es-security">
+        <h2>Essential Services — Security Notes</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Concern</th>
+                <th>Mitigation</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Building isolation</td>
+                <td>All queries include <code>building_id</code>. <code>TenantScopedDatabase</code> auto-injects tenant
+                    context. Cross-building access returns 404.
+                </td>
+            </tr>
+            <tr>
+                <td>Role guard</td>
+                <td>Uses <code>effective_role or role</code> — never raw <code>user["role"]</code>. Handles elevated
+                    users correctly.
+                </td>
+            </tr>
+            <tr>
+                <td>Read access</td>
+                <td>Owners and tenants can view the log (transparency). They cannot create or modify entries.</td>
+            </tr>
+            <tr>
+                <td>Audit trail</td>
+                <td>Every POST logs an <code>essential_service_logged</code> audit event to <code>audit_logs</code>.
+                </td>
+            </tr>
+            <tr>
+                <td>Retention</td>
+                <td>Records are not hard-deleted. Compliance records must be retained for the 7-year statutory period.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- CONFLICT OF INTEREST                                                    -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+    <section id="conflict-of-interest">
+        <div class="module-header">
+            <h2>2. Conflict of Interest Register</h2>
+            <p class="sub">GAP-GOV-007 &nbsp;|&nbsp; Router: <code>backend/routers/conflict_of_interest.py</code> &nbsp;|&nbsp;
+                Tag: <code>Governance</code></p>
+        </div>
+        <p>
+            Records conflict-of-interest declarations by EC members before agenda items are discussed.
+            Declarations are immutable by the declarant — only managers/chairman can update the resolution
+            field or retract (soft-delete) a record. Ties to <code>decisions.py</code> (decision records may
+            reference a <code>conflict_of_interest</code> id) and GAP-JUR-NSW-013 (building manager disclosure).
+        </p>
+    </section>
+
+    <section id="coi-feature-toggle">
+        <h2>Conflict of Interest — Feature Toggle</h2>
+        <table>
+            <tr>
+                <th>Key</th>
+                <td><code>conflict_of_interest</code></td>
+            </tr>
+            <tr>
+                <th>Category</th>
+                <td>governance</td>
+            </tr>
+            <tr>
+                <th>Default</th>
+                <td>enabled (global, <code>building_id = null</code>)</td>
+            </tr>
+            <tr>
+                <th>Allowed roles</th>
+                <td>super_admin, chairman, strata_manager, ec_member</td>
+            </tr>
+            <tr>
+                <th>Nav path</th>
+                <td>/dashboard/governance/conflict-of-interest</td>
+            </tr>
+        </table>
+    </section>
+
+    <section id="coi-endpoints">
+        <h2>Conflict of Interest — API Endpoints</h2>
+
+        <h3><span class="method post">POST</span> /api/conflict-of-interest</h3>
+        <p>Declare a conflict of interest. The authenticated user becomes the <code>member_id</code>.
+            Returns the created document including its MongoDB ObjectId as <code>id</code>.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>conflict_type</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>One of: <code>financial</code>, <code>personal</code>, <code>professional</code>, <code>other</code>.
+                </td>
+            </tr>
+            <tr>
+                <td><code>description</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>Nature of the conflict, min 10 / max 2000 chars.</td>
+            </tr>
+            <tr>
+                <td><code>resolution</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Default: <code>pending</code>. See RESOLUTION_TYPES below.</td>
+            </tr>
+            <tr>
+                <td><code>related_matter</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Agenda item title or decision number.</td>
+            </tr>
+            <tr>
+                <td><code>meeting_date</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>ISO-8601 date of the meeting.</td>
+            </tr>
+            <tr>
+                <td><code>notes</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Additional context.</td>
+            </tr>
+            </tbody>
+        </table>
+        <p><strong>Role guard:</strong> <code>_require_ec()</code> — super_admin, strata_manager, chairman, ec_member,
+            admin_staff.</p>
+        <p><strong>Errors:</strong> 400 invalid conflict_type, 400 invalid resolution, 403 insufficient role.</p>
+
+        <h3><span class="method get">GET</span> /api/conflict-of-interest</h3>
+        <p>List declarations for the building (paginated, sorted by <code>declared_at DESC</code>).
+            Retracted records are excluded by default.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Query param</th>
+                <th>Type</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>member_id</code></td>
+                <td>string?</td>
+                <td>Filter to a specific member.</td>
+            </tr>
+            <tr>
+                <td><code>conflict_type</code></td>
+                <td>string?</td>
+                <td>Filter by conflict type.</td>
+            </tr>
+            <tr>
+                <td><code>include_retracted</code></td>
+                <td>bool</td>
+                <td>Default <code>false</code>. Pass <code>true</code> to include retracted declarations.</td>
+            </tr>
+            <tr>
+                <td><code>page</code></td>
+                <td>int</td>
+                <td>Default 1.</td>
+            </tr>
+            <tr>
+                <td><code>page_size</code></td>
+                <td>int</td>
+                <td>Default 20, max 100.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3><span class="method get">GET</span> /api/conflict-of-interest/{declaration_id}</h3>
+        <p>Get a single declaration. <code>declaration_id</code> is a MongoDB ObjectId string. Returns 400 for malformed
+            IDs, 404 if not found or cross-building.</p>
+
+        <h3><span class="method put">PUT</span> /api/conflict-of-interest/{declaration_id}</h3>
+        <p>Update the resolution, notes, or related_matter on a declaration. Manager/chairman only.
+            EC members cannot edit their own declarations after submission.</p>
+        <p><strong>Updatable fields:</strong> <code>resolution</code>, <code>notes</code>, <code>related_matter</code>.
+        </p>
+        <p><strong>Role guard:</strong> <code>_require_manager()</code> — super_admin, strata_manager, chairman,
+            admin_staff.</p>
+        <p><strong>Errors:</strong> 400 invalid resolution, 400 no fields to update, 404 not found.</p>
+
+        <h3><span class="method del">DELETE</span> /api/conflict-of-interest/{declaration_id}</h3>
+        <p>Soft-delete (retract) a declaration — sets <code>retracted=True</code>, <code>retracted_at</code>, and
+            <code>retracted_by</code>. The document is never hard-deleted. Manager only.</p>
+        <p><strong>Response:</strong> <code>{ message: "Declaration retracted.", declaration_id: "..." }</code></p>
+    </section>
+
+    <section id="coi-models">
+        <h2>Conflict of Interest — Pydantic Models</h2>
+
+        <h3>Enum values</h3>
+        <pre>CONFLICT_TYPES = ["financial", "personal", "professional", "other"]
+
+RESOLUTION_TYPES = [
+  "abstained",
+  "recused",
+  "disclosed_and_voted",
+  "chair_ruled_no_conflict",
+  "pending"
+]</pre>
+
+        <h3>ConflictCreate (POST body)</h3>
+        <pre>{
+  "conflict_type": "financial",           // required
+  "description": "I hold shares in...",  // required, min 10 chars
+  "resolution": "pending",               // optional, default "pending"
+  "related_matter": "Item 4 — Contractor Selection",  // optional
+  "meeting_date": "2026-04-28",          // optional
+  "notes": "Will abstain from vote."     // optional
+}</pre>
+
+        <h3>ConflictUpdate (PUT body)</h3>
+        <pre>{
+  "resolution": "abstained",             // optional
+  "notes": "Member left the room.",      // optional
+  "related_matter": "Item 4 — updated"  // optional
+  // At least one field required; empty body → 400
+}</pre>
+
+        <h3>Response document shape</h3>
+        <pre>{
+  "id": "&lt;MongoDB ObjectId as string&gt;",
+  "building_id": "&lt;building_id&gt;",
+  "member_id": "&lt;user_id&gt;",
+  "member_name": "Jane Smith",
+  "conflict_type": "personal",
+  "description": "My brother is director of the contractor being considered.",
+  "related_matter": "Hot Water System — Contractor Selection",
+  "resolution": "recused",
+  "meeting_date": "2026-04-28",
+  "notes": null,
+  "declared_at": "ISO-8601",
+  "created_at": "ISO-8601",
+  "updated_at": "ISO-8601",
+  "retracted": false,
+  // Present if retracted:
+  "retracted_at": null,
+  "retracted_by": null
+}</pre>
+    </section>
+
+    <section id="coi-collection">
+        <h2>Conflict of Interest — MongoDB Collection</h2>
+        <p>Collection: <code>conflict_of_interest</code>. Building-scoped via <code>TenantScopedDatabase</code>.
+            Uses MongoDB <code>_id</code> (ObjectId) as the primary key, exposed as <code>"id"</code> in responses.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Recommended Index</th>
+                <th>Fields</th>
+                <th>Purpose</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Primary list</td>
+                <td><code>(building_id, retracted, declared_at DESC)</code></td>
+                <td>Default list query</td>
+            </tr>
+            <tr>
+                <td>Member filter</td>
+                <td><code>(building_id, member_id)</code></td>
+                <td>Per-member filter</td>
+            </tr>
+            <tr>
+                <td>Type filter</td>
+                <td><code>(building_id, conflict_type)</code></td>
+                <td>Type filter</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>Soft-delete pattern</h3>
+        <pre># Retract — never hard-delete
+db.conflict_of_interest.update_one(
+    {"_id": oid, "building_id": building_id},
+    {"$set": {
+        "retracted": True,
+        "retracted_at": now_iso(),
+        "retracted_by": current_user["id"]
+    }}
+)
+
+# List — exclude retracted by default
+query["retracted"] = {"$ne": True}
+
+# List — include retracted
+# (omit the retracted filter)</pre>
+    </section>
+
+    <section id="coi-security">
+        <h2>Conflict of Interest — Security Notes</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Concern</th>
+                <th>Mitigation</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Building isolation</td>
+                <td>All queries include <code>building_id</code> in the filter. Cross-building access returns 404.</td>
+            </tr>
+            <tr>
+                <td>Role guard</td>
+                <td>Two guard levels: <code>_require_ec()</code> for create/view; <code>_require_manager()</code> for
+                    update/retract. Both use <code>effective_role or role</code>.
+                </td>
+            </tr>
+            <tr>
+                <td>Immutability of declarations</td>
+                <td>EC members cannot edit their own declarations — only managers can update the resolution field. This
+                    prevents post-hoc revision.
+                </td>
+            </tr>
+            <tr>
+                <td>Soft delete only</td>
+                <td>DELETE endpoint sets <code>retracted=True</code>; the document is never physically removed. Full
+                    audit trail is preserved.
+                </td>
+            </tr>
+            <tr>
+                <td>Audit trail</td>
+                <td>All create, update, and retract actions emit audit log events (<code>conflict_declared</code>,
+                    <code>conflict_updated</code>, <code>conflict_retracted</code>).
+                </td>
+            </tr>
+            <tr>
+                <td>Test data</td>
+                <td>Test-created records must carry <code>is_test_data: true</code> to prevent appearing in production
+                    governance views.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+</main>
+</body>
+</html>

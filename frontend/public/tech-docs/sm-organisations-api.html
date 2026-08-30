@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>SM Organisations API – StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">StrataOS</div>
+            <div class="sub">Technical Documentation · SM Organisations API</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Feature Domains</div>
+            <a data-page="management-hierarchy.html" href="management-hierarchy.html"><span class="icon">🏢</span> Management Hierarchy</a>
+            <a data-page="management-hierarchy-api.html" href="management-hierarchy-api.html"><span class="icon">🔌</span> Hierarchy API</a>
+            <a class="active" data-page="sm-organisations-api.html" href="sm-organisations-api.html"><span class="icon">🏛️</span> SM Organisations API</a>
+            <a data-page="manager-contracts-api.html" href="manager-contracts-api.html"><span class="icon">📄</span> Manager Contracts API</a>
+            <a data-page="trust-accounting.html" href="trust-accounting.html"><span class="icon">🏦</span> Trust Accounting</a>
+            <a data-page="feature-toggles.html" href="feature-toggles.html"><span class="icon">🎛️</span> Feature Toggles</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#overview">Overview</a>
+            <a href="#create-org">POST /sm-organisations</a>
+            <a href="#create-self-managed">POST /sm-organisations/self-managed</a>
+            <a href="#list-orgs">GET /sm-organisations</a>
+            <a href="#get-org">GET /sm-organisations/{id}</a>
+            <a href="#get-org-schemes">GET /sm-organisations/{id}/schemes</a>
+            <a href="#get-org-members">GET /sm-organisations/{id}/members</a>
+            <a href="#update-org">PATCH /sm-organisations/{id}</a>
+            <a href="#test-data">Test Data Flag</a>
+            <a href="#postgres-tables">PostgreSQL Tables</a>
+            <a href="#error-codes">Error Codes</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <h1>SM Organisations API</h1>
+        <p>
+            Router: <code>backend/routers/sm_organisations.py</code><br/>
+            Prefix: <code>/admin/sm-organisations</code><br/>
+            Full base path: <code>/api/admin/sm-organisations</code>
+        </p>
+        <p>
+            All endpoints are <strong>super_admin only</strong>. The router enforces this via
+            <code>_require_super_admin()</code> which checks <code>effective_role(user) == "super_admin"</code>
+            at the top of every handler.
+        </p>
+        <p>
+            All operations target the PostgreSQL <code>core</code> schema.
+            The bypass UUID (<code>00000000-0000-0000-0000-000000000000</code>) is used for
+            cross-tenant queries — it is never exposed to callers.
+        </p>
+        <div class="callout">
+            <strong>Spec reference.</strong> This router implements
+            <code>docs/architecture/onboarding/02_endpoint_contracts.md</code> §2.1.
+        </div>
+
+        <section id="overview">
+            <h2>Endpoint Summary</h2>
+            <table>
+                <thead>
+                    <tr><th>Method</th><th>Path</th><th>Description</th><th>Auth</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-post">POST</span></td>
+                        <td><code>/admin/sm-organisations</code></td>
+                        <td>Create SM-managed tenant + dispatch admin invitation</td>
+                        <td>super_admin</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-post">POST</span></td>
+                        <td><code>/admin/sm-organisations/self-managed</code></td>
+                        <td>Create self-managed tenant + scheme + EC admin invitation (atomic)</td>
+                        <td>super_admin</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-get">GET</span></td>
+                        <td><code>/admin/sm-organisations</code></td>
+                        <td>List SM organisations</td>
+                        <td>super_admin</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-get">GET</span></td>
+                        <td><code>/admin/sm-organisations/{tenant_id}</code></td>
+                        <td>Get single org detail</td>
+                        <td>super_admin</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-get">GET</span></td>
+                        <td><code>/admin/sm-organisations/{tenant_id}/schemes</code></td>
+                        <td>List schemes belonging to this org</td>
+                        <td>super_admin</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-get">GET</span></td>
+                        <td><code>/admin/sm-organisations/{tenant_id}/members</code></td>
+                        <td>List active role assignments under this tenant</td>
+                        <td>super_admin</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-put">PATCH</span></td>
+                        <td><code>/admin/sm-organisations/{tenant_id}</code></td>
+                        <td>Update org fields (tenant_name, legal_name, abn, status)</td>
+                        <td>super_admin</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="create-org">
+            <h2>POST /admin/sm-organisations</h2>
+            <p>
+                Creates an SM-managed (non-self-managed) tenant and dispatches a primary admin invitation.
+                The operation is a single Postgres transaction: tenant insert + invitation insert.
+                Email send occurs after commit; email failure does not roll back the transaction.
+            </p>
+            <p>Returns HTTP 201 on success.</p>
+
+            <h3>Request body</h3>
+            <table>
+                <thead>
+                    <tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>tenant_name</code></td><td>string</td><td>Yes</td><td>Display name for the organisation</td></tr>
+                    <tr><td><code>legal_name</code></td><td>string</td><td>No</td><td>Registered legal name</td></tr>
+                    <tr><td><code>abn</code></td><td>string</td><td>No</td><td>Australian Business Number. Must be unique among active tenants.</td></tr>
+                    <tr><td><code>jurisdiction</code></td><td>string</td><td>No</td><td>Default: ACT. One of: ACT, NSW, VIC, QLD, WA, SA, TAS, NT</td></tr>
+                    <tr><td><code>primary_admin_email</code></td><td>email string</td><td>Yes</td><td>Invitation sent here. Must be a valid email address.</td></tr>
+                    <tr><td><code>primary_admin_first_name</code></td><td>string</td><td>Yes</td><td>Used in the invitation email</td></tr>
+                    <tr><td><code>primary_admin_last_name</code></td><td>string</td><td>Yes</td><td>Used in the invitation email</td></tr>
+                    <tr><td><code>invitation_role</code></td><td>string</td><td>No</td><td>Default: strata_admin. One of: strata_admin, strata_manager</td></tr>
+                    <tr><td><code>invitation_expires_days</code></td><td>integer</td><td>No</td><td>Default: 14. Range: 1–30.</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Response 201</h3>
+            <pre><code>{
+  "tenant_id": "uuid",
+  "invitation_id": "uuid",
+  "message": "SM organisation 'Acme Strata' created. Invitation sent to admin@example.com."
+  // Optional on email failure:
+  // "warning": "Invitation email failed to send. Use the resend endpoint.",
+  // "code": "invitation_email_failed"
+}</code></pre>
+
+            <h3>Postgres writes</h3>
+            <ol>
+                <li><code>INSERT INTO core.tenants (..., is_self_managed=FALSE, status='active', is_test_data=...)</code></li>
+                <li><code>INSERT INTO core.user_invitations (..., scheme_id=NULL, invited_role=..., claim_token_sha256=..., expires_at=...)</code></li>
+            </ol>
+            <p>
+                The raw invitation token is SHA-256 hashed before storage. Only the hash is persisted in
+                <code>core.user_invitations.claim_token_sha256</code>. The raw token is sent in the claim URL
+                <code>/onboarding/claim/{raw_token}</code>.
+            </p>
+
+            <h3>Error responses</h3>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Code</th><th>Condition</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>403</td><td>—</td><td>Caller is not super_admin</td></tr>
+                    <tr><td>409</td><td><code>abn_already_active</code></td><td>An active tenant with this ABN already exists (pre-check or concurrent insert)</td></tr>
+                    <tr><td>500</td><td>—</td><td>Unexpected database integrity error</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="create-self-managed">
+            <h2>POST /admin/sm-organisations/self-managed</h2>
+            <p>
+                Creates a self-managed scheme: tenant (<code>is_self_managed = TRUE</code>) + scheme + EC
+                admin invitation in a single atomic Postgres transaction. The 1:1 tenant↔scheme invariant
+                is enforced by the <code>schemes_self_managed_one_per_tenant</code> trigger added in
+                migration 0028.
+            </p>
+            <p>Returns HTTP 201 on success.</p>
+
+            <h3>Request body</h3>
+            <table>
+                <thead>
+                    <tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>scheme_number</code></td><td>string</td><td>Yes</td><td>Strata plan / unit plan number (e.g. "13195"). Must be unique within jurisdiction.</td></tr>
+                    <tr><td><code>scheme_name</code></td><td>string</td><td>Yes</td><td>Display name for the scheme and tenant</td></tr>
+                    <tr><td><code>scheme_legal_name</code></td><td>string</td><td>No</td><td>Registered legal name of the owners corporation</td></tr>
+                    <tr><td><code>scheme_abn</code></td><td>string</td><td>No</td><td>ABN. Must be unique among active tenants.</td></tr>
+                    <tr><td><code>jurisdiction</code></td><td>string</td><td>No</td><td>Default: ACT. One of: ACT, NSW, VIC, QLD, WA, SA, TAS, NT</td></tr>
+                    <tr><td><code>ec_admin_email</code></td><td>email string</td><td>Yes</td><td>EC admin invitation sent here</td></tr>
+                    <tr><td><code>ec_admin_first_name</code></td><td>string</td><td>Yes</td><td></td></tr>
+                    <tr><td><code>ec_admin_last_name</code></td><td>string</td><td>Yes</td><td></td></tr>
+                    <tr><td><code>invitation_role</code></td><td>string</td><td>No</td><td>Default: strata_admin. One of: strata_admin, strata_manager</td></tr>
+                    <tr><td><code>invitation_expires_days</code></td><td>integer</td><td>No</td><td>Default: 14. Range: 1–30.</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Response 201</h3>
+            <pre><code>{
+  "tenant_id": "uuid",
+  "scheme_id": "uuid",
+  "invitation_id": "uuid",
+  "message": "Self-managed scheme 'East Gate Residences' (13195) created."
+}</code></pre>
+
+            <h3>Postgres writes (single transaction)</h3>
+            <ol>
+                <li><code>INSERT INTO core.tenants (..., is_self_managed=TRUE, status='active')</code></li>
+                <li><code>INSERT INTO core.schemes (..., tenant_id=..., jurisdiction=..., scheme_number=...)</code></li>
+                <li><code>INSERT INTO core.user_invitations (..., scheme_id=..., invited_role=...)</code></li>
+            </ol>
+
+            <h3>Error responses</h3>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Code</th><th>Condition</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>403</td><td>—</td><td>Caller is not super_admin</td></tr>
+                    <tr><td>409</td><td><code>abn_already_active</code></td><td>Active tenant with this ABN already exists</td></tr>
+                    <tr><td>409</td><td><code>scheme_number_taken_in_jurisdiction</code></td><td>Scheme number already exists in the jurisdiction</td></tr>
+                    <tr><td>409</td><td><code>self_managed_already_has_scheme</code></td><td>Trigger: self-managed tenant already has a scheme (1:1 invariant)</td></tr>
+                    <tr><td>500</td><td>—</td><td>Unexpected database integrity error</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="list-orgs">
+            <h2>GET /admin/sm-organisations</h2>
+            <p>Lists SM organisations from <code>core.tenants</code>. By default, self-managed tenants are excluded.</p>
+
+            <h3>Query parameters</h3>
+            <table>
+                <thead>
+                    <tr><th>Param</th><th>Type</th><th>Default</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>include_self_managed</code></td><td>boolean</td><td>false</td><td>When true, includes tenants with is_self_managed=TRUE</td></tr>
+                    <tr><td><code>status</code></td><td>string</td><td>—</td><td>Filter by status: active | inactive | archived</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Response 200</h3>
+            <pre><code>{
+  "items": [
+    {
+      "tenant_id": "uuid",
+      "tenant_name": "Acme Strata",
+      "legal_name": "Acme Strata Pty Ltd",
+      "abn": "12 345 678 901",
+      "is_self_managed": false,
+      "status": "active",
+      "created_at": "2026-06-09T00:00:00",
+      "scheme_count": 5,
+      "member_count": 12
+    }
+  ],
+  "total": 1
+}</code></pre>
+            <p>
+                <code>scheme_count</code> is the count of active schemes under the tenant.
+                <code>member_count</code> is the count of active <code>core.user_role_assignments</code> rows.
+                Both are computed as subqueries per row.
+            </p>
+        </section>
+
+        <section id="get-org">
+            <h2>GET /admin/sm-organisations/{tenant_id}</h2>
+            <p>Returns single organisation detail from <code>core.tenants</code>.</p>
+            <p><strong>Path param:</strong> <code>tenant_id</code> — must be a valid UUID (400 if not).</p>
+
+            <h3>Response 200</h3>
+            <pre><code>{
+  "tenant_id": "uuid",
+  "tenant_name": "Acme Strata",
+  "legal_name": "Acme Strata Pty Ltd",
+  "abn": "12 345 678 901",
+  "is_self_managed": false,
+  "status": "active",
+  "created_at": "2026-06-09T00:00:00",
+  "created_from_trial_id": "uuid-or-null"
+}</code></pre>
+        </section>
+
+        <section id="get-org-schemes">
+            <h2>GET /admin/sm-organisations/{tenant_id}/schemes</h2>
+            <p>Returns all schemes belonging to this org, ordered by <code>scheme_number</code>.</p>
+
+            <h3>Response 200</h3>
+            <pre><code>{
+  "items": [
+    {
+      "scheme_id": "uuid",
+      "scheme_number": "13195",
+      "scheme_name": "East Gate Residences",
+      "legal_name": "Owners Corporation EGR",
+      "abn": "98 765 432 109",
+      "jurisdiction": "ACT",
+      "status": "active",
+      "created_at": "2026-01-01T00:00:00"
+    }
+  ]
+}</code></pre>
+            <p>Note: no <code>is_test_data</code> filter is applied here — all schemes including test rows are returned to super_admin.</p>
+        </section>
+
+        <section id="get-org-members">
+            <h2>GET /admin/sm-organisations/{tenant_id}/members</h2>
+            <p>
+                Returns active role assignments under this tenant by joining
+                <code>core.user_role_assignments</code> → <code>core.users</code> →
+                <code>core.schemes</code>. Only rows where <code>is_active = true</code> are included.
+                Results ordered by <code>full_name</code>.
+            </p>
+
+            <h3>Response 200</h3>
+            <pre><code>{
+  "items": [
+    {
+      "user_id": "uuid",
+      "email": "manager@example.com",
+      "full_name": "Jane Smith",
+      "role": "strata_manager",
+      "scheme_id": "uuid-or-null",
+      "scheme_name": "East Gate Residences",
+      "is_active": true,
+      "granted_at": "2026-01-01T00:00:00"
+    }
+  ]
+}</code></pre>
+        </section>
+
+        <section id="update-org">
+            <h2>PATCH /admin/sm-organisations/{tenant_id}</h2>
+            <p>
+                Partial update — supply only the fields to change.
+                At least one field must be supplied (400 if none).
+            </p>
+
+            <h3>Request body</h3>
+            <table>
+                <thead>
+                    <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>tenant_name</code></td><td>string</td><td>Display name</td></tr>
+                    <tr><td><code>legal_name</code></td><td>string</td><td>Registered legal name</td></tr>
+                    <tr><td><code>abn</code></td><td>string</td><td>Must be unique among active tenants</td></tr>
+                    <tr><td><code>status</code></td><td>string</td><td>One of: active, inactive, archived</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Response 200</h3>
+            <pre><code>{
+  "tenant_id": "uuid",
+  "tenant_name": "Updated Name",
+  "status": "active"
+}</code></pre>
+
+            <h3>Error responses</h3>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Code</th><th>Condition</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>400</td><td>—</td><td>Invalid tenant_id UUID, or no fields supplied</td></tr>
+                    <tr><td>403</td><td>—</td><td>Caller is not super_admin</td></tr>
+                    <tr><td>404</td><td>—</td><td>No tenant found with this tenant_id</td></tr>
+                    <tr><td>409</td><td><code>abn_already_active</code></td><td>Another active org has this ABN</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="test-data">
+            <h2>Test Data Flag</h2>
+            <p>
+                Both <code>create_sm_organisation</code> and <code>create_self_managed_scheme</code> accept
+                a keyword-only internal parameter <code>_is_test_data: bool = False</code>.
+            </p>
+            <p>
+                <strong>Production HTTP callers cannot reach this parameter.</strong> FastAPI binds the
+                request body to the <code>body</code> parameter only; <code>_is_test_data</code> is
+                keyword-only and not part of the request schema.
+            </p>
+            <p>Test scripts that call these functions directly pass <code>_is_test_data=True</code>:</p>
+            <pre><code>await create_sm_organisation(body=..., current_user=sa_user, _is_test_data=True)</code></pre>
+            <p>
+                When set, the created tenant (and scheme, for self-managed) have <code>is_test_data=TRUE</code>.
+                These rows are:
+            </p>
+            <ul>
+                <li>Filtered from the super-admin building switcher</li>
+                <li>Swept by the pytest session-end teardown hook in <code>tests/backend/conftest.py</code></li>
+            </ul>
+            <div class="callout">
+                <strong>RLS caveat.</strong> <code>core.lots</code> has no bypass clause. When cleaning up
+                test tenants that have lots, set <code>app.tenant_id</code> to the test tenant's UUID before
+                deleting lots, then switch back to the bypass UUID for schemes and tenants. See
+                <a href="management-hierarchy.html">Management Hierarchy Overview</a> for the cleanup pattern.
+            </div>
+        </section>
+
+        <section id="postgres-tables">
+            <h2>PostgreSQL Tables Written</h2>
+            <table>
+                <thead>
+                    <tr><th>Table</th><th>Endpoint(s)</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>core.tenants</code></td>
+                        <td>POST create, POST self-managed, PATCH</td>
+                        <td>is_self_managed, status, abn uniqueness enforced by partial unique index</td>
+                    </tr>
+                    <tr>
+                        <td><code>core.schemes</code></td>
+                        <td>POST self-managed</td>
+                        <td>1:1 invariant with self-managed tenant enforced by trigger in migration 0028</td>
+                    </tr>
+                    <tr>
+                        <td><code>core.user_invitations</code></td>
+                        <td>POST create, POST self-managed</td>
+                        <td>claim_token_sha256 stores SHA-256 of raw token. Raw token sent only in email.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>
+                Key constraint: <code>tenants_abn_unique_active</code> — partial unique index on
+                <code>(abn)</code> WHERE <code>status = 'active'</code>. Allows ABN reuse across archived tenants.
+            </p>
+        </section>
+
+        <section id="error-codes">
+            <h2>Common Error Codes</h2>
+            <table>
+                <thead>
+                    <tr><th>HTTP Status</th><th>Cause</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>400</td><td>tenant_id is not a valid UUID; or PATCH body has no updatable fields</td></tr>
+                    <tr><td>403</td><td>Caller is not super_admin</td></tr>
+                    <tr><td>404</td><td>tenant_id not found in core.tenants</td></tr>
+                    <tr><td>409</td><td>ABN uniqueness conflict; scheme_number conflict; self-managed 1:1 trigger</td></tr>
+                    <tr><td>422</td><td>Pydantic validation error — invalid jurisdiction or invitation_role</td></tr>
+                    <tr><td>500</td><td>Unexpected database integrity error — check backend logs</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+</body>
+</html>

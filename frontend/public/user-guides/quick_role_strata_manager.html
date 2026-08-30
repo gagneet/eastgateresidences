@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Strata Manager Quick Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform
+                </div>
+            </div>
+        </div>
+        <div class="badge">Professional Guide</div>
+    </div>
+</header>
+
+<main style="display:block">
+
+    <article class="content">
+
+        <h1>Strata Manager Quick Guide</h1>
+        <p>As a professional Strata Manager, you use this platform to streamline building operations, maintain financial
+            accuracy, and support the Executive Committee in their governance duties.</p>
+
+        <div class="card callout success">
+            <strong>Management Priorities</strong>
+            <ul>
+                <li>Maintain accurate <strong>Financial Records</strong> and <strong>Budget Projections</strong>.</li>
+                <li>Oversee the <strong>Approval Workflow</strong> for building expenditure.</li>
+                <li>Facilitate <strong>AGMs</strong> and <strong>Committee Meetings</strong>.</li>
+                <li>Ensure building-wide <strong>Compliance</strong> and <strong>Insurance</strong> are up to date.</li>
+            </ul>
+        </div>
+
+        <div class="card callout info">
+            <strong>Dashboard entry point:</strong> Logging in takes you directly to the <em>Management Dashboard</em>
+            (Building Intelligence Hub) with real-time KPIs, fund balances, arrears, and activity feed. Strata Managers
+            are always treated as approved (no approval wait required) and have full sidebar navigation from first
+            login.
+        </div>
+
+        <h2 id="financial-management">Financial Management & Reporting</h2>
+        <ul>
+            <li><strong>Financial Dashboard:</strong> Access real-time data on the Administrative and Capital Works
+                funds.
+            </li>
+            <li><strong>Invoice Management:</strong> Create and process invoices, ensuring they are correctly
+                categorized for reporting.
+            </li>
+            <li><strong>Budget Projections:</strong> Develop and review financial forecasts to prepare for future levies
+                and capital works projects.
+            </li>
+            <li><strong>Spending Categories:</strong> Fine-tune the allocation of costs to ensure transparent reporting
+                to the Owners Corporation.
+            </li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Professional Financial Reporting & Invoice Creation
+        </div>
+
+        <h2 id="governance">Governance & Meetings</h2>
+        <ul>
+            <li><strong>Meeting Facilitation:</strong> Upload agendas, minutes, and supporting documents for Committee
+                Meetings and AGMs.
+            </li>
+            <li><strong>Voting Management:</strong> Configure motions for online voting and monitor quorum and results
+                in real-time.
+            </li>
+            <li><strong>Compliance & Insurance:</strong> Manage the building's insurance portfolio, including renewals
+                and claims. Monitor the compliance checklist for statutory obligations.
+            </li>
+        </ul>
+
+        <h2 id="operations">Building Operations</h2>
+        <ul>
+            <li><strong>Maintenance Oversight:</strong> Monitor the performance of service providers and the status of
+                building-wide maintenance requests.
+            </li>
+            <li><strong>Service Schedule:</strong> Maintain the master schedule for recurring services and inspections.
+            </li>
+            <li><strong>Units & Owners:</strong> Ensure the strata roll (Units & Owners) is accurate and up to date,
+                processing transfers as they occur.
+            </li>
+        </ul>
+
+        <h2 id="user-approvals">User Registration Approvals</h2>
+        <p>As Strata Manager, you are now automatically notified via <strong>email and bell notification</strong> for
+            all registration events:</p>
+        <ul>
+            <li><strong>New Guest/Tenant registered:</strong> You receive an FYI email when a guest or tenant registers
+                for a unit with an active owner. The owner has been notified and must approve first.
+            </li>
+            <li><strong>Owner approved (portal):</strong> When an owner approves a guest/tenant via the portal, you
+                receive a bell notification + email with a direct link to activate the account in <a
+                        href="/dashboard/users">User Management</a>.
+            </li>
+            <li><strong>Owner approved (email token):</strong> When an owner approves via email token link, you receive
+                a notification to complete activation.
+            </li>
+            <li><strong>New Owner registered:</strong> You receive a bell notification + email to review and approve the
+                new owner registration in <a href="/dashboard/users">User Management</a>.
+            </li>
+            <li><strong>Owner Name Mismatch (⚠):</strong> When an owner is approved and their registered name does not
+                closely match the strata roll, an amber warning triangle (⚠) appears next to their name in User
+                Management, and you receive an additional bell notification + email flagging the discrepancy. See <a
+                        href="#owner-name-verification">Owner Name Verification</a> below.
+            </li>
+            <li><strong>Returning archived user:</strong> When a previously archived user attempts to re-register, you
+                receive a notification to restore their account from <a href="/dashboard/admin/expired-accounts">Expired
+                    Accounts</a>.
+            </li>
+        </ul>
+
+        <h2 id="owner-name-verification">Owner Name Verification</h2>
+        <p>The <strong>Owner Name Verification</strong> feature automatically flags owner users whose registered name
+            does not closely match the strata roll (<code>owner_name</code> / <code>owner_name_b</code> fields imported
+            from the Excel unit register).</p>
+        <h3>How it works</h3>
+        <ul>
+            <li><strong>At registration:</strong> When an owner registers, their <code>full_name</code> is checked
+                against the strata roll using a 60 % token-overlap algorithm (e.g. "Anthony McDonald" matches "ANTHONY J
+                MCDONALD"; "Alice Wong" does not match "Avneet Rooprai").
+            </li>
+            <li><strong>At approval:</strong> When an admin approves an owner, the check is repeated against the latest
+                unit record. If the names still don't match, <code>is_name_flagged = true</code> and <code>flag_reason =
+                    "name_mismatch"</code> are stored on the user.
+            </li>
+            <li><strong>Visual indicator:</strong> An amber ⚠ (AlertTriangle) icon appears next to the owner's name in
+                the User Management table. Hovering the icon shows: <em>"Owner name mismatch. Strata roll: &lt;Primary
+                    Name&gt; / &lt;Secondary Name&gt;"</em>.
+            </li>
+            <li><strong>Notification:</strong> The approving admin and all Strata Manager users receive a bell
+                notification and email titled <em>"⚠ Owner Name Mismatch — Unit XX: &lt;Name&gt;"</em>.
+            </li>
+            <li><strong>Joint ownership:</strong> The flag checks both primary and secondary roll names. A match against
+                either is sufficient to clear the flag.
+            </li>
+        </ul>
+        <h3>Recommended actions when a flag is raised</h3>
+        <ol>
+            <li>Click <strong>Request Info</strong> (or <strong>Request Profile Update</strong>) on the user record to
+                ask the owner to provide identity documents.
+            </li>
+            <li>Verify documents (e.g. Certificate of Title, rates notice) against the strata roll.</li>
+            <li>If verified: update <code>full_name</code> in the user record and re-approve — the flag will be cleared
+                automatically on the next approval.
+            </li>
+            <li>If not verified: archive the account.</li>
+        </ol>
+        <h3>Feature toggle</h3>
+        <p>This feature is controlled by the <code>owner_name_verification</code> feature toggle (Feature Toggles →
+            Governance category). When disabled, the ⚠ icon and notifications are suppressed entirely.</p>
+
+        <h2 id="communication">Professional Communication</h2>
+        <ul>
+            <li><strong>Official Correspondence:</strong> Use the <strong>Announcements</strong> and <strong>Notice
+                Board</strong> modules to issue formal strata notices.
+            </li>
+            <li><strong>Audit Trails:</strong> Leverage the <strong>Audit Logs</strong> to maintain a professional
+                record of all platform activities and decisions.
+            </li>
+        </ul>
+
+        <h2 id="advanced-financial">Advanced Financial Enhancements</h2>
+        <ul>
+            <li><strong>Debt Recovery Board</strong> — 4-tier arrears management dashboard. Monitor → Contacted → DCA
+                Eligible → DCA Referred. Path: Dashboard → Debt Recovery Board.
+            </li>
+            <li><strong>Section 83 Notices</strong> — Generate formal ACT demand letters (Section 83, Unit Titles
+                Management Act 2011) as PDF for any unit in arrears.
+            </li>
+            <li><strong>DCA Referral</strong> — Formally refer units (&gt;$1,500, 14+ days post-notice) to Debt
+                Collection Agency with auto-generated DCA reference.
+            </li>
+            <li><strong>Payment Plans</strong> — Set up structured instalment schedules for arrears owners, linked to
+                the Debt Recovery Board.
+            </li>
+            <li><strong>Special Levies</strong> — Create one-off levies allocated pro-rata by UOE. Track per-unit
+                payment status.
+            </li>
+            <li><strong>Bank Reconciliation</strong> — Record opening/closing balances, receipts, and payments to verify
+                against bank statements monthly. <em>Current balances (15 Mar 2026): Admin Fund $9,187.44 | Sinking Fund
+                    $193,337.03 | Total $202,524.47.</em> Admin YTD: ~$37,250 of $309,882 budgeted (12.1%). Over-budget:
+                CCTV System ($1,480 vs $1,455 budget) and Electrical Repairs ($2,735 vs $909 budget). Sinking Fund
+                spending unchanged from prior period.
+            </li>
+            <li><strong>Expenses &amp; Income</strong> — Record expenses against budget categories; log non-levy income
+                (bank interest, rebates, grants).
+            </li>
+            <li><strong>Financial Health Score</strong> — 0–100 composite score with 7 components. Benchmark building
+                financial health at a glance.
+            </li>
+            <li><strong>True Cost of Ownership</strong> — Per-unit actual cost breakdown for the financial year,
+                sortable by total cost.
+            </li>
+            <li><strong>Tax Summary PDF</strong> — Generate tax summary for any unit, any year, for owner tax-return
+                purposes.
+            </li>
+            <li><strong>Levy Fairness Engine</strong> — Facility cost-centre allocation model at <a
+                    href="/dashboard/intelligence/levy-fairness">/dashboard/intelligence/levy-fairness</a>. Computes LEI
+                (scheme fairness score 0–100), per-unit LBFI, and SEI metrics. Run recompute with transition caps (max %
+                or $ increase per unit) for AGM reporting. Includes a 10-year Monte Carlo simulation for special levy
+                probability. Exportable as PDF AGM report, PPTX, or CSV.
+            </li>
+        </ul>
+
+        <div class="card callout info">
+            <strong>Support:</strong> For technical assistance with professional reporting tools, please contact the
+            Super Admin or the platform support team.
+        </div>
+
+        <h2 id="multi-building">Multi-Building Management</h2>
+        <p>If you manage multiple buildings or strata schemes, the platform supports seamless switching between them
+            from a single login.</p>
+        <ul>
+            <li><strong>Building Switcher:</strong> A dropdown in the left sidebar shows your current building. Click it
+                to switch to another building you have access to. Each switch issues a new scoped JWT token — all data
+                automatically refreshes for the selected building.
+            </li>
+            <li><strong>Network Marketplace Listings:</strong> When creating a listing in the marketplace, you can
+                enable <em>Share across network</em> to make it visible to residents in all buildings (not just the
+                current one). Only Strata Managers and Super Admins can create network-scoped listings.
+            </li>
+            <li><strong>Broadcast Announcements:</strong> When posting an announcement, tick <em>Broadcast to all
+                buildings</em> to simultaneously create the announcement in every building you manage. A confirmation
+                shows how many buildings received it.
+            </li>
+            <li><strong>Site Settings (Building Config):</strong> Each building has its own site settings: EC email,
+                contact phone, handbook URL, and unit plan URL. These power the <em>Contact EC</em> and <em>Resident
+                    Handbook</em> links in the sidebar for all residents of that building.
+            </li>
+        </ul>
+
+    </article>
+</main>
+
+<footer>
+    <span data-bldg="name">your building</span> | Executive Committee | Strata Manager &nbsp;·&nbsp; E: <a
+        data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC email</a>
+    &nbsp;·&nbsp; P: <span data-bldg="contact_phone">(contact number)</span>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

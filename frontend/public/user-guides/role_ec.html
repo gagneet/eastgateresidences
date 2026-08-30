@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>EC Member Resident Handbook</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform
+                </div>
+            </div>
+        </div>
+        <div class="badge">Resident Handbook</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Navigation</h3>
+        <div class="card callout warn" style="margin-top:14px">
+            <strong>Screenshots</strong><br/>
+            This HTML pack includes screenshot placeholders. Replace each <em>Screenshot placeholder</em> block with
+            real images from your environment.
+        </div>
+    </nav>
+
+    <article class="content">
+
+        <h1>EC Member Resident Handbook</h1>
+        <p>As an Executive Committee (EC) member, you have additional responsibilities and access levels to oversee the
+            building's operations and finances.</p>
+
+        <div class="card callout success">
+            <strong>EC Responsibilities</strong>
+            <ul>
+                <li>Review and approve financial invoices in the <strong>Approval Queue</strong>.</li>
+                <li>Monitor building <strong>Compliance</strong> and <strong>Maintenance</strong>.</li>
+                <li>Collaborate on governance decisions through <strong>Committee Meetings</strong>.</li>
+            </ul>
+        </div>
+
+        <h2 id="management">Management & Approvals</h2>
+        <ul>
+            <li><strong>Approval Queue:</strong> Review pending invoices and financial requests. Your approval ensures
+                vendors are paid promptly and accurately.
+            </li>
+            <li><strong>User Directory:</strong> View the full list of registered users and their roles to maintain
+                oversight of who has access to the platform.
+            </li>
+            <li><strong>Audit Logs:</strong> Review system activity to ensure transparency and accountability.</li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Invoice Approval Workflow</div>
+
+        <h2 id="governance">Governance</h2>
+        <ul>
+            <li><strong>Compliance Checklist:</strong> Stay on top of statutory requirements such as Fire Safety, Lift
+                Inspections, and Insurance renewals.
+            </li>
+            <li><strong>Action Items (Todos):</strong> Manage and track tasks assigned during committee meetings.</li>
+            <li><strong>Service Schedule:</strong> Monitor the schedule of recurring maintenance and inspections (e.g.,
+                cleaning, landscaping).
+            </li>
+        </ul>
+
+        <h2 id="financials">Financial Oversight</h2>
+        <ul>
+            <li><strong>My Property View:</strong> Interactive building-wide status and management dashboard.</li>
+            <li><strong>Financial Intelligence:</strong> Advanced data analytics for building expenditure and revenue.
+            </li>
+            <li><strong>Budget Projections:</strong> View future financial forecasts to assist in long-term planning and
+                levy setting.
+            </li>
+            <li><strong>Financial Overview:</strong> Access detailed reports on fund balances and spending trends.</li>
+            <li><strong>Utilities Tracking:</strong> Monitor water and council rate costs to identify potential savings
+                or issues (like leaks).
+            </li>
+            <li><strong>Unit Plan:</strong> Access official registered units plan, floor plans, and unit entitlements.
+            </li>
+        </ul>
+
+        <div class="card callout info">
+            <strong>Note:</strong> You also have full access to all <a href="role_owner.html">Owner features</a>,
+            including your own property's levy status and facility bookings.
+        </div>
+
+        <h2 id="communication">Communication</h2>
+        <ul>
+            <li><strong>Official Announcements:</strong> Draft and post announcements that are broadcasted to all
+                residents.
+            </li>
+            <li><strong>Emergency Contacts:</strong> Manage the list of emergency service providers for the building.
+            </li>
+        </ul>
+
+        <h2 id="advanced-financial">Advanced Financial Enhancements</h2>
+        <p>EC Members have view access to the following advanced financial tools.</p>
+
+        <h3>Arrears Recovery Board (View Only)</h3>
+        <p>View the Debt Recovery Board at <strong>Dashboard → Debt Recovery Board</strong> to monitor the arrears
+            status of all units. Units are classified across four severity tiers:</p>
+        <ul>
+            <li><strong>Monitor</strong> — Balance owing, no action yet taken.</li>
+            <li><strong>Contacted</strong> — Section 83 notice has been sent (within 14 days).</li>
+            <li><strong>DCA Eligible</strong> — More than $1,500 owing and 14+ days have elapsed since the notice.</li>
+            <li><strong>DCA Referred</strong> — Formally referred to a Debt Collection Agency.</li>
+        </ul>
+        <div class="card callout warn">
+            <strong>View Only:</strong> EC Members can monitor the Arrears Recovery Board but cannot generate Section 83
+            Notices or initiate DCA referrals. Those actions require a chairperson appointment with the relevant
+            permission flags, Strata Manager access, or Super Admin access.
+        </div>
+
+        <h3>Levy Fairness Analysis</h3>
+        <p>Navigate to <strong>Dashboard → Intelligence → Levy Fairness</strong> for a 5-tab interactive analysis of
+            levy equity across all lots.</p>
+        <ul>
+            <li><strong>Overview:</strong> LBFI score (80.8 = Good), Subsidy Map showing which facilities drive
+                cross-subsidisation, and a Scenario Comparison chart (current UOE model vs. benefit-based model).
+            </li>
+            <li><strong>Facilities:</strong> Edit facility tiers (Global/Apartments Only/Townhouses Only) and override
+                annual costs. Add manual items. Click Regenerate to refresh all results.
+            </li>
+            <li><strong>Unit Impact:</strong> Per-lot table showing current levy vs. benefit-based levy, dollar change,
+                and percentage change. Sortable and searchable.
+            </li>
+            <li><strong>Budget Tiers:</strong> 3-tier cost breakdown with donut chart and Levy Fairness equity
+                audit figures.
+            </li>
+            <li><strong>AGM Report:</strong> Download a professional A4 PDF for owner distribution — includes LBFI
+                gauge, bar charts, per-unit impact table, and legal implementation pathway.
+            </li>
+        </ul>
+
+        <h3>Capital Works Planner</h3>
+        <p>Navigate to <strong>Dashboard → Intelligence → Capital Planner</strong> for a dedicated planning page
+            covering the 15-year sinking fund schedule, capital event milestones, and 10-year asset replacement
+            schedule.</p>
+
+        <h4>Capital Shock Analysis</h4>
+        <ul>
+            <li>Current risk: <strong>HIGH</strong> — 2029 building repaints ($413k) will reduce reserve below the
+                12-month buffer.
+            </li>
+            <li>Recommended action: 16.1% levy increase from 2027.</li>
+            <li>All three major capital events (2029, 2032, 2035) remain funded — fund never goes negative.</li>
+        </ul>
+
+        <h4>EC Member Edit Access</h4>
+        <p>EC Members can now directly edit the capital works plan from the UI. Click <strong>Edit Plan</strong> to
+            enter edit mode on any of the three tabs:</p>
+        <ul>
+            <li><strong>Sinking Fund Plan (2021–2035):</strong> Edit contribution and expenditure amounts per year;
+                opening/closing balances recompute automatically client-side before saving.
+            </li>
+            <li><strong>Capital Event Milestones:</strong> Add, edit, or delete major works events (year, label, amount,
+                severity, description).
+            </li>
+            <li><strong>10-Year Replacement Schedule:</strong> Add manual replacement items or modify auto-generated
+                ones. Manual edits persist until the next engine sync.
+            </li>
+        </ul>
+        <div class="card callout info">
+            <strong>Note:</strong> The Sync Engine button (rebuilds the replacement schedule from asset lifespans) is
+            available to EC Members, Chairmen, Strata Managers, and Super Admins.
+        </div>
+
+        <h3>Global Building Risk Index</h3>
+        <p>The <strong>Building Risk Index</strong> provides a single composite 0–100 risk score for the building,
+            combining five weighted components. A lower score is better.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Score</th>
+                <th>Risk Level</th>
+                <th>Meaning</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>0–24</td>
+                <td>LOW</td>
+                <td>Building is stable with no immediate concerns</td>
+            </tr>
+            <tr>
+                <td>25–49</td>
+                <td>MODERATE</td>
+                <td>Some areas to monitor — routine attention required</td>
+            </tr>
+            <tr>
+                <td>50–74</td>
+                <td>HIGH</td>
+                <td>Action plan required — EC should prioritise</td>
+            </tr>
+            <tr>
+                <td>75–100</td>
+                <td>CRITICAL</td>
+                <td>Urgent intervention — possible special levy risk</td>
+            </tr>
+            </tbody>
+        </table>
+        <h4>Risk Score Components</h4>
+        <ul>
+            <li><strong>Asset Health (25%):</strong> Average condition of all tracked building assets (lifts, fire
+                systems, etc.)
+            </li>
+            <li><strong>Financial Stability (20%):</strong> Budget surplus/deficit forecast and financial reserve
+                outlook
+            </li>
+            <li><strong>Reserve Adequacy (20%):</strong> Sinking fund balance vs 10-year capital replacement forecast
+            </li>
+            <li><strong>Capital Shock Risk (20%):</strong> Risk of large unplanned capital expenditure events</li>
+            <li><strong>Maintenance Risk (15%):</strong> Open/overdue maintenance requests and resolution trends</li>
+        </ul>
+        <h4>Where to Find It</h4>
+        <ul>
+            <li><strong>Dashboard widget:</strong> Visible on your Property Dashboard as an EC Member</li>
+            <li><strong>Intelligence Hub:</strong> Dashboard → Intelligence → Risk Index</li>
+            <li><strong>Public Building Report:</strong> your building's public report page
+                — a PII-free public summary suitable for prospective buyers and real estate agents
+            </li>
+        </ul>
+        <h4>Refreshing the Score</h4>
+        <p>The risk score is computed live from the database when you load the page. EC Members can view the score; the
+            appointed chairperson can force a refresh when the relevant permission flag is active, which also logs the
+            action in the audit trail.</p>
+
+        <h3>Financial Health Score</h3>
+        <p>View the building's Financial Health Score (0–100) on the Financial Intelligence page. The score is
+            calculated from seven components: Surplus Ratio, Arrears Percentage, Cashflow Buffer, Forecast Stability,
+            Budget Discipline, Expense Volatility, and Reserve Adequacy.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Score</th>
+                <th>Rating</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>80–100</td>
+                <td>Excellent</td>
+            </tr>
+            <tr>
+                <td>65–79</td>
+                <td>Good</td>
+            </tr>
+            <tr>
+                <td>50–64</td>
+                <td>Fair</td>
+            </tr>
+            <tr>
+                <td>35–49</td>
+                <td>Poor</td>
+            </tr>
+            <tr>
+                <td>0–34</td>
+                <td>Critical</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>True Cost of Ownership</h3>
+        <p>View a per-unit cost breakdown at <strong>Finance → True Cost of Ownership</strong>, showing admin levies,
+            sinking fund contributions, special levies, council rates, and water charges for each lot. This assists in
+            understanding the full financial burden on each owner when preparing for budget discussions.</p>
+
+        <h3>Tax Summary PDF</h3>
+        <p>Download an annual levy breakdown PDF for your own unit — useful for tax return purposes on investment
+            properties. Navigate to <strong>Finance → Levy Status</strong> and select <strong>Download Tax
+                Summary</strong>.</p>
+
+        <h2 id="ownerhub">OwnerHub — Landlord & Property Management</h2>
+        <p>As an EC Member (who also owns a unit), you have full access to <strong>OwnerHub</strong> — the same landlord
+            platform available to regular owners, plus an admin-level view of all properties in the building.</p>
+
+        <h3>OwnerHub Overview</h3>
+        <p>Navigate to <strong>OwnerHub → Overview</strong> for a consolidated view of all registered properties, active
+            tenancies, upcoming inspections, and rent ledger summary across the building.</p>
+
+        <h3>My Properties</h3>
+        <p>EC Members can register and manage their own investment property details (address, purchase price, mortgage)
+            and view all other properties in the building for governance purposes. Navigate to <strong>OwnerHub → My
+                Properties</strong>.</p>
+
+        <h3>Tenancies &amp; Leases</h3>
+        <p>View all active and historical tenancy agreements for your own property and browse building-wide tenancy data
+            for governance oversight. Navigate to <strong>OwnerHub → Tenancies &amp; Leases</strong>.</p>
+
+        <h3>Rent Ledger</h3>
+        <p>Track rental payment history for your property. EC Members also have read-only visibility of all rent ledgers
+            for governance reporting. Navigate to <strong>OwnerHub → Rent Ledger</strong>.</p>
+
+        <h3>Inspections</h3>
+        <p>Schedule and record property inspections for your unit. As an EC Member, you can also view all outstanding
+            inspections across the building. Navigate to <strong>OwnerHub → Inspections</strong>.</p>
+
+        <h3>Building Financial Stress</h3>
+        <p>Access the Building Financial Stress dashboard at <strong>Building Financial Stress</strong> in the sidebar.
+            This is now fully scoped to the selected building and shows reserve adequacy, risk scores, and mitigation
+            options specific to the building you are managing.</p>
+
+        <div class="card callout info">
+            <strong>Role Inheritance:</strong> EC Members and Chairmen inherit all owner-level privileges in addition to
+            their management access. If you step down from the EC, your account will revert to a standard Owner role and
+            you will retain access to all owner features through OwnerHub.
+        </div>
+
+        <h2>RBAC Permission Model (Session 63)</h2>
+        <p>The platform now enforces fine-grained <strong>RBAC + ABAC permission slugs</strong> on every request. As EC
+            Member you hold:</p>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px">
+            <thead>
+            <tr style="background:rgba(255,255,255,.06)">
+                <th style="padding:6px 10px;text-align:left">Slug</th>
+                <th style="padding:6px 10px;text-align:left">Capability</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td style="padding:5px 10px"><code>financial.view</code></td>
+                <td style="padding:5px 10px">View building financials and reports</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>financial.export</code></td>
+                <td style="padding:5px 10px">Export financial data (PDF, CSV)</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>committee.vote</code></td>
+                <td style="padding:5px 10px">Vote on committee motions</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>workorder.create</code> / <code>workorder.update</code></td>
+                <td style="padding:5px 10px">Raise and update maintenance work orders</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>workorder.review</code></td>
+                <td style="padding:5px 10px">Review contractor reports</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>documents.upload</code> / <code>documents.view</code></td>
+                <td style="padding:5px 10px">Upload and view all building documents</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>building.view</code></td>
+                <td style="padding:5px 10px">View building profile</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px"><code>user.view</code></td>
+                <td style="padding:5px 10px">View resident and owner records</td>
+            </tr>
+            </tbody>
+        </table>
+        <p>All permissions are scoped to your building. If you are appointed chairperson, the platform may grant
+            additional slugs such as <code>financial.approve_invoice</code>,
+            <code>committee.finalize_minutes</code>, and <code>workorder.approve</code> for the appointment period.
+            No separate login role is required.</p>
+
+        <h3>EC Chairperson Responsibilities</h3>
+        <p>Chairperson is an EC position on an <code>ec_member</code> account, not a standalone login role. When you are
+            appointed chairperson, the platform may grant additional governance permissions for the appointment period
+            while keeping your base role as EC Member.</p>
+        <ul>
+            <li><strong>Meeting leadership:</strong> Set agendas, lead committee meetings, and finalise minutes where
+                your permission flags allow it.</li>
+            <li><strong>Governance approvals:</strong> Review high-impact notices, expenditure approvals, and work-order
+                approvals that require committee or chairperson action.</li>
+            <li><strong>Financial oversight:</strong> Review arrears, levy fairness, capital works, and financial health
+                reports for committee decision-making.</li>
+            <li><strong>Documents:</strong> Manage EC or chairperson-sensitive document access levels when enabled by
+                policy.</li>
+            <li><strong>Escalation:</strong> Escalate organisation administration, protected feature toggles, or
+                platform-wide configuration issues to Strata Admin or Super Admin rather than treating them as
+                chairperson-only actions.</li>
+        </ul>
+        <div class="card callout info">
+            <strong>Term handling:</strong> Chairperson permissions should follow the EC appointment term. When the term
+            ends, chairperson-specific permissions can be revoked while preserving standard EC Member and Owner access.
+        </div>
+
+        <h3>Role Lifecycle</h3>
+        <p>EC Member assignments have start and end dates (typically AGM to AGM). When the term expires the system sets
+            the assignment inactive and your account automatically reverts to your base <strong>Owner</strong> role. You
+            retain all owner access throughout — no data or history is lost.</p>
+
+
+        <h2 id="community-os">Community OS — New Features (April 2026)</h2>
+        <p>The following features were added as part of the Community OS update. As an EC Member you have access to both
+            resident-level and management-level features.</p>
+
+        <h3 id="management-triage">Management Triage — Needs Attention Now</h3>
+        <p>On your <strong>Dashboard Home</strong>, a Management Cockpit section now appears automatically for EC
+            Members. It surfaces the highest-priority actions so you can act immediately without hunting through
+            reports.</p>
+        <ul>
+            <li><strong>Executive Oversight tiles:</strong> Total Arrears, Collection Rate %, Compliance Status, Fund
+                Balance, and Pending User Approvals — all in real time.
+            </li>
+            <li><strong>Needs Attention Now:</strong> A ranked list of SLA-breached requests, high-arrears units, and
+                upcoming compliance deadlines, sorted by urgency.
+            </li>
+            <li><strong>Deflection Rate &amp; Auto-resolved Today:</strong> KPI cards showing how many resident requests
+                the system resolved automatically, reducing your manual workload.
+            </li>
+            <li><strong>Building Health Score card</strong> and multi-year KPI trend charts (arrears, collection rate).
+            </li>
+            <li><strong>Activity Feed:</strong> Top arrears, open maintenance alerts, and compliance due items.</li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Management Cockpit — Executive Oversight tiles and
+            Needs Attention Now section
+        </div>
+
+        <h3 id="smart-request">Smart Request — Triage Incoming Requests</h3>
+        <p>Navigate to <strong>Dashboard → Requests</strong>.</p>
+        <p>As an EC Member you can view <em>all</em> incoming requests (not just your own), update request status,
+            assign owners, and close resolved items.</p>
+        <ul>
+            <li><strong>All Requests tab:</strong> Full list with filters by status, category, and SLA risk (overdue
+                highlighted in red).
+            </li>
+            <li><strong>Request detail:</strong> View the full status timeline, resident details, attachments, and add
+                internal notes.
+            </li>
+            <li><strong>Update status:</strong> Move a request from Open → In Progress → Resolved → Closed.</li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Requests — all requests list with SLA status and
+            triage actions
+        </div>
+
+        <h3 id="my-finances">My Finances — Financial Transparency</h3>
+        <p>Navigate to <strong>Dashboard → Financials → My Finances</strong>.</p>
+        <p>View your own unit's levy breakdown, balance position, building health score, and any Volunteer Credits
+            earned. Useful for understanding the financial position you are governing on behalf of owners.</p>
+        <div class="shot"><strong>Screenshot placeholder:</strong> My Finances — balance card and building health
+            explanation
+        </div>
+
+        <h3 id="morning-card">Morning Card — Daily Governance Summary</h3>
+        <p>On your <strong>Dashboard Home</strong>, the Morning Card highlights the single most relevant governance
+            action:</p>
+        <ul>
+            <li>A pending vote or proposal requiring your input</li>
+            <li>An upcoming committee meeting reminder</li>
+            <li>A high-priority triage item (SLA breach, arrears alert)</li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Morning Card — EC Member governance action card</div>
+
+        <h3 id="suburb-radar">Suburb Radar &amp; Weekly Digest — Email Summaries</h3>
+        <p>Every Sunday evening:</p>
+        <ul>
+            <li><strong>Suburb Radar (5:00 PM AEST):</strong> Suburb property market digest — median price, rental
+                yield, days on market, ESA incidents.
+            </li>
+            <li><strong>Weekly Notification Digest (6:00 PM AEST):</strong> Your past week's unread notifications
+                summarised with direct action links.
+            </li>
+        </ul>
+        <p>Opt out via <strong>Dashboard → Email Preferences</strong>.</p>
+
+    </article>
+</main>
+
+<footer>
+    Generated 1 April 2026 • Support: noreply@ • A vision by: Silverfox Technologies, Australia
+    • Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

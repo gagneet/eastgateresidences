@@ -1,0 +1,1861 @@
+#!/usr/bin/env python3
+# @featuretrace:strata_sync — Browser-scrape subprocess: portal login, PIN wait, scrape, reconcile, preview.
+# Layer: worker
+# Data flow: routers/strata_sync.py subprocess.Popen → Playwright login/PIN/scrape → preview doc
+#            (strata_sync_jobs, global) → confirm → levy_categories / annual_levies / unit_levy_ledger (building-scoped).
+# Related: backend/routers/strata_sync.py
+#           backend/scripts/committee_report_scraper.py (mirrored, not imported — see module docstring)
+# Toggle: disable_strata_sync_direct_write
+# Collection: strata_sync_jobs (global), levy_categories, annual_levies, unit_levy_ledger
+"""
+Strata Portal Sync — browser scraper subprocess.
+Run by the FastAPI strata_sync router as a background process.
+
+Workflow:
+  1. Connect to MongoDB and update job status
+  2. Launch Playwright (non-headless via xvfb-run virtual display)
+  3. Log in to the strata management portal
+  4. Set job status → waiting_pin and poll MongoDB for the PIN
+  5. Submit PIN, navigate to committee reports
+  6. Scrape financials, owner positions, and bank accounts
+  7. Enrich and clean the scraped data
+  8. Save preview to MongoDB → set status=preview
+  9. Poll for user confirm/discard decision
+ 10. On confirm: upsert to MongoDB and mark complete
+     On discard: mark cancelled, nothing written
+
+Usage:
+  python run_scraper.py --job-id <uuid> --building-id <id>
+"""
+import os
+import random
+import re
+import sys
+import traceback
+from datetime import date, datetime, timezone
+from pathlib import Path
+
+import argparse
+import asyncio
+from functools import partial
+
+# This script runs as its own subprocess (launched by routers/strata_sync.py via
+# subprocess.Popen), so it does NOT inherit the parent FastAPI process's sys.path —
+# it must locate the host app's backend/ directory itself. The launching router passes
+# it explicitly via env var (STRATAOS_BACKEND_DIR); the fallback below covers direct
+# imports (e.g. scripts/strata/validate_scraper_parsing.py) that already put backend/
+# on sys.path themselves before importing this module.
+_backend_dir_env = os.environ.get("STRATAOS_BACKEND_DIR")
+if _backend_dir_env:
+    BACKEND_DIR = Path(_backend_dir_env)
+    sys.path.insert(0, str(BACKEND_DIR))
+else:
+    import database as _host_database_module
+    BACKEND_DIR = Path(_host_database_module.__file__).resolve().parent
+
+from dotenv import load_dotenv
+
+load_dotenv(BACKEND_DIR / ".env")
+
+from motor.motor_asyncio import AsyncIOMotorClient
+
+from services.ownership_transfer_detection_service import (
+    detect_and_create_portal_owner_transfer,
+)
+from utils.unit_number import (  # noqa: E402
+    format_unit_display,
+)
+
+MONGO_URL = os.environ["MONGO_URL"]
+DB_NAME = os.environ["DB_NAME"]
+
+PORTAL_LOGIN_URL = "https://my.civiumstrata.com.au/login.aspx"
+PORTAL_REPORT_URL = "https://my.civiumstrata.com.au/committeerpt.aspx"
+
+# Injected into every page to mask automation signals
+_STEALTH_SCRIPT = """
+Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+const _plugins = [
+  { name: 'Chrome PDF Plugin',  filename: 'internal-pdf-viewer',              description: 'Portable Document Format' },
+  { name: 'Chrome PDF Viewer',  filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', description: '' },
+  { name: 'Native Client',      filename: 'internal-nacl-plugin',             description: '' },
+];
+Object.defineProperty(navigator, 'plugins', {
+  get: () => Object.assign(_plugins, { item: (i) => _plugins[i], namedItem: (n) => _plugins.find(p => p.name === n) || null, length: _plugins.length }),
+});
+Object.defineProperty(navigator, 'languages', { get: () => ['en-AU', 'en'] });
+if (window.outerHeight === 0) {
+  Object.defineProperty(window, 'outerHeight', { get: () => window.innerHeight + 85 });
+  Object.defineProperty(window, 'outerWidth',  { get: () => window.innerWidth });
+}
+window.chrome = { app: { isInstalled: false }, runtime: { id: undefined, connect: function(){}, sendMessage: function(){} } };
+const _origQuery = window.navigator.permissions ? window.navigator.permissions.query : null;
+if (_origQuery) {
+  window.navigator.permissions.query = (p) =>
+    p.name === 'notifications' ? Promise.resolve({ state: 'default' }) : _origQuery(p);
+}
+"""
+
+_BSB_RE = re.compile(r'\b(\d{3}-\d{3})\b')
+_ACCT_RE = re.compile(r'\b(\d{6,10})\b')
+# Matches DD/MM/YYYY or D/M/YYYY — used to detect transaction detail rows
+_DATE_RE = re.compile(r'^\d{1,2}/\d{1,2}/\d{4}$')
+
+
+# ─── MongoDB helpers ──────────────────────────────────────────────────────────
+
+async def update_job(jobs, job_id: str, **kwargs):
+    kwargs["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await jobs.update_one({"job_id": job_id}, {"$set": kwargs})
+
+
+async def wait_for_pin(jobs, job_id: str, timeout_secs: int = 300) -> str:
+    """Poll MongoDB every 3 s for up to timeout_secs seconds waiting for PIN."""
+    deadline = asyncio.get_event_loop().time() + timeout_secs
+    while asyncio.get_event_loop().time() < deadline:
+        job = await jobs.find_one({"job_id": job_id})
+        if job and job.get("pin"):
+            return job["pin"]
+        await asyncio.sleep(3)
+    raise TimeoutError("PIN not entered within the allowed time")
+
+
+async def wait_for_confirm(jobs, job_id: str, timeout_secs: int = 600) -> str:
+    """Poll MongoDB every 3 s for confirm_action='confirm' or 'discard'."""
+    deadline = asyncio.get_event_loop().time() + timeout_secs
+    while asyncio.get_event_loop().time() < deadline:
+        job = await jobs.find_one({"job_id": job_id})
+        if job and job.get("confirm_action") in ("confirm", "discard"):
+            return job["confirm_action"]
+        await asyncio.sleep(3)
+    raise TimeoutError("Preview not confirmed or discarded within the allowed time")
+
+
+# ─── Playwright helpers ───────────────────────────────────────────────────────
+
+async def human_type(element, text: str):
+    await element.click()
+    await asyncio.sleep(random.uniform(0.2, 0.5))
+    for char in text:
+        await element.type(char, delay=random.randint(60, 160))
+    await asyncio.sleep(random.uniform(0.1, 0.3))
+
+
+async def human_move_and_click(page, locator):
+    box = await locator.bounding_box()
+    if box:
+        x = box["x"] + box["width"] * random.uniform(0.3, 0.7)
+        y = box["y"] + box["height"] * random.uniform(0.3, 0.7)
+        await page.mouse.move(x, y, steps=random.randint(5, 15))
+        await asyncio.sleep(random.uniform(0.1, 0.3))
+    await locator.click()
+
+
+async def _debug_screenshot(page, label: str):
+    try:
+        await page.screenshot(path=f"/tmp/strata_scraper_{label}.png", full_page=True)
+    except Exception:
+        pass
+
+
+def _debug_dump_text(label: str, content: str):
+    """Same fixed-filename, overwrite-each-run, best-effort convention as
+    _debug_screenshot() — for the RAW inner_text() of each substantial <table>
+    extract_financials() reads, so a per-table attribution bug (e.g. a row landing
+    under the wrong category) can be diagnosed by reading the actual scraped text
+    instead of only aggregate before/after counts."""
+    try:
+        with open(f"/tmp/strata_scraper_{label}.txt", "w") as f:
+            f.write(content)
+    except Exception:
+        pass
+
+
+async def click_tab(page, label: str, selectors: list[str], *, timeout: int = 15000) -> None:
+    """Click a committee-report tab, raising instead of silently no-opping.
+
+    The previous per-selector `try/except: continue` loop swallowed every
+    failure to find/click a tab — if neither selector matched
+    `count() > 0 and is_visible()` within one immediate check (no retry), the
+    loop fell through with no exception and no log line, leaving the page on
+    whatever tab was previously active. The caller (extract_owners /
+    extract_financials) would then silently scrape the WRONG tab's table and
+    return zero rows for anything that doesn't match its column shape — a
+    2026-07-31 East Gate sync did exactly this for Owner Positions (0 of 87
+    owner records scraped, job still marked "complete", no error surfaced).
+    wait_for_any_visible already implements a bounded retry loop elsewhere in
+    this file; reusing it here closes the same race for tab navigation.
+    """
+    loc = await wait_for_any_visible(page, selectors, timeout=timeout)
+    await _debug_screenshot(page, f"before_{label}_click")
+    await human_move_and_click(page, loc)
+    await _debug_screenshot(page, f"after_{label}_click")
+
+
+async def click_tab_and_extract(
+        page, label: str, selectors: list[str], extract_fn, *,
+        settle_delay: tuple[float, float] = (2.0, 4.0),
+        retries: int = 3,
+        retry_delay: tuple[float, float] = (3.0, 6.0),
+) -> list:
+    """Click a tab and run its extractor, retrying the click+extract cycle if
+    zero rows come back.
+
+    A strata scheme by definition has both financial line items and owner
+    records — an empty extraction result almost always means the tab click
+    landed on a stale/transitional page state (portal rendering race), not
+    that the underlying data is genuinely empty. Re-clicking the tab and
+    re-extracting is cheap and, per 2026-08-01 East Gate testing, resolves
+    on a second attempt without requiring a full new sync job (fresh login +
+    PIN + report navigation) as the previous zero-rows-completes-silently
+    behaviour did.
+    """
+    for attempt in range(1, retries + 1):
+        await click_tab(page, label, selectors)
+        await asyncio.sleep(random.uniform(*settle_delay))
+        data = await extract_fn(page)
+        if data:
+            return data
+        if attempt < retries:
+            await _debug_screenshot(page, f"{label}_empty_attempt_{attempt}")
+            await asyncio.sleep(random.uniform(*retry_delay))
+    return []
+
+
+async def best_effort_network_idle(page, timeout: int = 6000):
+    """Record slow network-idle waits without making portal progress depend on them."""
+    try:
+        await page.wait_for_load_state("networkidle", timeout=timeout)
+    except Exception as exc:
+        print(f"[WARN] networkidle not reached within {timeout}ms: {exc}", flush=True)
+
+
+async def wait_for_any_visible(page, selectors: list[str], timeout: int = 30000):
+    deadline = asyncio.get_event_loop().time() + (timeout / 1000)
+    last_error = None
+    while asyncio.get_event_loop().time() < deadline:
+        for selector in selectors:
+            try:
+                loc = page.locator(selector).first
+                if await loc.count() > 0 and await loc.is_visible():
+                    return loc
+            except Exception as exc:
+                last_error = exc
+        await asyncio.sleep(0.25)
+
+    try:
+        url = page.url
+    except Exception:
+        url = "<unknown>"
+    try:
+        title = await page.title()
+    except Exception:
+        title = "<unknown>"
+    detail = f"Timed out waiting for portal report content at {url!r} (title={title!r})"
+    if last_error:
+        detail += f"; last selector error: {last_error}"
+    raise TimeoutError(detail)
+
+
+async def open_committee_report(page, report_nav_timeout: int = 12000):
+    """Open the committee report and verify page content, not network quietness.
+
+    The reported failure was a Playwright timeout while waiting for
+    ``networkidle`` on ``committeerpt.aspx``.  That wait state is useful as a
+    settling hint, but it is not a reliable readiness signal for this portal.
+    Success here requires either a known report navigation label, or a table
+    while the browser is still on the committee-report URL.  A redirect back to
+    login after a bad or expired PIN must not be treated as a successful scrape.
+    """
+    await page.goto(PORTAL_REPORT_URL, wait_until="domcontentloaded", timeout=60000)
+    await best_effort_network_idle(page, timeout=6000)
+
+    try:
+        return await wait_for_any_visible(
+            page,
+            [
+                "a:has-text('Building Financials')",
+                "text=Building Financials",
+                "a:has-text('Owner Positions')",
+                "text=Owner Positions",
+            ],
+            timeout=report_nav_timeout,
+        )
+    except TimeoutError:
+        pass
+
+    current_url = page.url.lower()
+    if "committeerpt.aspx" not in current_url:
+        raise TimeoutError(
+            f"Committee report did not open after PIN verification; current URL is {page.url!r}"
+        )
+
+    return await wait_for_any_visible(
+        page,
+        ["table"],
+        timeout=30000,
+    )
+
+
+# ─── Data parsing ─────────────────────────────────────────────────────────────
+
+def parse_money(val: str) -> float:
+    val = str(val).replace("$", "").replace(",", "").strip()
+    is_credit = "(CR)" in val or "(cr)" in val
+    val = val.replace("(CR)", "").replace("(cr)", "").strip()
+    try:
+        amount = float(val)
+        return -amount if is_credit else amount
+    except ValueError:
+        return 0.0
+
+
+def extract_table_rows(raw_text: str, min_cols: int = 2) -> list:
+    rows = []
+    for line in raw_text.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        cols = [c.strip() for c in line.split("\t")]
+        if len(cols) >= min_cols:
+            rows.append(cols)
+    return rows
+
+
+async def expand_financial_rows(page) -> int:
+    """
+    Click all category expand controls on the Building Financials page so that
+    invoice detail rows become visible before inner_text() reads the table.
+
+    The Civium portal renders collapsed categories as hidden <tr> rows.  Clicking
+    the category row (or its expand icon) toggles visibility.  We try four
+    strategies in order:
+
+    1. Click every <tr onclick>, waiting for any ASP.NET __doPostBack server
+       response before moving on.  A 2.5 s timeout on expect_response
+       distinguishes postbacks (server round-trip) from client-side JS toggles
+       (no network request fires).
+    2. Click explicit expand images / JS links inside table cells.
+    3. Force-show all hidden <tr> elements via JS: covers inline display:none AND
+       Bootstrap/SharePoint CSS classes (d-none, hidden, collapse, HideOnLoad).
+    4. Re-read onclick rows after postbacks may have re-rendered the DOM and
+       injected additional collapsed sections.
+
+    Returns the number of rows that were clicked or forced visible.
+    """
+    expanded = 0
+
+    # Strategy 1 — <tr onclick="..."> rows (ASP.NET GridView / custom JS toggle)
+    # Snapshot before the loop: a server postback re-renders the GridView and
+    # destroys locator references obtained after the fact.
+    onclick_rows = await page.locator("tr[onclick]").all()
+    for row in onclick_rows:
+        try:
+            if not await row.is_visible():
+                continue
+            # Wrap the click in expect_response to detect __doPostBack calls.
+            # If the click triggers a form POST to the same .aspx URL the
+            # response arrives here; if it's a pure client-side toggle no
+            # request fires and the TimeoutError is caught.
+            try:
+                async with page.expect_response(
+                        lambda r: ".aspx" in r.url and r.status == 200,
+                        timeout=2500,
+                ) as resp_info:
+                    await row.click()
+                await resp_info.value  # drain response body
+                # Server postback — wait for DOM / UpdatePanel to settle
+                try:
+                    await page.wait_for_load_state("networkidle", timeout=6000)
+                except Exception:
+                    # networkidle can hang if the portal has background polling;
+                    # fall back to a fixed wait
+                    await asyncio.sleep(random.uniform(1.5, 2.5))
+            except Exception:
+                # No network request within 2.5 s → client-side JS toggle;
+                # already done, just add a short render pause
+                await asyncio.sleep(random.uniform(0.15, 0.35))
+            expanded += 1
+        except Exception:
+            pass
+
+    # Strategy 2 — explicit expand controls: '+' images, arrow icons, JS links
+    for sel in [
+        "td img[src*='plus' i]",
+        "td img[src*='expand' i]",
+        "td img[src*='open' i]",
+        "td img[src*='arrow' i]",
+        "td a[href*='javascript' i]",
+        "input[type='image'][src*='plus' i]",
+        "span[class*='expand' i]",
+        "a[class*='expand' i]",
+    ]:
+        try:
+            for el in await page.locator(sel).all():
+                try:
+                    if await el.is_visible():
+                        try:
+                            async with page.expect_response(
+                                    lambda r: ".aspx" in r.url and r.status == 200,
+                                    timeout=2500,
+                            ) as resp_info:
+                                await el.click()
+                            await resp_info.value
+                            try:
+                                await page.wait_for_load_state("networkidle", timeout=6000)
+                            except Exception:
+                                await asyncio.sleep(random.uniform(1.5, 2.5))
+                        except Exception:
+                            await asyncio.sleep(random.uniform(0.1, 0.25))
+                        expanded += 1
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    # Strategy 3 — force-show hidden rows via JS.
+    # Handles: inline style.display="none", computed display:none from a
+    # stylesheet, and Bootstrap/SharePoint CSS utility classes.
+    try:
+        forced = await page.evaluate("""
+            () => {
+                let count = 0;
+                const HIDDEN_CLASSES = ['d-none', 'hidden', 'hide', 'collapse',
+                                        'collapsed', 'HideOnLoad', 'ms-hide',
+                                        'ng-hide', 'invisible'];
+                document.querySelectorAll('tr').forEach(tr => {
+                    // Inline style takes priority
+                    if (tr.style.display === 'none') {
+                        tr.style.display = '';
+                        count++;
+                        return;
+                    }
+                    // Computed style covers stylesheet-driven display:none
+                    if (getComputedStyle(tr).display === 'none') {
+                        tr.style.setProperty('display', 'table-row', 'important');
+                        count++;
+                        return;
+                    }
+                    // CSS utility-class hiding
+                    for (const cls of HIDDEN_CLASSES) {
+                        if (tr.classList.contains(cls)) {
+                            tr.classList.remove(cls);
+                            count++;
+                            break;
+                        }
+                    }
+                });
+                return count;
+            }
+        """)
+        expanded += forced
+    except Exception:
+        pass
+
+    # Strategy 4 — after postbacks the portal may inject new collapsed sections;
+    # do a second pass of onclick rows that weren't visible on the first pass.
+    # Compare by count, not object identity — Playwright Locators are new objects
+    # each call so `r not in onclick_rows` is always True and causes duplicate clicks.
+    try:
+        second_pass = await page.locator("tr[onclick]").all()
+        new_rows = second_pass[len(onclick_rows):]
+        for row in new_rows:
+            try:
+                if not await row.is_visible():
+                    continue
+                try:
+                    async with page.expect_response(
+                            lambda r: ".aspx" in r.url and r.status == 200,
+                            timeout=2500,
+                    ) as resp_info:
+                        await row.click()
+                    await resp_info.value
+                    try:
+                        await page.wait_for_load_state("networkidle", timeout=6000)
+                    except Exception:
+                        await asyncio.sleep(random.uniform(1.5, 2.5))
+                except Exception:
+                    await asyncio.sleep(random.uniform(0.15, 0.35))
+                expanded += 1
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    if expanded:
+        await asyncio.sleep(random.uniform(1.5, 2.5))
+
+    return expanded
+
+
+async def extract_financials(page) -> list:
+    await page.wait_for_selector("table", timeout=20000)
+
+    # Expand all collapsed category sections so detail rows are visible.
+    tr_before = await page.locator("tr").count()
+    n_expanded = await expand_financial_rows(page)
+    tr_after = await page.locator("tr").count()
+    print(
+        f"[INFO] expand_financial_rows: {n_expanded} action(s) → "
+        f"{tr_before} → {tr_after} <tr> rows",
+        flush=True,
+    )
+    await _debug_screenshot(page, "after_expand_financials")
+
+    # Skip rows that are section headers, income rows, total/summary rows
+    SKIP = [
+        "hoolihan", "denman", "managed by", "proprietors", "category",
+        "name", "planned", "actual", "variance", "previous", "folio",
+        "total", "surplus", "deficit",
+        "levy income",  # income rows — not expense line items
+    ]
+    records: list = []
+    seen: dict[str, list] = {}  # category name (lower) -> list of (figures, record)
+    # pairs already recorded for that name, where figures = (planned, actual,
+    # variance, previous) — see the dedup-by-figures comment below for why this
+    # isn't keyed by fund, and why the record itself is kept (not just its figures).
+    current_record = None  # track the most recently seen category row
+    current_fund = "admin"  # updated when an "Administrative Fund" / "Sinking Fund"
+    # section marker line is encountered — see the fund-tracking fix below.
+
+    # Cross-category re-scan guard (2026-08-19 fix, live-confirmed on East Gate):
+    # page.locator("table").all() can match the same detail rows more than once
+    # (e.g. an outer summary table whose innerText already includes a nested
+    # detail table's text, plus that nested table matching separately in its
+    # own right) — current_record is never reset between table matches, so a
+    # second pass over already-consumed rows silently re-attaches them to
+    # whichever category happened to be current_record at that point, not
+    # their real category. Live-confirmed against a real sync: 685 rows
+    # attributed to "Waterproofing" (the LAST category, so nothing after it
+    # ever resets current_record) were, 685/685, exact duplicates of rows
+    # already correctly attributed elsewhere.
+    #
+    # Fix: the first category to record a given (date, invoice_ref, supplier,
+    # amount) key "owns" it; a later occurrence of the SAME key under a
+    # DIFFERENT category is the re-scan artifact and is dropped. A later
+    # occurrence under the SAME category is kept — real batch charges
+    # genuinely repeat this exact tuple within one category (confirmed live:
+    # East Gate's "Arrears Recovery Costs" has one $4.55 Arrears SMS charge,
+    # same date/invoice_ref, legitimately repeated 13 times for 13 different
+    # lots) — only the cross-category case is ever a bug, never the
+    # within-category one.
+    #
+    # Value is (owner, first_table_idx), not just owner (2026-08-19 follow-up
+    # fix) — see the table_idx comment at the point of use for why the table
+    # boundary, not just the owner match, is what actually distinguishes a
+    # legitimate same-table repeat from a cross-table re-scan duplicate.
+    seen_transaction_owner: dict[tuple, tuple] = {}
+
+    # 2026-08-19 diagnostic (added after a sync produced 46 correct category headers
+    # but only 1 of them retained any detail rows — the row-sum verification this same
+    # session added caught it, but the screenshot alone couldn't show WHY per-table
+    # attribution failed). Per-table before/after counts make the next occurrence
+    # diagnosable straight from the job log instead of guessing from a screenshot.
+    all_tables = await page.locator("table").all()
+    print(f"[INFO] extract_financials: {len(all_tables)} <table> element(s) matched", flush=True)
+
+    for table_idx, table in enumerate(all_tables):
+        raw = await table.inner_text()
+        if len(raw) > 500:
+            _debug_dump_text(f"financials_table_{table_idx}", raw)
+        _cats_before, _txns_before = len(records), sum(len(r.get("transactions") or []) for r in records)
+
+        # Walk raw lines directly rather than via extract_table_rows() (2026-08-19
+        # fix, live-confirmed on East Gate): "Administrative Fund" / "Sinking Fund"
+        # section-marker lines have no tab-separated columns, so extract_table_rows()'s
+        # min_cols=2 filter silently dropped them — this loop had NO concept of which
+        # fund section a row belonged to. That mattered because a category NAME can
+        # legitimately repeat once per fund: East Gate's real "Lift Repairs" is an
+        # admin-fund $2,560.00 item AND a completely separate sinking-fund $10,990.00
+        # item (a lift-flex installation fee, with its own real invoice); "Building
+        # Repairs & Maintenance" similarly has both an admin ($10,456.44) and a sinking
+        # ($5,344.55) entry. Previously `seen` deduped by category name alone, so the
+        # SECOND same-named header was silently dropped (never became current_record),
+        # and its detail rows — still `current_record`-owned by whatever category
+        # preceded it — got misattributed: the sinking "Lift Repairs" $10,990 invoice
+        # landed under "Garage Door Replacement/Upgrade" (header $0.00), which is
+        # exactly the "$0.00 header but 1 row summing to $10,990" mismatch
+        # verify_category_row_sums() flagged live.
+        for raw_line in raw.split("\n"):
+            line = raw_line.strip()
+            if not line:
+                continue
+            if line.lower() == "administrative fund":
+                current_fund = "admin"
+                continue
+            if line.lower() == "sinking fund":
+                current_fund = "capital_works"
+                continue
+
+            cols = [c.strip() for c in line.split("\t")]
+            if len(cols) < 2:
+                continue
+            cat = cols[0].strip()
+            if not cat:
+                continue
+
+            # Transaction detail row: col[0] is a date (DD/MM/YYYY or D/M/YYYY).
+            # Attach to the most recently parsed category as a nested transaction.
+            # Format: Date | Invoice/Ref | Supplier | Details | Amount
+            if _DATE_RE.match(cat):
+                if current_record is not None:
+                    # Amount is the last column containing "$"
+                    amount_raw = next(
+                        (c.strip() for c in reversed(cols) if "$" in c.strip()), "0"
+                    )
+                    invoice_ref = cols[1].strip() if len(cols) > 1 else ""
+                    supplier = cols[2].strip() if len(cols) > 2 else ""
+                    amount = parse_money(amount_raw)
+                    # Owner key includes fund (not just category name) so two
+                    # same-named-but-different-fund categories never share ownership
+                    # of a transaction key — see the fund-tracking comment above.
+                    owner = (current_record["category"], current_record["fund"])
+                    txn_key = (cat, invoice_ref, supplier, amount)
+                    seen_entry = seen_transaction_owner.get(txn_key)
+
+                    # Regression found live during this session's own self-audit: once
+                    # current_record started being re-pointed at the EXISTING record on
+                    # a duplicate-header match (see the header-dedup comment above),
+                    # current_record correctly tracked the right category all the way
+                    # through a full-table re-scan too — which meant seen_owner == owner
+                    # for EVERY re-scanned transaction, and they all got re-appended as
+                    # if they were legitimate same-category repeats.
+                    # Live-confirmed: "Cleaning" (9 real transactions) ballooned to 60
+                    # because table_13/14/19 each fully re-scanned and re-added all of
+                    # table_8's already-correct rows. The (date, invoice_ref, supplier,
+                    # amount) + owner combination alone can't distinguish "13 genuinely
+                    # separate SMS charges within table_8's own single continuous scan"
+                    # from "the exact same transaction re-scanned in a LATER, separate
+                    # table() match" — both look identical to the owner check. table_idx
+                    # is the real boundary: a real batch charge's repeats all occur
+                    # within the SAME table's own linear read; any re-occurrence of an
+                    # already-recorded key in a DIFFERENT table_idx is always a re-scan
+                    # artifact, regardless of whether the (possibly also re-pointed)
+                    # owner happens to match.
+                    if seen_entry is not None:
+                        seen_owner, seen_table_idx = seen_entry
+                        if table_idx != seen_table_idx:
+                            continue  # cross-table re-scan duplicate
+                        if seen_owner != owner:
+                            continue  # cross-category duplicate within the same table
+                    else:
+                        seen_transaction_owner[txn_key] = (owner, table_idx)
+                    current_record.setdefault("transactions", []).append({
+                        "date": cat,
+                        "invoice_ref": invoice_ref,
+                        "supplier": supplier,
+                        "details": cols[3].strip() if len(cols) > 3 else "",
+                        "amount": amount,
+                    })
+                continue
+
+            # Category summary row checks
+            if any(p in cat.lower() for p in SKIP):
+                continue
+            if not any("$" in c for c in cols[1:]):
+                continue
+
+            planned = parse_money(cols[1]) if len(cols) > 1 else 0.0
+            actual = parse_money(cols[2]) if len(cols) > 2 else 0.0
+            variance = parse_money(cols[3]) if len(cols) > 3 else 0.0
+            previous = parse_money(cols[4]) if len(cols) > 4 else 0.0
+            figures = (planned, actual, variance, previous)
+
+            # Dedup by (name, figures) rather than (name, current_fund) (2026-08-19
+            # follow-up fix, live-confirmed): some re-scan/partial-render tables repeat
+            # a category's row WITHOUT re-declaring their own "Administrative Fund" /
+            # "Sinking Fund" marker first, so current_fund is whatever was left over
+            # from the END of the PREVIOUSLY processed table — table_19 in a real East
+            # Gate scrape reused table_8/13/14's already-correct admin-fund "Garage
+            # Door" ($1,818.00/$2,641.82/-$823.82/$1,200.00) but inherited
+            # current_fund="capital_works" (table_14 had ended in the Sinking Fund
+            # section), producing a spurious second "Garage Door" record under the
+            # wrong fund with IDENTICAL figures to the real one. A re-scan of the exact
+            # same figures is never a genuine second instance — trust the figures, not
+            # the (possibly stale) fund guess. Two DIFFERENT figure-sets sharing a name
+            # (the genuine case: "Lift Repairs" admin $2,560 vs sinking $10,990) are
+            # still both kept, regardless of how many times each recurs across tables.
+            #
+            # On a match, current_record is re-pointed at the EXISTING record rather
+            # than left untouched (self-audit finding, 2026-08-19): a re-scan table
+            # that duplicates several categories in a row (e.g. table_13/14, full
+            # re-renders of table_8's whole contribution schedule) would otherwise
+            # leave current_record frozen at whatever it was BEFORE this loop started
+            # for the ENTIRE duration of the duplicate stretch. The
+            # seen_transaction_owner guard still catches re-scanned detail rows
+            # correctly in that state (it compares against the row's own recorded
+            # owner, not current_record), but a genuinely new, never-before-seen
+            # transaction encountered while current_record is stale would misattach to
+            # whatever category happened to be last correctly set — re-pointing closes
+            # that gap.
+            key_name = cat.lower()
+            existing_for_name = seen.setdefault(key_name, [])
+            existing_match = next((rec for (figs, rec) in existing_for_name if figs == figures), None)
+            if existing_match is not None:
+                current_record = existing_match
+                continue
+
+            record = {
+                "category": cat,
+                "fund": current_fund,
+                "planned": planned,
+                "actual": actual,
+                "variance": variance,
+                "previous": previous,
+                "transactions": [],
+            }
+            records.append(record)
+            current_record = record
+            existing_for_name.append((figures, record))
+
+        _cats_after, _txns_after = len(records), sum(len(r.get("transactions") or []) for r in records)
+        _line_count = sum(1 for ln in raw.split("\n") if ln.strip())
+        print(
+            f"[INFO]   table[{table_idx}]: {len(raw)} chars, {_line_count} non-blank line(s) -> "
+            f"+{_cats_after - _cats_before} new categor{'y' if _cats_after - _cats_before == 1 else 'ies'}, "
+            f"+{_txns_after - _txns_before} txn(s) (current_record="
+            f"{current_record['category'] if current_record else None!r})",
+            flush=True,
+        )
+
+    return records
+
+
+_ROW_SUM_BASE_TOLERANCE = 0.02  # matches this repo's established dollar-float rounding tolerance
+_ROW_SUM_PER_TRANSACTION_TOLERANCE = 0.01  # generous per-row rounding allowance, see below
+
+
+def _row_sum_tolerance(transaction_count: int) -> float:
+    """A flat $0.02 tolerance is too tight once a category has many detail rows — the
+    user's own real "Electricity - Utility" example (9 rows) summed to 1 cent off its
+    header actual purely from per-row rounding, and a category with, say, 30 rows could
+    plausibly compound to several cents without any real data-quality problem. Scale the
+    tolerance with row count instead of a flat constant, so a genuinely large gap (e.g.
+    "Banking Management": 5 rows, $165.39 gap) still trips it by a wide margin while a
+    large, fully-captured category with many rows doesn't false-positive on rounding
+    alone. $0.01/row is deliberately generous (a real per-row rounding error is at most
+    half a cent) — the point is to bound compounding noise, not to loosen genuine
+    detection."""
+    return max(_ROW_SUM_BASE_TOLERANCE, _ROW_SUM_PER_TRANSACTION_TOLERANCE * transaction_count)
+
+
+def verify_category_row_sums(records: list) -> list[dict]:
+    """Verification point (2026-08-19, added at user request): a category's own reported
+    "Actual" figure (the header row) should equal the sum of its own expanded detail rows —
+    proven live against East Gate: 20+ categories match to the cent, and the one that didn't
+    ("Banking Management": header $506.29 vs 5 visible rows summing to $340.90, a real
+    $165.39 gap) turned out to have incomplete row expansion (some invoices never became
+    visible in the DOM before extract_financials() read the table), not a data-quality
+    problem with the rows that WERE captured.
+
+    Returns one entry per category whose row sum does not match its header actual beyond
+    _row_sum_tolerance() (scaled by transaction count, see that function), so a mismatch
+    can be surfaced to whoever reviews the sync (currently logged by main(); a future pass
+    could also thread this into preview_data for the Strata Sync review UI) rather than
+    silently trusted. A category with transactions=[] and a nonzero header actual is
+    flagged too — that is the same failure mode in its most extreme form (zero of the
+    category's rows were captured, not just some).
+    """
+    warnings = []
+    for record in records:
+        header_actual = round(float(record.get("actual") or 0.0), 2)
+        transactions = record.get("transactions") or []
+        row_sum = round(sum(t.get("amount", 0.0) for t in transactions), 2)
+        diff = round(header_actual - row_sum, 2)
+        if abs(diff) > _row_sum_tolerance(len(transactions)):
+            warnings.append({
+                "category": record["category"],
+                "header_actual": header_actual,
+                "row_sum": row_sum,
+                "diff": diff,
+                "transaction_count": len(transactions),
+            })
+    return warnings
+
+
+async def extract_owners(page, unit_display_rules: list | None = None) -> list:
+    """
+    Extract owner levy positions from the Owner Positions table.
+
+    Portal table columns (6):
+      1. Lot        (int — same value as Unit for this building)
+      2. Unit       (int — the plan LOT number. The addressable unit number is
+                    derived from the building's unit_display rules, NOT hardcoded;
+                    `unit_display_rules` must be supplied by the caller.)
+      3. Owner      (str — multiple owners joined by ' & ' or ' and ')
+      4. UOE        (int — Unit of Entitlement)
+      5. Committee  (checkbox flag — ignored)
+      6. Outstanding (money — positive = arrears, "(CR)" suffix = credit,
+                      "$0.00" = no outstanding balance this period)
+
+    Uses per-cell Playwright locators instead of inner_text() + tab-split to
+    avoid fragility with ASP.NET WebForms table rendering.
+    """
+    await page.wait_for_selector("table", timeout=20000)
+    records, seen = [], set()
+
+    for table in await page.locator("table").all():
+        rows = await table.locator("tr").all()
+        for row in rows:
+            # Read each <td> individually — reliable regardless of whitespace rendering
+            cells = await row.locator("td").all_inner_texts()
+            cells = [c.strip() for c in cells]
+
+            # Require at least 5 columns (6-col format: Lot, Unit, Owner, UOE,
+            # Committee, Outstanding; accept 5 in case Committee col is absent)
+            if len(cells) < 5:
+                continue
+
+            # col[0]=Lot and col[1]=Unit must both be integers
+            try:
+                lot = int(cells[0])
+                unit = int(cells[1])
+            except ValueError:
+                continue
+
+            owner = cells[2].strip()
+            # Skip header rows or empty owner cells
+            if not owner or owner.lower() in ("owner", "name"):
+                continue
+
+            key = f"{lot}-{unit}"
+            if key in seen:
+                continue
+            seen.add(key)
+
+            try:
+                uoe = int(cells[3])
+            except (ValueError, IndexError):
+                uoe = 0
+
+            # col[4] = Committee checkbox (ignored)
+            # col[5] = Outstanding in 6-col layout; col[4] in 5-col fallback
+            outstanding_raw = cells[5] if len(cells) > 5 else cells[4]
+            balance = parse_money(outstanding_raw)
+
+            # Lot -> addressable unit number comes from the BUILDING'S OWN
+            # unit_display rules, never from a prefix hardcoded here. This line used to
+            # read `f"UA{unit:03d}" if unit <= 70 else f"TH{unit:03d}"` — East Gate's
+            # layout baked into the scraper, so any other building scraped with it would
+            # have been given East Gate's prefixes. See utils/unit_number.py, which owns
+            # this mapping, and tests/backend/test_unit_identity_single_source.py, which
+            # fails the build if a prefix is glued to a lot number anywhere else.
+            unit_number = format_unit_display(unit, unit_display_rules)
+
+            records.append({
+                "lot": lot,
+                "unit": unit,
+                "unit_number": unit_number,
+                "owner": owner,
+                "uoe": uoe,
+                "balance": balance,
+            })
+
+    return records
+
+
+async def extract_bank_accounts(page) -> list:
+    """Detect bank rows by Australian BSB pattern (ddd-ddd).
+
+    Bug fix: only collect tab-separated tokens that contain "$" as dollar
+    amounts.  The old condition also matched long digit-only strings (e.g. the
+    account number 260611108) which caused the account number to be treated as
+    the admin balance ($260,611,108) instead of the real balance ($16,412.64).
+    """
+    records, seen = [], set()
+    for table in await page.locator("table").all():
+        raw = await table.inner_text()
+        for line in raw.split("\n"):
+            bsb_m = _BSB_RE.search(line)
+            if not bsb_m:
+                continue
+            bsb = bsb_m.group(1)
+            if bsb in seen:
+                continue
+            seen.add(bsb)
+            # Account number: first long numeric string after the BSB
+            acct_m = _ACCT_RE.search(line[bsb_m.end():])
+            # Dollar amounts only — tokens with "$" so account numbers (plain
+            # digits, no "$") are never mistaken for balances
+            amounts = [parse_money(t) for t in line.split("\t") if "$" in t]
+            records.append({
+                "bsb": bsb,
+                "account_number": acct_m.group(1) if acct_m else None,
+                "account_name": line.strip()[:120],
+                "admin_balance": amounts[0] if len(amounts) > 0 else 0.0,
+                "sinking_balance": amounts[1] if len(amounts) > 1 else 0.0,
+                "total_balance": amounts[2] if len(amounts) > 2 else 0.0,
+            })
+    return records
+
+
+_INVOICE_NEXT_SELECTORS = [
+    "a[rel='next']:visible",
+    "a[aria-label*='next' i]:visible",
+    "input[value*='next' i]:visible",
+    "a:has-text('Next'):visible",
+]
+_NEXT_TEXT_RE = re.compile(r"^(?:next|>|»|›)$", re.I)
+
+
+async def _next_invoice_page_control(page):
+    """Return a visible, enabled pager control on the Invoices tab, or None at the last page."""
+    for selector in _INVOICE_NEXT_SELECTORS:
+        locator = page.locator(selector).first
+        if await locator.count() and await locator.is_enabled():
+            return locator
+
+    # ASP.NET GridView pagers frequently render a bare >, ›, » or an image with
+    # no accessible name — fall back to scanning table links/image-buttons for one.
+    for locator in await page.locator("table a:visible, table input[type='image']:visible").all():
+        text = (await locator.inner_text()).strip()
+        title = ((await locator.get_attribute("title")) or "").strip()
+        alt = ((await locator.get_attribute("alt")) or "").strip()
+        if _NEXT_TEXT_RE.match(text) or "next" in f"{title} {alt}".lower():
+            if await locator.is_enabled():
+                return locator
+    return None
+
+
+async def extract_invoices(page, *, max_pages: int = 500) -> list:
+    """Extract every invoice row across ALL WebForms pagination pages on the Invoices tab.
+
+    Unlike extract_financials() (which reads the Building Financials table as
+    rendered, with category rows expanded in place but no pager), the Invoices
+    tab paginates via an ASP.NET GridView — reading only the current page would
+    silently truncate the result to whatever fits on page 1. This loops the
+    "Next" pager control until it's exhausted or a page repeats the previous
+    page's content (broken/looping pager), instead of hanging or double-counting.
+
+    Assumes the Invoices tab is already open — click_tab_and_extract() clicks
+    it and retries this function on an empty result, so this must not click
+    the tab itself.
+
+    Row shape matches extract_financials()'s inline transaction dicts (same
+    Date | Invoice/Ref | Supplier | Details | Amount column order) so the two
+    can be reconciled directly — see reconcile_transactions_with_invoices().
+    ASSUMPTION, unverified against the live portal: the Invoices tab renders
+    that same column order. If it doesn't, this silently misparses every
+    field — check headed against a real sync before trusting this in
+    production (see this file's other tab-scraping functions for the same
+    caveat pattern).
+    """
+    await page.wait_for_selector("table", timeout=20000)
+
+    async def _read_current_page() -> list[dict]:
+        rows: list[dict] = []
+        for table in await page.locator("table").all():
+            raw = await table.inner_text()
+            for cols in extract_table_rows(raw, min_cols=2):
+                first = cols[0].strip()
+                if not first or not _DATE_RE.match(first):
+                    continue  # skip header/section rows — invoice rows start with a date
+                amount_raw = next((c.strip() for c in reversed(cols) if "$" in c.strip()), "0")
+                rows.append({
+                    "date": first,
+                    "invoice_ref": cols[1].strip() if len(cols) > 1 else "",
+                    "supplier": cols[2].strip() if len(cols) > 2 else "",
+                    "details": cols[3].strip() if len(cols) > 3 else "",
+                    "amount": parse_money(amount_raw),
+                })
+        return rows
+
+    collected: list[dict] = []
+    previous_page_rows: list[dict] | None = None
+
+    for page_number in range(1, max_pages + 1):
+        page_rows = await _read_current_page()
+        if page_rows == previous_page_rows:
+            if page_rows:
+                print(f"[WARN] Invoices pagination repeated page {page_number}; stopping.", flush=True)
+            break  # also covers a genuinely-empty tab: page_rows == previous_page_rows == []
+        previous_page_rows = page_rows
+        collected.extend(page_rows)
+
+        next_control = await _next_invoice_page_control(page)
+        if next_control is None:
+            break
+        await next_control.click()
+        await page.wait_for_load_state("domcontentloaded")
+
+        # ASP.NET UpdatePanel postbacks routinely outlast domcontentloaded — a
+        # flat sleep here previously risked re-reading the page just collected
+        # on the next loop iteration, which the repeated-page check above would
+        # then mistake for "reached the last page", silently truncating results
+        # before the real end. Poll (bounded ~10s) until the visible content
+        # actually changes instead.
+        for _ in range(40):
+            await asyncio.sleep(0.25)
+            if await _read_current_page() != page_rows:
+                break
+        else:
+            print(f"[WARN] Invoices Next control did not advance from page {page_number} "
+                  f"within 10s; stopping with partial results.", flush=True)
+            break
+    else:
+        print(f"[WARN] Invoices tab exceeded the {max_pages}-page safety limit — stopping.", flush=True)
+
+    return collected
+
+
+# ─── Data enrichment ──────────────────────────────────────────────────────────
+
+def _classify_fund(category: str) -> str:
+    """
+    Classify as capital_works (sinking fund) or admin.
+
+    All keywords are deliberate multi-word phrases to prevent substring false-positives:
+    - "roof repairs"  not bare "roof"    → avoids matching "Roofing Repairs & Maintenance" (admin)
+    - "capital works" not bare "capital" → avoids over-broad matches
+    - NO bare "upgrade" or "improvement" → avoids matching admin categories that contain those words
+    """
+    cat = category.lower()
+    sinking_kw = [
+        "capital works",
+        "roof repairs",
+        "lift replacement",
+        "lift repair",
+        "garage door replace",
+        "sprinkler system",
+        "plumbing & drainage works",
+        "fire protection replace",
+    ]
+    return "capital_works" if any(kw in cat for kw in sinking_kw) else "admin"
+
+
+def enrich_financials(records: list) -> list:
+    """`r["fund"]` is set by extract_financials() from the ACTUAL "Administrative
+    Fund"/"Sinking Fund" section a category was scraped under (2026-08-19 fix) — trust
+    it when present. _classify_fund()'s name-keyword guess is now only a fallback for
+    records that never went through extraction with fund-tracking (e.g. some tests'
+    hand-built fixtures) and is known to guess wrong for a real category: "Lift
+    Repairs" contains the "lift repair" keyword regardless of which fund section it
+    was actually in, so an admin-fund "Lift Repairs" was previously misclassified as
+    capital_works by this heuristic alone."""
+    return [
+        {
+            **r,
+            "fund": r.get("fund") or _classify_fund(r["category"]),
+            "variance_pct": round((r["variance"] / r["planned"] * 100), 2) if r.get("planned") else 0.0,
+        }
+        for r in records
+    ]
+
+
+def _current_financial_year(now: datetime | None = None) -> str:
+    """Australian financial year (July-June), e.g. '2025-2026'.
+
+    Accepts an explicit `now` for testability; defaults to the real clock.
+    Callers that need the FY for both reconciliation and persistence within a
+    single job run must compute it once and pass it through, rather than each
+    calling this again — otherwise a sync that straddles the July 1 rollover
+    could reconcile against one FY window and persist under another.
+    """
+    now = now or datetime.now(timezone.utc)
+    fy_start = now.year - 1 if now.month < 7 else now.year
+    return f"{fy_start}-{fy_start + 1}"
+
+
+def _financial_year_window(financial_year: str) -> tuple[date, date]:
+    """'2025-2026' -> (2025-07-01, 2026-06-30), Australian FY (July-June)."""
+    fy_start = int(financial_year.split("-")[0])
+    return date(fy_start, 7, 1), date(fy_start + 1, 6, 30)
+
+
+def _parse_portal_date(value: str) -> date | None:
+    """Parse the portal's DD/MM/YYYY (or D/M/YYYY) date text; None if unparseable."""
+    try:
+        return datetime.strptime(value.strip(), "%d/%m/%Y").date()
+    except (ValueError, AttributeError):
+        return None
+
+
+def reconcile_transactions_with_invoices(financials: list, invoices: list, financial_year: str) -> tuple[list, list]:
+    """Merge each category's inline expense detail (Building Financials row
+    expansion) with the Invoices tab's paginated rows, so the same invoice is
+    never counted twice between the two views.
+
+    Only transactions dated inside `financial_year`'s July-June window are
+    reconciled — prior-year detail rows shown inline for reference are left
+    untouched, since the Invoices tab only paginates the current year.
+
+    A transaction and an invoice are treated as the same underlying record
+    when they share date + amount + invoice_ref. When several invoices share
+    just date + amount (no invoice_ref match), the link is ambiguous, so the
+    inline transaction is left as-is rather than risking a wrong merge that
+    would silently drop or double a real invoice.
+
+    Keys are built from the *parsed* date, not the raw portal string — the
+    inline (Building Financials row-expansion) and Invoices-tab views are two
+    separately-rendered ASP.NET GridViews and are not guaranteed to format the
+    same date identically (e.g. "5/8/2025" vs "05/08/2025"); matching on the
+    raw string would silently fail every such pair even though both sides
+    parse to the same calendar date.
+
+    Genuine duplicates (two invoices sharing the same date+amount+invoice_ref,
+    e.g. two separate same-day payments of an identical amount) are paired
+    off with duplicate inline transactions one-to-one, in encounter order,
+    instead of every duplicate transaction collapsing onto a single retained
+    invoice — each invoice can be consumed as a match at most once.
+
+    On a match, the Invoices-tab row replaces the inline one (it's the
+    authoritative, fully-paginated source, tagged with the category it
+    belongs to). Unmatched inline transactions are kept unchanged. Invoices
+    with no matching category are returned separately as `unmatched_invoices`
+    rather than discarded, so nothing scraped is silently lost.
+
+    Returns (reconciled_financials, unmatched_invoices).
+    """
+    fy_start, fy_end = _financial_year_window(financial_year)
+
+    def exact_key(row: dict) -> tuple:
+        return (_parse_portal_date(row.get("date", "")), round(row.get("amount") or 0.0, 2),
+                row.get("invoice_ref") or "")
+
+    def loose_key(row: dict) -> tuple:
+        return (_parse_portal_date(row.get("date", "")), round(row.get("amount") or 0.0, 2))
+
+    by_exact_key: dict[tuple, list] = {}
+    by_loose_key: dict[tuple, list] = {}
+    for inv in invoices:
+        by_exact_key.setdefault(exact_key(inv), []).append(inv)
+        by_loose_key.setdefault(loose_key(inv), []).append(inv)
+
+    matched_invoice_ids: set[int] = set()
+
+    def find_match(txn: dict):
+        # Filtering by matched_invoice_ids on every lookup (rather than mutating
+        # the maps) keeps a single source of truth for "already consumed" and
+        # lets a loose-key ambiguity resolve itself once other candidates are
+        # claimed elsewhere, without a second bookkeeping pass.
+        exact_candidates = [inv for inv in by_exact_key.get(exact_key(txn), []) if id(inv) not in matched_invoice_ids]
+        if exact_candidates:
+            return exact_candidates[0]
+        loose_candidates = [inv for inv in by_loose_key.get(loose_key(txn), []) if id(inv) not in matched_invoice_ids]
+        return loose_candidates[0] if len(loose_candidates) == 1 else None
+
+    reconciled = []
+    for fin in financials:
+        merged = []
+        for txn in fin.get("transactions") or []:
+            parsed_date = _parse_portal_date(txn.get("date", ""))
+            if parsed_date is None or not (fy_start <= parsed_date <= fy_end):
+                merged.append(txn)  # outside the current FY window — leave as-is
+                continue
+            match = find_match(txn)
+            if match is None:
+                merged.append(txn)  # no Invoices-tab counterpart — keep the inline copy
+                continue
+            merged.append({**match, "category": fin["category"]})
+            matched_invoice_ids.add(id(match))
+        reconciled.append({**fin, "transactions": merged})
+
+    unmatched_invoices = [inv for inv in invoices if id(inv) not in matched_invoice_ids]
+    return reconciled, unmatched_invoices
+
+
+def split_owner_name(combined: str) -> tuple:
+    """
+    Split 'Owner A & Owner B', 'Owner A and Owner B', or 'Owner A, Owner B'
+    into two names.  Returns (primary, secondary_or_empty).
+
+    Delimiters tried in order (case-insensitive):
+      ' & '   — most common portal format
+      ' and ' — occasionally used
+      ', '    — older portal rendering (e.g. "Mr A, Ms B")
+
+    Consistent with the existing owner_name / owner_name_b convention in the
+    units collection.
+    """
+    for sep in (" & ", " and ", ", "):
+        idx = combined.lower().find(sep.lower())
+        if idx >= 0:
+            return combined[:idx].strip(), combined[idx + len(sep):].strip()
+    return combined.strip(), ""
+
+
+def enrich_owners(records: list) -> list:
+    def status(bal):
+        return "ARREARS" if bal > 0 else ("CREDIT" if bal < 0 else "CLEAR")
+
+    enriched = []
+    for r in records:
+        owner_a, owner_b = split_owner_name(r.get("owner", ""))
+        enriched.append({
+            **r,
+            "status": status(r["balance"]),
+            "owner_name": owner_a,
+            "owner_name_b": owner_b or None,
+        })
+    return enriched
+
+
+def build_summary(building_id: str, owners: list, financials: list) -> dict:
+    in_arrears = [o for o in owners if o["status"] == "ARREARS"]
+    in_credit = [o for o in owners if o["status"] == "CREDIT"]
+    clear = [o for o in owners if o["status"] == "CLEAR"]
+
+    arrears_total = round(sum(o["balance"] for o in in_arrears), 2)
+    credit_total = round(abs(sum(o["balance"] for o in in_credit)), 2)
+    total_lots = len(owners)
+    collection_rate = round(((total_lots - len(in_arrears)) / total_lots * 100), 1) if total_lots else 0
+    risk_level = "LOW" if collection_rate >= 95 else ("MEDIUM" if collection_rate >= 88 else "HIGH")
+    top_arrears = sorted(in_arrears, key=lambda x: x["balance"], reverse=True)[:5]
+    overruns = sorted([f for f in financials if f["variance"] < 0 and f["planned"] > 0], key=lambda x: x["variance"])[
+        :5]
+    admin_fin = [f for f in financials if f["fund"] == "admin"]
+    cw_fin = [f for f in financials if f["fund"] == "capital_works"]
+
+    return {
+        "building_id": building_id,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "total_lots": total_lots,
+        "arrears_count": len(in_arrears),
+        "credit_count": len(in_credit),
+        "clear_count": len(clear),
+        "arrears_total": arrears_total,
+        "credit_total": credit_total,
+        "collection_rate": collection_rate,
+        "risk_level": risk_level,
+        "top_arrears": [
+            {"lot": o["lot"], "unit_number": o["unit_number"], "owner": o["owner"], "balance": o["balance"]}
+            for o in top_arrears
+        ],
+        "budget_overruns": [
+            {
+                "category": f["category"],
+                "fund": f["fund"],
+                "planned": f["planned"],
+                "actual": f["actual"],
+                "overspend": abs(f["variance"]),
+                "overspend_pct": abs(f["variance_pct"]),
+            }
+            for f in overruns
+        ],
+        "admin_fund": {
+            "total_planned": round(sum(f["planned"] for f in admin_fin), 2),
+            "total_actual": round(sum(f["actual"] for f in admin_fin), 2),
+        },
+        "capital_works_fund": {
+            "total_planned": round(sum(f["planned"] for f in cw_fin), 2),
+            "total_actual": round(sum(f["actual"] for f in cw_fin), 2),
+        },
+    }
+
+
+# ─── MongoDB upsert ───────────────────────────────────────────────────────────
+
+async def upsert_to_mongo(mdb, building_id: str, financials: list, owners: list, summary: dict, bank_accounts: list,
+                           financial_year: str):
+    now = datetime.now(timezone.utc).isoformat()
+
+    for fin in financials:
+        await mdb["strata_financials"].update_one(
+            {"building_id": building_id, "category": fin["category"], "financial_year": financial_year},
+            {"$set": {**fin, "building_id": building_id, "financial_year": financial_year, "updated_at": now}},
+            upsert=True,
+        )
+
+    # Build a set of known unit_numbers for this building so we can guard against
+    # mis-mapped lots silently missing the units collection.
+    valid_units = {
+        u["unit_number"]
+        async for u in mdb["units"].find(
+            {"building_id": building_id}, {"unit_number": 1}
+        )
+    }
+
+    for owner in owners:
+        un = owner["unit_number"]
+
+        # Log owner name changes (informational only — no new collection created)
+        existing = await mdb["strata_owners"].find_one(
+            {"building_id": building_id, "unit_number": un},
+            {"owner": 1},
+        )
+        if existing and existing.get("owner") and existing["owner"] != owner.get("owner", ""):
+            print(
+                f"[INFO] Owner name change on {un}: "
+                f"{existing['owner']!r} → {owner.get('owner')!r}",
+                flush=True,
+            )
+
+        # Ownership-transfer detection (2026-08-19 fix, mirrors routers/strata_sync.py's
+        # _upsert_owners() — the browser-scrape path previously never called this at all,
+        # silently overwriting owner_name below with no EC/strata-manager review record.
+        # Real incident: a live sync updated UA029 and UA042's names with zero transfer
+        # request created. Matches the push-flow's own pattern exactly: detect first
+        # (raises a reviewable owner_transfer_requests record when the scraped name set
+        # differs from the canonical baseline), then still update the raw display fields
+        # unconditionally below — the display always mirrors the portal; the FORMAL
+        # ownership change (which unit_units record actually attributes future levy
+        # charges/payments) only happens once an EC/manager approves the transfer.
+        try:
+            detection = await detect_and_create_portal_owner_transfer(
+                mdb, building_id, un, owner.get("owner") or "", detected_at=now,
+                # Baseline from the serving store (Postgres once promoted), not Mongo alone.
+                use_cutover_baseline=True,
+            )
+            if detection.get("created"):
+                print(
+                    f"[INFO] Created owner transfer request {detection.get('id')} for "
+                    f"portal owner drift on {un}",
+                    flush=True,
+                )
+        except Exception as exc:
+            print(f"[WARN] Owner transfer detection failed for {un}: {exc}", flush=True)
+
+        # strata_owners stores the portal record including pre-split owner_name /
+        # owner_name_b so callers can read either the combined or split form.
+        await mdb["strata_owners"].update_one(
+            {"building_id": building_id, "unit_number": un},
+            {"$set": {**owner, "building_id": building_id, "updated_at": now}},
+            upsert=True,
+        )
+        if un not in valid_units:
+            print(f"[WARN] unit_number {un!r} (lot {owner.get('lot')}) not found in "
+                  f"units collection — owner name NOT updated. "
+                  f"Check the lot→unit_number mapping.", flush=True)
+            continue
+        # Update the units master registry with the portal's current owner name only.
+        # Portal balance lives exclusively in strata_owners (single source of truth).
+        # balance_owing / balance_credit are owned by the levy system — never touched here.
+        unit_fields = {
+            "owner_name": owner.get("owner_name") or owner.get("owner", ""),
+        }
+        if owner.get("owner_name_b"):
+            unit_fields["owner_name_b"] = owner["owner_name_b"]
+        await mdb["units"].update_one(
+            {"building_id": building_id, "unit_number": un},
+            {"$set": unit_fields},
+        )
+
+    for acct in bank_accounts:
+        await mdb["bank_accounts"].update_one(
+            {"building_id": building_id, "bsb": acct["bsb"]},
+            {"$set": {**acct, "building_id": building_id, "updated_at": now}},
+            upsert=True,
+        )
+
+    await mdb["building_summaries"].update_one(
+        {"building_id": building_id},
+        {"$set": {**summary, "updated_at": now}},
+        upsert=True,
+    )
+
+    # Bridge scraped data into levy accounting collections so financial dashboards
+    # reflect the portal snapshot without a manual CSV upload.
+    await _sync_scraper_to_levy_collections(mdb, building_id, financial_year, financials, owners)
+
+
+async def _sync_scraper_to_levy_collections(mdb, building_id: str, financial_year: str, financials: list,
+                                            owners: list) -> None:
+    """
+    Mirror logic of strata_sync._sync_to_levy_collections but using raw mdb.
+    financial_year: "2025-2026"  →  year = "2026"
+    """
+    import uuid as _uuid
+
+    # GAP-FIN-035 Item 2 (2026-08-03): router.py's push_data endpoint already checks this same
+    # toggle before calling its own _sync_to_levy_collections, but this function -- the one the
+    # real browser-scraper subprocess actually calls via main() -- had ZERO check, so enabling
+    # the toggle for a building only blocked one of its two write paths.
+    #
+    # This module runs as a standalone subprocess (`python run_scraper.py`, launched via
+    # subprocess.Popen in router.py — see that file's start_scrape_job()), NOT imported as part
+    # of the scripts package, so it has no parent package context and cannot
+    # use a relative `from .router import ...`. The toggle key is duplicated here as a plain
+    # string constant instead, matching this file's own existing convention of mirroring (not
+    # importing) router.py's logic — see this function's own docstring. Keep this value in sync
+    # with router.py's `_DIRECT_WRITE_TOGGLE` if it ever changes.
+    _DIRECT_WRITE_TOGGLE = "disable_strata_sync_direct_write"
+    from db_postgres.repos import config_repo
+    if await config_repo.resolve_feature_toggle(building_id, _DIRECT_WRITE_TOGGLE, default=False):
+        print(
+            f"[INFO] {_DIRECT_WRITE_TOGGLE} enabled for building {building_id} — "
+            "skipping direct levy-collections write from the scraper subprocess.",
+            flush=True,
+        )
+        return
+
+    year = financial_year.split("-")[1] if "-" in financial_year else financial_year
+    now = datetime.now(timezone.utc).isoformat()
+    _TOTAL_UOE_FALLBACK = 10000
+
+    admin_planned = 0.0
+    admin_actual = 0.0
+    cw_planned = 0.0
+    cw_actual = 0.0
+
+    # 1. Upsert levy_categories
+    for fin in financials:
+        fund = fin.get("fund", "admin")
+        fund_type = "sinking" if fund == "capital_works" else "administrative"
+        planned = round(float(fin.get("planned", 0)), 2)
+        actual = round(float(fin.get("actual", 0)), 2)
+        if fund == "admin":
+            admin_planned += planned
+            admin_actual += actual
+        else:
+            cw_planned += planned
+            cw_actual += actual
+        status = "on_track"
+        if planned > 0 and actual > planned:
+            status = "over_budget"
+        elif actual < planned:
+            status = "under_budget"
+        await mdb["levy_categories"].update_one(
+            {"building_id": building_id, "year": year, "name": fin["category"]},
+            {"$set": {
+                "building_id": building_id, "plan_id": building_id, "year": year,
+                "fund_type": fund_type, "name": fin["category"], "budgeted_amount": planned,
+                "actual_amount": actual,
+                "previous_actual": round(float(fin.get("previous", 0)), 2),
+                "variance": round(float(fin.get("variance", planned - actual)), 2),
+                "status": status, "data_source": "scraper", "updated_at": now,
+            }},
+            upsert=True,
+        )
+
+    # 2. Create / update annual_levies
+    total_uoe_from_owners = sum(int(o.get("uoe") or 0) for o in owners) if owners else 0
+    existing_levy = await mdb["annual_levies"].find_one({"building_id": building_id, "year": year})
+    if not existing_levy and (admin_planned > 0 or cw_planned > 0):
+        await mdb["annual_levies"].insert_one({
+            "id": str(_uuid.uuid4()), "building_id": building_id, "plan_id": building_id,
+            "year": year, "status": "partial_actual",
+            "total_uoe": total_uoe_from_owners or _TOTAL_UOE_FALLBACK,
+            "admin_fund": {
+                "levy_income": round(admin_planned, 2), "total_income": round(admin_planned, 2),
+                "total_expenses": round(admin_actual, 2), "opening_balance": 0.0,
+                "closing_balance": 0.0, "surplus_deficit": round(admin_planned - admin_actual, 2),
+            },
+            "sinking_fund": {
+                "levy_income": round(cw_planned, 2), "total_income": round(cw_planned, 2),
+                "total_expenses": round(cw_actual, 2), "opening_balance": 0.0,
+                "closing_balance": 0.0, "surplus_deficit": round(cw_planned - cw_actual, 2),
+            },
+            "payment_schedule": [], "admin_levy_per_uoe_annual": 0.0,
+            "admin_levy_per_uoe_quarterly": 0.0, "sinking_levy_per_uoe_annual": 0.0,
+            "sinking_levy_per_uoe_quarterly": 0.0,
+            "data_source": "scraper_import", "is_synthetic": True,
+            "created_at": now, "updated_at": now,
+        })
+    elif existing_levy:
+        upd: dict = {
+            "admin_fund.total_expenses": round(admin_actual, 2),
+            "sinking_fund.total_expenses": round(cw_actual, 2),
+            "updated_at": now,
+        }
+        if existing_levy.get("is_synthetic") or existing_levy.get("data_source") == "scraper_import":
+            upd.update({
+                "admin_fund.levy_income": round(admin_planned, 2),
+                "admin_fund.total_income": round(admin_planned, 2),
+                "sinking_fund.levy_income": round(cw_planned, 2),
+                "sinking_fund.total_income": round(cw_planned, 2),
+            })
+        await mdb["annual_levies"].update_one({"building_id": building_id, "year": year}, {"$set": upd})
+
+    # 3. Update unit_levy_ledger
+    if not owners:
+        return
+    levy_doc = await mdb["annual_levies"].find_one({"building_id": building_id, "year": year})
+    admin_inc = float((levy_doc or {}).get("admin_fund", {}).get("total_income", 0))
+    cw_inc = float((levy_doc or {}).get("sinking_fund", {}).get("total_income", 0))
+    ann_total = admin_inc + cw_inc
+    t_uoe = int((levy_doc or {}).get("total_uoe") or total_uoe_from_owners or _TOTAL_UOE_FALLBACK)
+    a_ratio = (admin_inc / ann_total) if ann_total > 0 else 0.75
+    c_ratio = (cw_inc / ann_total) if ann_total > 0 else 0.25
+    today_month = datetime.now(timezone.utc).month
+    q_billed = max(1, min(4, sum(1 for q in [3, 6, 9, 12] if today_month >= q)))
+
+    for owner in owners:
+        un = owner.get("unit_number")
+        if not un:
+            continue
+        uoe = int(owner.get("uoe") or 0)
+        net_bal = round(float(owner.get("balance", 0)), 2)
+        if uoe > 0 and ann_total > 0 and t_uoe > 0:
+            t_levied = round((uoe / t_uoe) * ann_total * q_billed / 4, 2)
+        else:
+            t_levied = 0.0
+        t_paid = round(max(0.0, t_levied - net_bal), 2)
+        existing_l = await mdb["unit_levy_ledger"].find_one(
+            {"building_id": building_id, "unit_number": un, "year": year}
+        )
+        if existing_l:
+            upd = {"net_balance": net_bal, "updated_at": now}
+            # GAP-FIN-035 Item 2 (2026-08-03): this previously only recomputed the derived
+            # fields (total_levied/total_paid/admin_*/sinking_*) when the existing doc's own
+            # data_source == "scraper" -- but a doc reconciled through the itemized-backfill
+            # path (east_gate_2021_2025_ledger_sync.py and its 2026 equivalent) never sets
+            # data_source at all; it sets reconciliation_source/reconciliation_note instead.
+            # Net effect: every re-scrape moved net_balance to the newest portal figure while
+            # every OTHER derived field stayed frozen at whatever it was last set to -- a
+            # growing, unexplained gap between "the latest scrape" and what the ledger's own
+            # totals said (the mechanism behind East Gate's live ~$190 discrepancy). Flipped
+            # the polarity: skip recompute only when the doc is explicitly flagged as
+            # reconciled (protect real itemized data from being overwritten by this coarse
+            # scraper-derived estimate); recompute for everything else, including docs that
+            # have never had data_source set at all.
+            if not existing_l.get("reconciliation_note") and not existing_l.get("reconciliation_source"):
+                upd.update({
+                    "total_levied": t_levied, "total_paid": t_paid,
+                    "admin_levied": round(t_levied * a_ratio, 2),
+                    "admin_paid": round(t_paid * a_ratio, 2),
+                    "admin_closing": round(net_bal * a_ratio, 2),
+                    "sinking_levied": round(t_levied * c_ratio, 2),
+                    "sinking_paid": round(t_paid * c_ratio, 2),
+                    "sinking_closing": round(net_bal * c_ratio, 2),
+                })
+            await mdb["unit_levy_ledger"].update_one(
+                {"building_id": building_id, "unit_number": un, "year": year}, {"$set": upd}
+            )
+        else:
+            await mdb["unit_levy_ledger"].insert_one({
+                "id": str(_uuid.uuid4()), "building_id": building_id, "year": year,
+                "unit_number": un, "lot_number": "", "uoe": uoe, "property_type": "",
+                "admin_opening": 0.0, "admin_levied": round(t_levied * a_ratio, 2),
+                "admin_paid": round(t_paid * a_ratio, 2),
+                "admin_closing": round(net_bal * a_ratio, 2),
+                "sinking_opening": 0.0, "sinking_levied": round(t_levied * c_ratio, 2),
+                "sinking_paid": round(t_paid * c_ratio, 2),
+                "sinking_closing": round(net_bal * c_ratio, 2),
+                "total_levied": t_levied, "total_paid": t_paid, "net_balance": net_bal,
+                "data_source": "scraper", "created_at": now, "updated_at": now,
+            })
+
+
+# ─── Main ─────────────────────────────────────────────────────────────────────
+
+async def main(job_id: str, building_id: str):
+    client = AsyncIOMotorClient(MONGO_URL)
+    mdb = client[DB_NAME]
+    jobs = mdb["strata_sync_jobs"]
+
+    # Lot -> addressable unit number is per-building CONFIGURATION. Fetch it once here
+    # and thread it through, rather than letting any extractor hardcode a prefix.
+    try:
+        from services.settings_service import get_unit_display_rules
+
+        unit_display_rules = await get_unit_display_rules(building_id)
+    except Exception as exc:  # noqa: BLE001
+        # Degrade to "no prefix" (format_unit_display returns the bare lot number)
+        # rather than silently substituting another building's prefixes.
+        print(f"[WARN] unit_display rules unavailable for {building_id}: {exc}", flush=True)
+        unit_display_rules = []
+
+    try:
+        portal_email = os.environ.get("PORTAL_EMAIL")
+        portal_password = os.environ.get("PORTAL_PASSWORD")
+        if not portal_email or not portal_password:
+            await update_job(
+                jobs, job_id,
+                status="error",
+                error="PORTAL_EMAIL or PORTAL_PASSWORD not set. Add them to backend/.env",
+            )
+            return
+
+        from playwright.async_api import async_playwright
+
+        async with async_playwright() as pw:
+            browser = await pw.chromium.launch(
+                headless=False,  # xvfb-run provides the virtual display
+                slow_mo=50,
+                args=[
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-accelerated-2d-canvas",
+                    "--no-first-run",
+                    "--disable-blink-features=AutomationControlled",
+                ],
+            )
+            context = await browser.new_context(
+                viewport={"width": 1366, "height": 768},
+                locale="en-AU",
+                timezone_id="Australia/Sydney",
+                user_agent=(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/131.0.0.0 Safari/537.36"
+                ),
+                extra_http_headers={
+                    "Accept-Language": "en-AU,en;q=0.9",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                    "sec-ch-ua": '"Chromium";v="131", "Google Chrome";v="131", "Not-A.Brand";v="99"',
+                    "sec-ch-ua-mobile": "?0",
+                    "sec-ch-ua-platform": '"Windows"',
+                },
+            )
+            await context.add_init_script(_STEALTH_SCRIPT)
+            page = await context.new_page()
+
+            # ── Login ──────────────────────────────────────────────────────────
+            await update_job(jobs, job_id, status="starting", message="Logging into the strata portal...")
+            await page.goto(PORTAL_LOGIN_URL, wait_until="domcontentloaded")
+            await asyncio.sleep(random.uniform(1.5, 3.0))
+
+            email_input = page.locator("input[type='email']:visible, input[type='text']:visible").first
+            await email_input.wait_for(state="visible", timeout=15000)
+            await email_input.click()
+            await asyncio.sleep(random.uniform(0.3, 0.6))
+            await email_input.fill(portal_email)
+            await asyncio.sleep(random.uniform(0.4, 0.8))
+
+            password_input = page.locator("input[type='password']:visible").first
+            await password_input.wait_for(state="visible", timeout=10000)
+            await password_input.click()
+            await asyncio.sleep(random.uniform(0.3, 0.6))
+            await password_input.fill(portal_password)
+            await asyncio.sleep(random.uniform(0.8, 1.5))
+
+            await _debug_screenshot(page, "before_login_click")
+
+            login_btn = page.locator(
+                "button:has-text('Login'), input[type='submit'][value*='Login' i], input[type='button'][value*='Login' i]"
+            ).first
+            await login_btn.wait_for(state="visible", timeout=10000)
+            await human_move_and_click(page, login_btn)
+
+            try:
+                await page.wait_for_url(lambda url: "login.aspx" not in url.lower(), timeout=15000)
+            except Exception:
+                await page.wait_for_load_state("networkidle", timeout=15000)
+
+            await asyncio.sleep(random.uniform(1.0, 2.0))
+            await _debug_screenshot(page, "after_login_click")
+
+            # ── Wait for PIN ───────────────────────────────────────────────────
+            await update_job(
+                jobs, job_id,
+                status="waiting_pin",
+                message="Check your email — enter the PIN sent to you",
+            )
+            try:
+                pin = await wait_for_pin(jobs, job_id, timeout_secs=300)
+            except TimeoutError:
+                await _debug_screenshot(page, "pin_timeout")
+                await update_job(jobs, job_id, status="error", error="PIN timeout — no PIN entered within 5 minutes")
+                await browser.close()
+                return
+
+            # ── Submit PIN ─────────────────────────────────────────────────────
+            await update_job(jobs, job_id, status="scraping", message="Verifying PIN and logging in...")
+            await asyncio.sleep(random.uniform(0.5, 1.0))
+
+            pin_input = None
+            for selector in [
+                "input[name*='PIN' i]", "input[id*='PIN' i]",
+                "input[name*='Code' i]", "input[id*='Code' i]",
+                "input[type='text']:visible", "input[type='number']:visible",
+            ]:
+                try:
+                    loc = page.locator(selector).first
+                    if await loc.count() > 0 and await loc.is_visible():
+                        pin_input = loc
+                        break
+                except Exception:
+                    continue
+
+            if pin_input is None:
+                await _debug_screenshot(page, "pin_input_not_found")
+                await update_job(jobs, job_id, status="error", error="Could not find PIN input field on page")
+                await browser.close()
+                return
+
+            await human_type(pin_input, pin)
+            await asyncio.sleep(random.uniform(0.5, 1.0))
+
+            verify_btn = None
+            for selector in [
+                "input[value='Verify' i]", "button:has-text('Verify')",
+                "input[value='Submit' i]", "button:has-text('Submit')",
+                "input[type='submit']", "button[type='submit']",
+            ]:
+                try:
+                    loc = page.locator(selector).first
+                    if await loc.count() > 0 and await loc.is_visible():
+                        verify_btn = loc
+                        break
+                except Exception:
+                    continue
+
+            if verify_btn:
+                await human_move_and_click(page, verify_btn)
+            else:
+                await pin_input.press("Enter")
+
+            await best_effort_network_idle(page, timeout=20000)
+            await asyncio.sleep(random.uniform(2.0, 3.5))
+            await _debug_screenshot(page, "after_pin_verify")
+
+            # ── Navigate to committee reports ──────────────────────────────────
+            await update_job(jobs, job_id, status="scraping", message="Opening committee reports...")
+            await open_committee_report(page)
+            await asyncio.sleep(random.uniform(3.0, 5.0))
+
+            # ── Scrape financials ──────────────────────────────────────────────
+            await update_job(jobs, job_id, status="scraping", message="Extracting budget data...")
+            financial_data = await click_tab_and_extract(
+                page, "financials_tab",
+                ["text=Building Financials", "a:has-text('Building Financials')"],
+                extract_financials,
+                settle_delay=(2.0, 4.0),
+            )
+            if not financial_data:
+                await _debug_screenshot(page, "financials_extraction_empty")
+                raise RuntimeError(
+                    "Building Financials extraction returned 0 rows after 3 attempts "
+                    "— the tab likely isn't loading/clicking correctly. Check "
+                    "/tmp/strata_scraper_financials_tab_empty_attempt_*.png."
+                )
+
+            # ── Scrape bank accounts (same page) ──────────────────────────────
+            bank_data = await extract_bank_accounts(page)
+
+            # ── Scrape owner positions ─────────────────────────────────────────
+            await update_job(jobs, job_id, status="scraping", message="Extracting owner levy positions...")
+            owner_data = await click_tab_and_extract(
+                page, "owner_positions_tab",
+                ["text=Owner Positions", "a:has-text('Owner Positions')"],
+                # partial, not a bare reference: the extractor needs the building's
+                # unit_display rules to turn a plan lot number into an addressable unit
+                # number, and click_tab_and_extract calls extractor(page).
+                partial(extract_owners, unit_display_rules=unit_display_rules),
+                settle_delay=(3.0, 6.0),
+            )
+            if not owner_data:
+                # A strata scheme by definition has owners — zero rows here (even
+                # after retrying the tab click) means extract_owners scraped the
+                # wrong tab/table, not that the building genuinely has none. Fail
+                # loudly (caught by main()'s outer except, which marks the job
+                # status="error") instead of silently completing with an empty
+                # owners list, as happened 2026-07-31 for East Gate.
+                await _debug_screenshot(page, "owner_extraction_empty")
+                raise RuntimeError(
+                    "Owner Positions extraction returned 0 rows after 3 attempts — "
+                    "the tab likely isn't loading/clicking correctly. Check "
+                    "/tmp/strata_scraper_owner_positions_tab_empty_attempt_*.png."
+                )
+
+            # ── Scrape the Invoices tab (paginated) ────────────────────────────
+            # Best-effort: unlike Building Financials / Owner Positions, an
+            # Invoices tab isn't guaranteed on every portal/building, so a
+            # missing tab is logged and skipped rather than failing the sync.
+            await update_job(jobs, job_id, status="scraping", message="Extracting invoice detail...")
+            try:
+                invoice_data = await click_tab_and_extract(
+                    page, "invoices_tab",
+                    ["text=Invoices", "a:has-text('Invoices')"],
+                    extract_invoices,
+                    settle_delay=(2.0, 4.0),
+                )
+            except TimeoutError as exc:
+                print(f"[WARN] Invoices tab not found — skipping reconciliation: {exc}", flush=True)
+                invoice_data = []
+
+            await browser.close()
+
+        # ── Enrich & build preview ─────────────────────────────────────────────
+        await update_job(
+            jobs, job_id,
+            status="cleaning",
+            message=f"Cleaning {len(financial_data)} budget items and {len(owner_data)} owner records...",
+        )
+        financial_year = _current_financial_year()
+        financial_data, unmatched_invoices = reconcile_transactions_with_invoices(
+            financial_data, invoice_data, financial_year,
+        )
+        financials_clean = enrich_financials(financial_data)
+        owners_clean = enrich_owners(owner_data)
+        summary = build_summary(building_id, owners_clean, financials_clean)
+        bank_accounts_clean = bank_data  # no enrichment needed
+
+        # Row-sum verification (2026-08-19, added at user request): a category's own
+        # detail rows should sum to its own header "Actual" figure. A mismatch means
+        # this category's detail is incomplete (e.g. not all rows expanded before the
+        # table was read) — real incident: East Gate's "Banking Management" header said
+        # $506.29, its 5 visible rows summed to $340.90. Logged here so it's visible in
+        # the job log regardless of whether anyone opens preview_data, and also carried
+        # in preview_data itself for the confirm-screen review step.
+        row_sum_warnings = verify_category_row_sums(financials_clean)
+        for w in row_sum_warnings:
+            print(
+                f"[WARN] Row-sum mismatch for {w['category']!r}: header actual="
+                f"${w['header_actual']:,.2f} but {w['transaction_count']} visible row(s) sum to "
+                f"${w['row_sum']:,.2f} (diff ${w['diff']:,.2f}) — this category's detail is "
+                f"likely incomplete, not necessarily wrong.",
+                flush=True,
+            )
+
+        # ── Preview gate — user must confirm before any DB writes ──────────────
+        admin_fin = [f for f in financials_clean if f["fund"] == "admin"]
+        cw_fin = [f for f in financials_clean if f["fund"] == "capital_works"]
+        await update_job(
+            jobs, job_id,
+            status="preview",
+            message=(
+                    f"Review {len(admin_fin)} admin + {len(cw_fin)} sinking fund items, "
+                    f"{len(owners_clean)} owner positions"
+                    + (f", {len(bank_accounts_clean)} bank account(s)" if bank_accounts_clean else "")
+                    + (f", {len(unmatched_invoices)} unmatched invoice(s)" if unmatched_invoices else "")
+                    + (f", {len(row_sum_warnings)} category row-sum mismatch(es)" if row_sum_warnings else "")
+                    + " — confirm to save or discard to cancel."
+            ),
+            preview_data={
+                "financials": financials_clean,
+                "owners": owners_clean,
+                "bank_accounts": bank_accounts_clean,
+                "unmatched_invoices": unmatched_invoices,
+                "summary": summary,
+                "row_sum_warnings": row_sum_warnings,
+            },
+        )
+
+        try:
+            action = await wait_for_confirm(jobs, job_id, timeout_secs=600)
+        except TimeoutError:
+            await update_job(
+                jobs, job_id,
+                status="error",
+                error="Preview timed out — no confirmation received within 10 minutes. Start a new sync and confirm promptly.",
+            )
+            return
+
+        if action == "discard":
+            await update_job(
+                jobs, job_id,
+                status="cancelled",
+                message="Preview discarded — no data was written to the system.",
+            )
+            return
+
+        # ── Confirmed: write to DB ─────────────────────────────────────────────
+        await update_job(jobs, job_id, status="syncing", message="Saving data to the system...")
+        await upsert_to_mongo(mdb, building_id, financials_clean, owners_clean, summary, bank_accounts_clean,
+                               financial_year)
+
+        await update_job(
+            jobs, job_id,
+            status="complete",
+            message=(
+                f"Sync complete — {len(financials_clean)} budget items, "
+                f"{len(owners_clean)} owner records updated"
+            ),
+            result=summary,
+            completed_at=datetime.now(timezone.utc).isoformat(),
+        )
+
+    except Exception as exc:
+        await update_job(jobs, job_id, status="error", error=str(exc), error_detail=traceback.format_exc())
+    finally:
+        client.close()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Strata portal sync subprocess")
+    parser.add_argument("--job-id", required=True)
+    parser.add_argument("--building-id", required=True)
+    args = parser.parse_args()
+    asyncio.run(main(args.job_id, args.building_id))

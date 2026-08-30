@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Self-Managed Scheme Onboarding Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <h1>Self-Managed Scheme Onboarding</h1>
+    <p class="subtitle">Onboarding an Owners Corporation that runs its own affairs without a Strata Management firm</p>
+</header>
+
+<main>
+    <section>
+        <h2>Who this guide is for</h2>
+        <p>
+            <strong>Super admins</strong> creating a self-managed scheme on the platform.
+            For Strata-Management-firm onboarding (the standard path), see the
+            <a href="building-onboarding-guide.html">Building Onboarding Guide</a> instead.
+        </p>
+    </section>
+
+    <section>
+        <h2>What "self-managed" means on StrataOS</h2>
+        <p>
+            A self-managed scheme is a strata scheme (Owners Corporation or Body Corporate)
+            that does not engage a Strata Management firm. Examples include smaller blocks
+            where an EC member volunteers to act as the strata administrator, or a Body
+            Corporate that handles its own correspondence and finances.
+        </p>
+        <p>
+            Self-managed schemes still must comply with all state legislation regarding
+            insurance, maintenance, and meetings — see your jurisdiction's act:
+        </p>
+        <ul>
+            <li>ACT — <em>Unit Titles (Management) Act 2011</em></li>
+            <li>NSW — <em>Strata Schemes Management Act 2015</em></li>
+        </ul>
+        <p>
+            On StrataOS this is modelled as a single <em>tenant</em> (<code>core.tenants.is_self_managed=TRUE</code>)
+            that owns exactly one scheme. EC members hold platform roles such as
+            <code>strata_admin</code> or <code>strata_manager</code> directly.
+        </p>
+    </section>
+
+    <section>
+        <h2>How to onboard a self-managed scheme</h2>
+
+        <ol>
+            <li>
+                <strong>Sign in as a Super Admin</strong>, then go to
+                <em>Admin → SM Organisations</em>.
+            </li>
+            <li>
+                Click <strong>+ New Self-Managed Scheme</strong>.
+            </li>
+            <li>
+                Fill in <em>scheme details</em>:
+                <ul>
+                    <li><strong>Plan number</strong> — the unit/strata plan number registered with the land titles
+                        office.
+                    </li>
+                    <li><strong>Jurisdiction</strong> — the Australian state or territory in which the scheme is
+                        registered.
+                    </li>
+                    <li><strong>Scheme name</strong> — the building's display name (e.g. "East Gate Residences").</li>
+                    <li><strong>Legal name</strong> (optional) — typically "The Owners — Units Plan {plan_number}".</li>
+                    <li><strong>ABN</strong> (optional) — if the Owners Corporation has its own ABN. 11 digits, no
+                        spaces.
+                    </li>
+                </ul>
+            </li>
+            <li>
+                Fill in the <em>EC admin (first user)</em>:
+                <ul>
+                    <li>The first EC member who will manage the scheme on the platform.</li>
+                    <li>Choose role: <strong>Strata Admin</strong> (full administrative access) or <strong>Strata
+                        Manager</strong>.
+                    </li>
+                    <li>Pick an invitation expiry (7 / 14 / 30 days).</li>
+                </ul>
+            </li>
+            <li>
+                Click <strong>Create self-managed scheme</strong>. The platform will:
+                <ul>
+                    <li>Create the tenant (<code>is_self_managed=TRUE</code>) and the scheme atomically.</li>
+                    <li>Send an invitation email to the EC admin with an activation link.</li>
+                    <li>Redirect you to the new organisation's detail page.</li>
+                </ul>
+            </li>
+            <li>
+                The EC admin clicks the link in their email, sets a password, and signs in.
+                From there they can complete <em>lots</em>, <em>opening fund balances</em>, and
+                further EC-member invitations via <em>Setup my Scheme</em> in their dashboard.
+            </li>
+        </ol>
+    </section>
+
+    <section>
+        <h2>What if something goes wrong?</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <thead>
+            <tr style="text-align:left;border-bottom:1px solid #ccc;">
+                <th style="padding:8px 0;">Error message</th>
+                <th style="padding:8px 0;">What it means</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:8px 0;"><code>An active organisation already has this ABN</code></td>
+                <td style="padding:8px 0;">A non-archived tenant already uses this ABN. If it's the same OC under a
+                    different name, archive the old one first.
+                </td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:8px 0;"><code>Scheme '{n}' already exists in {jur}</code></td>
+                <td style="padding:8px 0;">A scheme with this plan number is already registered in this jurisdiction.
+                    Verify with the land titles office.
+                </td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:8px 0;"><code>This self-managed tenant already has a scheme</code></td>
+                <td style="padding:8px 0;">Self-managed tenants are 1:1 with schemes. The system will not create a
+                    second scheme for the same tenant.
+                </td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:8px 0;"><code>Created, but invitation email failed</code></td>
+                <td style="padding:8px 0;">The tenant + scheme are saved; only email delivery failed. Resend from the
+                    organisation's <em>Invitations</em> tab.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Differences from SM-managed onboarding</h2>
+        <ul>
+            <li>SM-managed orgs (a Strata Management firm) can have many buildings; self-managed tenants own exactly one
+                scheme.
+            </li>
+            <li>The scheme is created at the same time as the tenant — there is no separate "Onboard a Building" wizard
+                for self-managed.
+            </li>
+            <li>Lots, opening fund balances, and further EC member invites are completed by the EC admin, not by the
+                platform Super Admin.
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

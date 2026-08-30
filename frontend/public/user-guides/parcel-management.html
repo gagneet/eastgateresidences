@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Parcel Management — User Guide | <span data-bldg="name">your building</span></title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-yellow {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .step {
+            border-left: 4px solid #2F4F4F;
+            padding: 10px 16px;
+            margin: 12px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        th {
+            background: #2F4F4F;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← Back to User Guides</a>
+        <h1>📦 Parcel Management</h1>
+        <p>Track deliveries, receive notifications, and manage parcel collection at <span
+                data-bldg="name">your building</span>.</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2>Overview</h2>
+        <p>The Parcel Management feature allows admin staff and service providers to log incoming deliveries, and
+            automatically notifies all active residents of a unit the moment their parcel arrives.</p>
+        <p>From Session 28+, the notification system sends:</p>
+        <ul>
+            <li><strong>In-app bell notification</strong> — shown in the notification centre immediately</li>
+            <li><strong>Email</strong> — sent to both your portal login email <em>and</em> your
+                @ community email (if configured)
+            </li>
+            <li><strong>Live push</strong> — via SSE (Server-Sent Events) to any connected browser tab</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Logging a Parcel (Admin Staff / Service Provider)</h2>
+
+        <div class="step"><strong>Step 1:</strong> Navigate to <em>Dashboard → Parcels</em>.</div>
+        <div class="step"><strong>Step 2:</strong> Click <em>Log New Parcel</em> and enter the unit number and carrier.
+        </div>
+        <div class="step"><strong>Step 3:</strong> Optionally add a description and tracking number.</div>
+        <div class="step"><strong>Step 4:</strong> Click <em>Save</em>. Residents are notified automatically.</div>
+    </section>
+
+    <section>
+        <h2>Pre-Registering an Expected Parcel (Owners / Residents)</h2>
+        <p>Owners, EC Members, and Tenants can now self-register an <em>expected</em> delivery before it arrives.
+            This helps admin staff identify your parcel quickly.</p>
+
+        <div class="step"><strong>Step 1:</strong> Navigate to <em>Dashboard → Parcels</em>.</div>
+        <div class="step"><strong>Step 2:</strong> Click <em>Register Expected Parcel</em>.</div>
+        <div class="step"><strong>Step 3:</strong> Select your carrier and optionally enter a tracking number and
+            description. Your unit is pre-filled — you cannot register for another unit.
+        </div>
+        <div class="step"><strong>Step 4:</strong> Click <em>Save</em>. Your parcel appears with status <span
+                class="badge" style="background:#dbeafe;color:#1e40af">Expected</span>.
+        </div>
+        <div class="step"><strong>Step 5:</strong> When the parcel arrives, admin staff mark it as <span
+                class="badge badge-yellow">Received</span>, and you are notified via bell and email.
+        </div>
+
+        <h3>Parcel Status Lifecycle</h3>
+        <table>
+            <tr>
+                <th>Status</th>
+                <th>Meaning</th>
+                <th>Set By</th>
+            </tr>
+            <tr>
+                <td><span class="badge" style="background:#dbeafe;color:#1e40af">Expected</span></td>
+                <td>Owner pre-registered a delivery not yet arrived</td>
+                <td>Owner / Resident</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-yellow">Received</span></td>
+                <td>Parcel has arrived at the front desk</td>
+                <td>Admin Staff / Staff</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-green">Collected</span></td>
+                <td>Resident has collected the parcel</td>
+                <td>Admin Staff / Staff</td>
+            </tr>
+        </table>
+
+        <h3>Supported Carriers</h3>
+        <table>
+            <tr>
+                <th>Carrier Code</th>
+                <th>Display Name</th>
+            </tr>
+            <tr>
+                <td>auspost</td>
+                <td>Australia Post</td>
+            </tr>
+            <tr>
+                <td>startrack</td>
+                <td>StarTrack</td>
+            </tr>
+            <tr>
+                <td>dhl</td>
+                <td>DHL</td>
+            </tr>
+            <tr>
+                <td>fedex</td>
+                <td>FedEx</td>
+            </tr>
+            <tr>
+                <td>tnt</td>
+                <td>TNT</td>
+            </tr>
+            <tr>
+                <td>amazon</td>
+                <td>Amazon</td>
+            </tr>
+            <tr>
+                <td>toll</td>
+                <td>Toll</td>
+            </tr>
+            <tr>
+                <td>other</td>
+                <td>Courier</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2>Notification Details (Residents)</h2>
+
+        <h3>In-App Notification</h3>
+        <p>A bell 🔔 appears in the top-right corner. Click it to see parcel details and a link to the Parcels page.</p>
+
+        <h3>Email Notification</h3>
+        <p>You receive an email at <em>both</em> your portal login address and your
+            <code>@ email (if configured). Duplicate addresses are deduplicated — you
+                receive only one email per address.</p>
+
+        <h3>Live Push (SSE)</h3>
+        <p>If you are logged in to the portal in a browser tab, a real-time parcel_logged event is pushed to your tab.
+            The parcels page updates without needing a manual refresh.</p>
+    </section>
+
+    <section>
+        <h2>Marking a Parcel as Collected</h2>
+        <div class="step"><strong>Step 1:</strong> Navigate to <em>Dashboard → Parcels</em>.</div>
+        <div class="step"><strong>Step 2:</strong> Find the parcel in the list (status: <span
+                class="badge badge-yellow">received</span>).
+        </div>
+        <div class="step"><strong>Step 3:</strong> Click <em>Mark Collected</em>. Status changes to <span
+                class="badge badge-green">collected</span>.
+        </div>
+    </section>
+
+    <section>
+        <h2>Tracking Parcel Status</h2>
+        <p>If a tracking number was recorded, you can click <em>Track Parcel</em> to see live courier status (where
+            supported) or a simulated status for demo/offline use.</p>
+    </section>
+
+    <section>
+        <h2>Notification Permission Matrix</h2>
+        <table>
+            <tr>
+                <th>Action</th>
+                <th>Required Role</th>
+            </tr>
+            <tr>
+                <td>Log a received parcel</td>
+                <td>Admin Staff, Service Provider, Strata Manager, Admin</td>
+            </tr>
+            <tr>
+                <td>Pre-register an expected parcel</td>
+                <td>Owner, EC Member, Chairman, Tenant <em>(own unit only)</em></td>
+            </tr>
+            <tr>
+                <td>View all parcels</td>
+                <td>Admin Staff, Strata Manager, Admin</td>
+            </tr>
+            <tr>
+                <td>View own parcels</td>
+                <td>Owner, Tenant</td>
+            </tr>
+            <tr>
+                <td>Mark collected</td>
+                <td>Admin Staff, Service Provider, Strata Manager, Admin</td>
+            </tr>
+            <tr>
+                <td>Track parcel (carrier link)</td>
+                <td>All authenticated users (own unit only for residents)</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2>Frequently Asked Questions</h2>
+
+        <h3>I didn't receive an email notification — why?</h3>
+        <ul>
+            <li>Check your spam/junk folder.</li>
+            <li>Verify your email address is correct in <em>My Profile</em>.</li>
+            <li>Ask your strata manager to confirm your unit is correctly linked to your portal account.</li>
+        </ul>
+
+        <h3>Can I opt out of parcel email notifications?</h3>
+        <p>Yes. Visit <em>Dashboard → Email Preferences</em> and disable parcel notifications.</p>
+
+        <h3>Who receives notifications if a unit has two owners?</h3>
+        <p>All active owners and tenants linked to the unit receive notifications.</p>
+    </section>
+
+</main>
+
+<footer>
+    <p><span data-bldg="name">your building</span></p>
+    <p><a href="index.html">Back to User Guides</a></p>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

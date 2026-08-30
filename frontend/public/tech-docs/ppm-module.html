@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>PPM Module — Technical Documentation</title>
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <h1>PPM (Preventive Maintenance Plan) Module — Technical Documentation</h1>
+    <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role lists on this page naming "chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+
+    <h2>Overview</h2>
+    <p>
+        The PPM module provides a full lifecycle management system for building maintenance schedules.
+        It ingests data from an Excel spreadsheet (per-building PPM schedule), stores it in MongoDB,
+        exposes 8 REST endpoints, and sends daily email notifications to managers and residents.
+    </p>
+    <p>
+        <strong>Source data:</strong> <code>docs/finances/EastGate-UP13195-PPM-January2026.xlsx</code><br>
+        <strong>Building 13195 statistics:</strong> 79 items · 15 sections · 8 compliance items<br>
+        <strong>Multi-tenant:</strong> All endpoints resolve <code>building_id</code> from the caller's JWT token
+        via the <code>get_current_building</code> FastAPI dependency.
+    </p>
+
+    <h2>File Inventory</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>File</th>
+            <th>Purpose</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>backend/routers/ppm.py</code></td>
+            <td>8 REST endpoints under <code>/api/ppm</code></td>
+        </tr>
+        <tr>
+            <td><code>backend/models/ppm.py</code></td>
+            <td>5 Pydantic v2 models</td>
+        </tr>
+        <tr>
+            <td><code>backend/seeds/ppm_schedule.py</code></td>
+            <td>Idempotent Excel seed — upserts to <code>maintenance_schedules</code></td>
+        </tr>
+        <tr>
+            <td><code>backend/cron/cron_ppm_notifications.py</code></td>
+            <td>Daily 07:00 AEST notification cron</td>
+        </tr>
+        <tr>
+            <td><code>scripts/db/create_ppm_indexes.py</code></td>
+            <td>MongoDB index creation (run once after deploy)</td>
+        </tr>
+        <tr>
+            <td><code>backend/seeds/feature_toggles.py</code></td>
+            <td>Includes <code>ppm_schedule</code> feature toggle</td>
+        </tr>
+        <tr>
+            <td><code>frontend/src/pages/dashboard/MaintenancePage.tsx</code></td>
+            <td>PPM Schedule tab (Tab 5 of Maintenance page)</td>
+        </tr>
+        <tr>
+            <td><code>frontend/src/pages/dashboard/ManagerDashboard.jsx</code></td>
+            <td>Fetches PPM dashboard KPI for health score card</td>
+        </tr>
+        <tr>
+            <td><code>docs/deployment/eastgate-ppm-notifications.service</code></td>
+            <td>systemd service unit</td>
+        </tr>
+        <tr>
+            <td><code>docs/deployment/eastgate-ppm-notifications.timer</code></td>
+            <td>systemd timer unit (07:00 AEST daily)</td>
+        </tr>
+        <tr>
+            <td><code>tests/backend/test_ppm.py</code></td>
+            <td>57 backend tests (unit + API endpoint mocks)</td>
+        </tr>
+        <tr>
+            <td><code>tests/frontend/unit/pages/dashboard/MaintenancePage.test.tsx</code></td>
+            <td>Frontend tests including PPM tab coverage</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Backend Architecture</h2>
+
+    <h3>API Endpoints</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Method</th>
+            <th>Path</th>
+            <th>Auth</th>
+            <th>Description</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>GET</td>
+            <td><code>/api/ppm</code></td>
+            <td>Any authenticated user</td>
+            <td>List items — filtered by section/status/frequency/is_compliance. Managers see full fields;
+                owners/tenants see limited public fields.
+            </td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td><code>/api/ppm/sections</code></td>
+            <td>Any authenticated user</td>
+            <td>Aggregation: distinct sections with item_count, compliance_count, overdue_count.</td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td><code>/api/ppm/dashboard</code></td>
+            <td>Any authenticated user</td>
+            <td>Health summary: total_items, overdue_count, due_soon_count, compliance_overdue_count, health_score
+                (0–100).
+            </td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td><code>/api/ppm/upcoming</code></td>
+            <td>Any authenticated user</td>
+            <td>Items due within N days (default: 30, max: 365).</td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td><code>/api/ppm/overdue</code></td>
+            <td>Any authenticated user</td>
+            <td>All overdue items with computed <code>days_overdue</code>.</td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td><code>/api/ppm/{schedule_id}</code></td>
+            <td>Any authenticated user</td>
+            <td>Full detail of one PPM item including completion_log and notification_log.</td>
+        </tr>
+        <tr>
+            <td>PUT</td>
+            <td><code>/api/ppm/{schedule_id}</code></td>
+            <td>Manager roles only</td>
+            <td>Update vendor_name, vendor_contact, notes, or next_due_date. Updating next_due_date also syncs open
+                calendar events.
+            </td>
+        </tr>
+        <tr>
+            <td>POST</td>
+            <td><code>/api/ppm/{schedule_id}/complete</code></td>
+            <td>Manager roles only</td>
+            <td>Log completion — appends to completion_log, recomputes next_due_date, updates calendar events.</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>Manager Roles</h3>
+    <p>The following roles are considered managers and have write access: <code>super_admin</code>,
+        <code>chairman</code>, <code>ec_member</code>, <code>strata_manager</code>.</p>
+
+    <h3>Field Visibility by Role</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Field</th>
+            <th>owner / tenant</th>
+            <th>ec_member / chairman / strata_manager / super_admin</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>section, description, frequency, status</td>
+            <td>✅</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>inspection_type, next_due_date, is_compliance</td>
+            <td>✅</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>vendor_name, vendor_contact, contractor_id</td>
+            <td>❌</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>standard, inspector, notes</td>
+            <td>❌</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>completion_log, notification_log</td>
+            <td>❌</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>capital_years, lifespan_years</td>
+            <td>❌</td>
+            <td>✅</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>Pydantic Models</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Model</th>
+            <th>Purpose</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>PPMScheduleItem</code></td>
+            <td>Full response model (all 24 fields)</td>
+        </tr>
+        <tr>
+            <td><code>PPMScheduleItemLimited</code></td>
+            <td>Restricted response for owners/tenants (9 fields)</td>
+        </tr>
+        <tr>
+            <td><code>PPMScheduleUpdate</code></td>
+            <td>PUT request body — vendor_name, vendor_contact, contractor_id, next_due_date, notes</td>
+        </tr>
+        <tr>
+            <td><code>PPMCompletionLog</code></td>
+            <td>POST /complete body — completed_by, completion_date, notes, certificate_ref</td>
+        </tr>
+        <tr>
+            <td><code>PPMDashboardSummary</code></td>
+            <td>GET /dashboard response — health KPIs</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>MongoDB Collection: <code>maintenance_schedules</code></h2>
+
+    <h3>Document Schema</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Field</th>
+            <th>Type</th>
+            <th>Description</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>schedule_id</td>
+            <td>string (UUID)</td>
+            <td>Unique identifier — set at seed time, preserved across re-seeds</td>
+        </tr>
+        <tr>
+            <td>building_id</td>
+            <td>string</td>
+            <td>Unit plan number — multi-tenancy isolation key (e.g. "13195")</td>
+        </tr>
+        <tr>
+            <td>section</td>
+            <td>string</td>
+            <td>Building area from PPM Excel (15 distinct values)</td>
+        </tr>
+        <tr>
+            <td>description</td>
+            <td>string</td>
+            <td>Specific maintenance task</td>
+        </tr>
+        <tr>
+            <td>vendor_name</td>
+            <td>string | null</td>
+            <td>HTML-escaped contractor name</td>
+        </tr>
+        <tr>
+            <td>vendor_contact</td>
+            <td>string | null</td>
+            <td>HTML-escaped phone/email</td>
+        </tr>
+        <tr>
+            <td>inspection_type</td>
+            <td>string | null</td>
+            <td>e.g. "Compliance", "Routine", "Licenced Contractor"</td>
+        </tr>
+        <tr>
+            <td>standard</td>
+            <td>string | null</td>
+            <td>Australian Standard reference (e.g. "AS1851-2012")</td>
+        </tr>
+        <tr>
+            <td>frequency</td>
+            <td>string</td>
+            <td>Normalised: annual / 6monthly / quarterly / monthly / 5yearly / biannual</td>
+        </tr>
+        <tr>
+            <td>frequency_days</td>
+            <td>int</td>
+            <td>Days between occurrences (used for next_due_date calculation)</td>
+        </tr>
+        <tr>
+            <td>last_completed_date</td>
+            <td>string (ISO date) | null</td>
+            <td>Date of most recent logged completion</td>
+        </tr>
+        <tr>
+            <td>next_due_date</td>
+            <td>string (ISO date)</td>
+            <td>Next scheduled occurrence — updated on completion or manual override</td>
+        </tr>
+        <tr>
+            <td>status</td>
+            <td>string</td>
+            <td>"overdue" / "due_soon" / "scheduled" — recomputed on write</td>
+        </tr>
+        <tr>
+            <td>is_compliance</td>
+            <td>bool</td>
+            <td>True if inspection_type contains "Compliance"</td>
+        </tr>
+        <tr>
+            <td>lifespan_years</td>
+            <td>int | null</td>
+            <td>Asset lifespan in years (from Excel)</td>
+        </tr>
+        <tr>
+            <td>capital_years</td>
+            <td>int[]</td>
+            <td>Years when capital expenditure is planned (from Excel columns 10–24)</td>
+        </tr>
+        <tr>
+            <td>completion_log</td>
+            <td>object[]</td>
+            <td>Append-only array of completion entries</td>
+        </tr>
+        <tr>
+            <td>notification_log</td>
+            <td>object[]</td>
+            <td>Append-only array of sent notification records (dedup key)</td>
+        </tr>
+        <tr>
+            <td>created_at / updated_at</td>
+            <td>string (ISO datetime)</td>
+            <td>Timestamps</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>Indexes</h3>
+    <p>Run <code>scripts/db/create_ppm_indexes.py</code> once after deployment:</p>
+    <table>
+        <thead>
+        <tr>
+            <th>Index Name</th>
+            <th>Fields</th>
+            <th>Purpose</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>idx_building_id</td>
+            <td>(building_id)</td>
+            <td>All queries</td>
+        </tr>
+        <tr>
+            <td>idx_building_schedule_id</td>
+            <td>(building_id, schedule_id) UNIQUE</td>
+            <td>Single-item GET/PUT/POST lookups</td>
+        </tr>
+        <tr>
+            <td>idx_building_status</td>
+            <td>(building_id, status)</td>
+            <td>Status filter, overdue list</td>
+        </tr>
+        <tr>
+            <td>idx_building_next_due</td>
+            <td>(building_id, next_due_date)</td>
+            <td>Upcoming date range query</td>
+        </tr>
+        <tr>
+            <td>idx_building_section</td>
+            <td>(building_id, section)</td>
+            <td>Section filter</td>
+        </tr>
+        <tr>
+            <td>idx_building_compliance</td>
+            <td>(building_id, is_compliance)</td>
+            <td>Compliance filter, dashboard count</td>
+        </tr>
+        <tr>
+            <td>idx_building_compliance_status</td>
+            <td>(building_id, is_compliance, status)</td>
+            <td>Dashboard count_documents</td>
+        </tr>
+        <tr>
+            <td>idx_building_section_status</td>
+            <td>(building_id, section, status)</td>
+            <td>Sections aggregation pipeline</td>
+        </tr>
+        <tr>
+            <td>idx_events_building_ppm</td>
+            <td>(building_id, event_type, ppm_schedule_id)</td>
+            <td>Calendar event lookups on complete/update</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Seed Script</h2>
+    <pre><code># Run from backend/ directory (activates venv automatically via sys.path)
+venv/bin/python3 seeds/ppm_schedule.py</code></pre>
+    <p>
+        The seed is <strong>idempotent</strong>: upserts are keyed on <code>(building_id, description, section)</code>.
+        Running it twice produces the same 79 documents. Existing <code>schedule_id</code> values and
+        <code>completion_log</code> / <code>notification_log</code> arrays are never overwritten by re-seeding
+        (only mutable metadata fields are updated via <code>$set</code>; IDs are protected by <code>$setOnInsert</code>).
+    </p>
+
+    <h2>Notification System</h2>
+    <h3>Cron Schedule</h3>
+    <p>
+        Runs daily at <strong>07:00 AEST</strong> via systemd timer:
+        <code>docs/deployment/eastgate-ppm-notifications.timer</code>
+    </p>
+    <pre><code>sudo systemctl enable --now eastgate-ppm-notifications.timer
+sudo systemctl status eastgate-ppm-notifications.timer
+sudo journalctl -u eastgate-ppm-notifications --since "today"</code></pre>
+
+    <h3>Notification Rules</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Condition</th>
+            <th>Audience</th>
+            <th>Frequency</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>30 days before due</td>
+            <td>All managers</td>
+            <td>Once (threshold dedup)</td>
+        </tr>
+        <tr>
+            <td>14 days before due</td>
+            <td>All managers</td>
+            <td>Once (threshold dedup)</td>
+        </tr>
+        <tr>
+            <td>7 days before due</td>
+            <td>All managers</td>
+            <td>Once (threshold dedup)</td>
+        </tr>
+        <tr>
+            <td>0 days (due today)</td>
+            <td>All managers</td>
+            <td>Once (threshold dedup)</td>
+        </tr>
+        <tr>
+            <td>Overdue (any day)</td>
+            <td>All managers</td>
+            <td>Daily (new threshold each day)</td>
+        </tr>
+        <tr>
+            <td>≤7 days before due (compliance items only)</td>
+            <td>All owners/tenants</td>
+            <td>Once per week (7-day dedup)</td>
+        </tr>
+        </tbody>
+    </table>
+    <p>
+        Deduplication is managed via the <code>notification_log</code> array on each PPM item.
+        Each entry records <code>{date, threshold_days, sent_to, audience}</code>.
+        The cron checks for an existing entry matching today's date and the same <code>threshold_days</code> before
+        sending.
+    </p>
+
+    <h2>Calendar Integration</h2>
+    <p>
+        PPM items are automatically represented as events in the <code>events</code> collection
+        (<code>event_type: "ppm"</code>). Calendar events are:
+    </p>
+    <ul>
+        <li><strong>Created</strong> at seed time for each item's next_due_date.</li>
+        <li><strong>Completed</strong> (marked with <code>completed_at</code>) when <code>POST /ppm/{id}/complete</code>
+            is called.
+        </li>
+        <li><strong>Inserted</strong> (new occurrence) when a completion is logged — for the recomputed next_due_date.
+        </li>
+        <li><strong>Updated</strong> (start_date synced) when <code>PUT /ppm/{id}</code> changes next_due_date.</li>
+    </ul>
+    <p>Colour coding:</p>
+    <ul>
+        <li>🔴 Red — compliance items (<code>is_compliance: true</code>)</li>
+        <li>🟠 Orange — items requiring a licenced contractor</li>
+        <li>🟣 Purple — items with capital expenditure in the current year</li>
+        <li>🔵 Blue — all other items</li>
+    </ul>
+
+    <h2>Frontend Integration</h2>
+    <h3>MaintenancePage.tsx — PPM Tab</h3>
+    <p>Located at <code>frontend/src/pages/dashboard/MaintenancePage.tsx</code>, Tab 5 (<code>value="ppm"</code>).</p>
+    <p>State variables:</p>
+    <ul>
+        <li><code>ppmItems</code> — full list from <code>GET /ppm?limit=500</code></li>
+        <li><code>ppmSections</code> — from <code>GET /ppm/sections</code></li>
+        <li><code>ppmDashboard</code> — from <code>GET /ppm/dashboard</code></li>
+        <li>Filter state: <code>ppmSectionFilter</code>, <code>ppmStatusFilter</code>, <code>ppmComplianceOnly</code>
+        </li>
+        <li>Dialog state: <code>ppmCompleteDialogOpen</code>, <code>ppmSelectedItem</code>, <code>ppmCompleteForm</code>
+        </li>
+    </ul>
+    <p>PPM data is loaded lazily — only when the PPM tab is first activated. A refresh button reloads all three
+        endpoints.</p>
+
+    <h3>Key data-testid Attributes</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Selector</th>
+            <th>Element</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>data-testid="ppm-tab-trigger"</code></td>
+            <td>PPM tab trigger button</td>
+        </tr>
+        <tr>
+            <td><code>data-testid="ppm-total-items"</code></td>
+            <td>Total items count paragraph</td>
+        </tr>
+        <tr>
+            <td><code>data-testid="ppm-overdue-count"</code></td>
+            <td>Overdue count paragraph</td>
+        </tr>
+        <tr>
+            <td><code>data-testid="ppm-health-score"</code></td>
+            <td>Compliance health score paragraph</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Security</h2>
+    <ul>
+        <li><strong>XSS prevention:</strong> <code>vendor_name</code> and <code>vendor_contact</code> are sanitised with
+            <code>html.escape()</code>; <code>notes</code> is sanitised with <code>nh3.clean()</code> before storage.
+        </li>
+        <li><strong>Role enforcement:</strong> PUT and POST /complete raise HTTP 403 for non-manager roles (checked
+            server-side in the endpoint function, not just in the dependency).
+        </li>
+        <li><strong>Building isolation:</strong> Every DB query uses the JWT-resolved <code>building_id</code> from
+            <code>Depends(get_current_building)</code>. There is no way for a user to access another building's PPM data
+            through these endpoints.
+        </li>
+        <li><strong>Input validation:</strong> Status filter input is validated against allowed values
+            (<code>overdue</code>, <code>due_soon</code>, <code>scheduled</code>) — an invalid value raises HTTP 400.
+        </li>
+        <li><strong>Error handling:</strong> All DB calls are wrapped in <code>try/except</code> — MongoDB failures
+            return HTTP 503 with a user-safe message rather than exposing stack traces.
+        </li>
+    </ul>
+
+    <h2>Multi-Tenancy</h2>
+    <p>
+        All 8 endpoints use <code>building_id: str = Depends(get_current_building)</code> which resolves the
+        building from the JWT token's <code>building_id</code> claim, then falls back to
+        <code>user.building_id</code>, then to single-membership auto-resolve. The module-level constant
+        <code>_DEFAULT_BUILDING_ID = "13195"</code> is retained for reference only — it is <strong>not used</strong>
+        in any endpoint query.
+    </p>
+    <p>
+        The seed script (<code>seeds/ppm_schedule.py</code>) and cron (<code>cron_ppm_notifications.py</code>)
+        use their own <code>BUILDING_ID = "13195"</code> constant since they run as standalone scripts without
+        JWT context. For multi-building deployments, these should be parameterised or run separately per building.
+    </p>
+
+    <h2>Running Tests</h2>
+    <pre><code># Backend unit + API endpoint tests (57 tests)
+cd /home/gagneet/strata-management
+backend/venv/bin/python3 -m pytest tests/backend/test_ppm.py -v
+
+# Frontend tests (all tests including PPM tab coverage)
+cd frontend
+yarn test --testPathPatterns="MaintenancePage"</code></pre>
+
+    <h2>Deployment Checklist</h2>
+    <ol>
+        <li>Run the seed: <code>venv/bin/python3 seeds/ppm_schedule.py</code></li>
+        <li>Create indexes: <code>venv/bin/python3 ../scripts/db/create_ppm_indexes.py</code></li>
+        <li>Re-seed feature toggles: <code>venv/bin/python3 seeds/feature_toggles.py</code></li>
+        <li>Install systemd files: copy <code>docs/deployment/eastgate-ppm-notifications.*</code> to <code>/etc/systemd/system/</code>
+        </li>
+        <li>Enable timer: <code>sudo systemctl enable --now eastgate-ppm-notifications.timer</code></li>
+        <li>Restart backend: <code>sudo systemctl restart eastgate-backend</code></li>
+        <li>Verify: <code>curl -H "Authorization: Bearer $TOKEN"
+            https://eastgateresidences.com.au/api/ppm/dashboard</code></li>
+    </ol>
+
+</div>
+</body>
+</html>

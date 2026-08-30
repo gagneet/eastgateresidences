@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Historical Reconstruction And Levy Regeneration - Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">Strata Management Platform</div>
+            <div class="sub">Historical Reconstruction · GST Levy Regeneration</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin / Strata Admin</span>
+</header>
+
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">Docs</span> Overview</a>
+            <a data-page="api.html" href="api.html"><span class="icon">API</span> API Reference</a>
+            <a data-page="matching-engine.html" href="matching-engine.html"><span class="icon">Match</span> Matching Engine</a>
+            <a data-page="bank-feeds-demo-bank.html" href="bank-feeds-demo-bank.html"><span class="icon">Bank</span> Demo Bank Sync</a>
+            <a class="active" data-page="historical-reconstruction.html" href="historical-reconstruction.html"><span class="icon">Batch</span> Historical Reconstruction</a>
+            <a data-page="trust-accounting.html" href="trust-accounting.html"><span class="icon">Trust</span> Trust Accounting</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">Back</span> Dashboard</a>
+            <a href="/financials/historical-reconstruction" target="_blank"><span class="icon">App</span> Open In App</a>
+            <a href="/user-guides/historical-reconstruction.html" target="_blank"><span class="icon">Guide</span> User Guide</a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <h1>Historical Reconstruction And Levy Regeneration</h1>
+        <p style="color:var(--muted);font-size:15px;margin-bottom:24px">
+            Reference for the reconstruction-batch review/approval workflow and GST-aware historical levy-item
+            regeneration (PR #514, Phase 0B — July 2026, contract-corrected 2026-07-19).
+        </p>
+
+        <div class="callout warn">
+            <strong>Production tenant rule.</strong> These endpoints mutate financial-evidence and ledger-adjacent
+            data. Never run against a live building's real financial years without explicit sign-off; use a
+            test/demo building or <code>is_test_data=true</code> for exploration.
+        </div>
+
+        <h2>Data Flow</h2>
+        <pre><code>[human-supplied evidence / existing demo_bank_transactions rows]
+  -> POST .../reconstruction-batches                (create, status=draft)
+  -> POST .../reconstruction-batches/{id}/extract    (status=extracted)
+  -> POST .../reconstruction-batches/{id}/generate-preview   (dry-run manifest, no status change)
+  -> POST .../reconstruction-batches/{id}/submit-review      (persists manifest, status=needs_review)
+  -> POST .../reconstruction-batches/{id}/review     (dual-control step 1: human review, does not approve)
+  -> POST .../reconstruction-batches/{id}/approve    (dual-control step 2: DIFFERENT authenticated user, status=approved)
+  -> POST .../reconstruction-batches/{id}/generate   (materialises demo_bank_transactions rows)
+  -> POST .../reconstruction-batches/{id}/sync       (real bank_feeds sync, scoped to this batch)
+  -> [optional] POST .../reconstruction-batches/{id}/reverse
+
+Separately, once a batch is approved:
+  -> POST .../levy-items/regenerate-plan   (dry-run GST-aware plan, from_year/to_year)
+  -> POST .../levy-items/regenerate-apply  (writes finance.levy_items, requires approved governing batch)</code></pre>
+
+        <p>Reconstruction batches and their manifests are <strong>MongoDB</strong> documents
+            (<code>demo_bank_reconstruction_batches</code>, <code>demo_bank_reconstruction_manifests</code>) —
+            never Postgres tables. Levy-item regeneration writes to <strong>Postgres</strong>
+            <code>finance.levy_items</code>. The two stores are linked only by convention via
+            <code>reconstruction_batch_id</code> — there is no database-enforced foreign key across them.</p>
+
+        <h2>Endpoints</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Method + Route</th>
+                <th>Feature toggle</th>
+                <th>Roles</th>
+                <th>Mutates?</th>
+                <th>Idempotent?</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr><td><code>GET .../reconstruction-batches</code></td><td><code>historical_financial_reconstruction</code></td><td>super_admin, strata_admin, strata_manager</td><td>No</td><td>Yes (read)</td></tr>
+            <tr><td><code>POST .../reconstruction-batches</code></td><td><code>historical_financial_reconstruction</code></td><td>super_admin, strata_admin, strata_manager</td><td>Yes — new batch, status=draft</td><td>No — always creates a new batch_id</td></tr>
+            <tr><td><code>GET .../reconstruction-batches/{id}</code></td><td><code>historical_financial_reconstruction</code></td><td>super_admin, strata_admin, strata_manager</td><td>No</td><td>Yes (read)</td></tr>
+            <tr><td><code>GET .../reconstruction-batches/{id}/manifest</code></td><td><code>historical_financial_reconstruction</code></td><td>super_admin, strata_admin, strata_manager</td><td>No</td><td>Yes (read); 404 until a manifest has been persisted (submit-review)</td></tr>
+            <tr><td><code>POST .../reconstruction-batches/{id}/extract</code></td><td><code>historical_financial_reconstruction</code></td><td>super_admin, strata_admin, strata_manager</td><td>Yes — status transition only</td><td>No — repeat calls 409 (invalid transition from a non-draft status)</td></tr>
+            <tr><td><code>POST .../reconstruction-batches/{id}/generate-preview</code></td><td><code>historical_financial_reconstruction</code></td><td>super_admin, strata_admin, strata_manager</td><td>No — dry-run, nothing persisted</td><td>Yes — pure computation each call</td></tr>
+            <tr><td><code>POST .../reconstruction-batches/{id}/submit-review</code></td><td><code>historical_financial_reconstruction</code></td><td>super_admin, strata_admin, strata_manager</td><td>Yes — persists manifest, status=needs_review</td><td>Recomputes fresh every call (never trusts a cached preview)</td></tr>
+            <tr><td><code>POST .../reconstruction-batches/{id}/review</code></td><td><code>historical_reconstruction_posting</code></td><td>super_admin, strata_admin</td><td>Yes — records reviewed_by/reviewed_at; does NOT approve</td><td>No — repeat calls simply overwrite reviewer/notes while still needs_review</td></tr>
+            <tr><td><code>POST .../reconstruction-batches/{id}/approve</code></td><td><code>historical_reconstruction_posting</code></td><td>super_admin, strata_admin</td><td>Yes — status=approved</td><td>No — 409 if not yet reviewed, 403 if approver == reviewer, 409 if manifest changed since review, 409 if already approved</td></tr>
+            <tr><td><code>POST .../reconstruction-batches/{id}/generate</code></td><td><code>historical_reconstruction_posting</code></td><td>super_admin, strata_admin</td><td>Yes — materialises <code>demo_bank_transactions</code> rows</td><td>Yes — SHA-256 idempotency key per planned transaction</td></tr>
+            <tr><td><code>POST .../reconstruction-batches/{id}/sync</code></td><td><code>historical_reconstruction_posting</code> + <code>financial_integration_layer_v2</code> + <code>bank_feeds_sync_enabled</code></td><td>super_admin, strata_admin</td><td>Yes — real Postgres insert into <code>finance.bank_transactions</code></td><td>Yes — Postgres UNIQUE(trust_account_id, external_transaction_id); safe to retry</td></tr>
+            <tr><td><code>POST .../reconstruction-batches/{id}/reverse</code></td><td><code>historical_reconstruction_posting</code></td><td>super_admin only</td><td>Yes — status=reversed (does NOT itself post reversing journal entries)</td><td>No — repeat calls 409 once reversed</td></tr>
+            <tr><td><code>POST .../levy-items/regenerate-plan</code></td><td><code>historical_financial_reconstruction</code></td><td>super_admin, strata_admin, strata_manager</td><td>No — always dry-run</td><td>Yes — pure computation each call</td></tr>
+            <tr><td><code>POST .../levy-items/regenerate-apply</code></td><td><code>historical_reconstruction_posting</code></td><td>super_admin only</td><td>Yes — writes <code>finance.levy_items</code></td><td>Recomputes plan server-side fresh every call; requires <code>batch_id</code> status=approved + <code>confirm=true</code></td></tr>
+            <tr><td><code>GET .../reconstruction-batches/{id}/reconciliation-summary</code></td><td><code>historical_financial_reconstruction</code></td><td>super_admin, strata_admin, strata_manager</td><td>No</td><td>Yes (read) — live-recomputed every call via <code>build_levy_regeneration_plan()</code>, never cached</td></tr>
+            <tr><td><code>GET .../reconstruction-batches/{id}/audit-log</code></td><td><code>historical_financial_reconstruction</code></td><td>super_admin, strata_admin, strata_manager</td><td>No</td><td>Yes (read)</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Auth And Building Context</h2>
+        <ul>
+            <li>Auth is <strong>action-specific</strong>, not one role per router — see the table above. This mirrors
+                the router's own <code>_RECONSTRUCTION_*_ROLES</code> constants exactly.
+            </li>
+            <li>Every endpoint resolves <code>building_id</code> via <code>_assert_building_access()</code> —
+                non-super_admin callers can only act on their own current building.
+            </li>
+            <li><code>review</code> and <code>approve</code> both always derive their identity from the
+                authenticated caller — neither request body carries an identity field. <code>approve</code>
+                additionally requires the caller to be a DIFFERENT authenticated user than whoever called
+                <code>review</code> (403 otherwise) — genuine dual control enforced server-side, not just a UI
+                confirmation dialog.
+            </li>
+        </ul>
+
+        <h2>Behavior Notes (corrected 2026-07-19)</h2>
+        <ul>
+            <li><strong><code>/sync</code> performs a real sync.</strong> Previously this endpoint unconditionally
+                marked the batch <code>synced</code> without ever calling the bank-feed sync pipeline. It now calls
+                <code>bank_feeds.run_bank_feed_sync()</code> scoped to this batch via a new
+                <code>reconstruction_batch_id</code> filter on <code>BankFeedSyncRequest</code>. Zero matched
+                transactions or any per-row failure moves the batch to <code>failed</code>, never a false
+                <code>synced</code>.
+            </li>
+            <li><strong><code>/reverse</code> is not a ledger reversal.</strong> It marks the batch <code>reversed</code>
+                and records a full audit trail, but does not itself post reversing journal entries. Pair with
+                <code>FinancialCoreService.reverse_and_replace_posted_levy_journals</code> for the ledger-side
+                reversal once a batch has actually been posted.
+            </li>
+            <li><strong>Genuine dual control, not a single combined call.</strong> <code>POST .../review</code> and
+                <code>POST .../approve</code> are now separate endpoints. <code>approve</code> requires
+                <code>reviewed_by</code> to already be set, rejects (403) if the approver is the same user as the
+                reviewer, and re-checks (409) that the persisted manifest hash still matches what was reviewed
+                before transitioning to <code>approved</code>. Both identities still always derive from the
+                authenticated caller, never a client-supplied field.
+            </li>
+            <li><strong><code>regenerate-apply</code> requires a recorded override justification.</strong> When the
+                freshly recomputed plan does not reconcile, <code>override_reconciliation_mismatch=true</code>
+                requires a non-empty <code>override_reason</code> (min 10 characters) — the endpoint previously
+                referenced "a recorded justification" in its error message with no field to record one in.
+            </li>
+        </ul>
+
+        <h2>Behavior Notes (corrected 2026-08-01)</h2>
+        <div class="callout warn">
+            <strong>"Idempotent" on <code>/generate</code> has a serious gotcha: it will not
+            revive an archived row.</strong> The underlying upsert matches purely on a
+            deterministic <code>idempotency_key</code> (hash of account_ref + posted_date +
+            amount_cents + direction + description) via Mongo's <code>$setOnInsert</code>. If a
+            row with that exact key already exists — <strong>even if it is
+            <code>is_archived: true</code></strong> from a previous, since-superseded batch — the
+            upsert matches it and does nothing. It does not un-archive it, does not attach the new
+            batch's provenance, and does not create a fresh active row. Confirmed live 2026-08-01
+            for East Gate: a fully reviewed and approved batch intended to backfill 176 missing
+            expense rows across 2021-2025 only produced 33 new active rows (all 2026) — the rest
+            silently matched pre-existing archived documents from an older, already-superseded
+            batch and left them untouched. This is <em>not</em> a caching or refresh problem in
+            the UI; the rows are genuinely still archived. If a rebuild/archive-then-regenerate
+            cycle is ever repeated for a building, expect this every time content is
+            byte-identical to something previously archived, and plan for an explicit
+            un-archive step for the confirmed-correct rows rather than assuming <code>/generate</code>
+            alone will make them live. Resolved for East Gate's specific 176 rows via
+            <code>scripts/finances/unarchive_approved_expense_backfill.py</code> (dry-run by
+            default; matches by idempotency_key against an approved manifest, refuses to touch
+            anything with an unexpected sync_status).
+        </div>
+        <div class="callout warn">
+            <strong>The current-year expense clamp makes re-running <code>/generate</code> on the
+            open financial year produce genuine duplicates, not matches.</strong>
+            <code>expense_category_generator.py::_expense_effective_date()</code> sets
+            <code>posted_date = min(anchor, today)</code> for the still-open current year. Two
+            batches generated on different calendar days therefore get different
+            <code>posted_date</code>s for the identical category/amount/fund, which changes the
+            idempotency key — the second run inserts a fresh, genuinely duplicate row instead of
+            matching the first. Confirmed live 2026-08-01: reactivating the 176 rows above (see
+            above) also surfaced 33 same-day duplicate 2026 rows from two batches generated one
+            day apart, already synced to Postgres as two separate unmatched
+            <code>finance.bank_transactions</code> rows. Safe to remove only because neither
+            copy had reached <code>match_review_queue</code> or a journal/receipt — always verify
+            that before deleting either side. Cleaned up via
+            <code>scripts/finances/fix_2026_expense_duplicate_from_backfill.py</code>.
+        </div>
+        <div class="callout warn">
+            <strong>The reconciliation-summary fix (below) needed two more corrections after its
+            first live check.</strong> <code>_synthetic_bank_totals_by_year_fund()</code>'s
+            initial fix (match <code>provenance_class</code> instead of a stale
+            <code>source_type</code>) was necessary but not sufficient: (1) <code>amount_cents</code>
+            is always a positive magnitude regardless of credit/debit, so without an explicit
+            <code>direction: "credit"</code> filter the query silently summed expense debits into
+            what must be an income-only total — caught because backfilling the missing 2021-2025
+            expense rows above roughly tripled this function's output for expense-heavy years; (2)
+            the current generator writes every owner-payment credit row to one combined
+            <code>OPERATING-{building_id}</code> account_ref with the real admin/sinking split
+            living only in each row's <code>allocations[]</code>, so classifying fund purely from
+            <code>account_ref</code> attributed 100% of that income to "admin" and made
+            sinking-fund income vanish from the report entirely. Both are fixed in
+            <code>services/levy_generation_service.py</code>.
+        </div>
+        <ul>
+            <li><strong>Reconciliation Summary used to always read empty.</strong>
+                <code>levy_generation_service._synthetic_bank_totals_by_year_fund()</code> (which
+                backs <code>demo_bank_payment_total_cents</code> in the reconciliation-summary
+                response) matched <code>source_type: "synthetic_from_budget"</code> and grouped by
+                a <code>$levy_year</code> field — both belong only to the older
+                migration_026/027 generator. The current generator
+                (<code>budget_levy_generator.py</code> / <code>expense_category_generator.py</code>,
+                via the vendored package's <code>import_historical_reconstruction()</code>) tags
+                rows <code>source_type: "historical_reconstruction"</code> and never persists a
+                year field at all. The query matched zero rows for any building on the current
+                generator, permanently — this looked like a UI refresh bug but was a stale field
+                reference. Fixed to match <code>provenance_class: "reconstruction"</code> (set by
+                both generators) and group by <code>$ifNull: ["$levy_year", "$strata_year"]</code>.
+            </li>
+            <li><strong>Audit History "By" column showed "unknown" for every entry.</strong>
+                Every <code>create_audit_log()</code> call in this router read
+                <code>current_user.get("name", "unknown")</code> — <code>current_user</code> has
+                no <code>name</code> key (the real field, used consistently everywhere else in
+                the codebase, is <code>full_name</code>) — so every reconstruction-batch audit
+                entry's actor name silently fell through to the literal string "unknown",
+                regardless of who actually performed the action. Fixed across all 15 call sites in
+                this router.
+            </li>
+            <li><strong><code>demo_bank_transactions.strata_year</code> is not set by the current
+                generator.</strong> The vendored package's <code>import_historical_reconstruction()</code>
+                never persists a year field on the document it writes, despite
+                <code>ReconstructedTransactionRow.financial_year</code> being set correctly
+                upstream. <code>scripts/finances/backfill_demo_bank_strata_year.py</code>
+                (dry-run by default) backfills it from the row's <code>description</code> text for
+                already-materialised rows; this must be re-run after every future
+                <code>/generate</code> call until the upstream package persists the field itself.
+            </li>
+        </ul>
+
+        <h2>Operational Examples</h2>
+        <pre><code>curl -X POST "$API_BASE/api/financials/onboarding/building/13195/reconstruction-batches" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"financial_year_start":2022,"financial_year_end":2022,"reconstruction_method":"gst_uoe_largest_remainder_v5"}'
+
+curl -X GET "$API_BASE/api/financials/onboarding/building/13195/reconstruction-batches?status=needs_review&limit=20" \
+  -H "Authorization: Bearer $TOKEN"
+
+curl -X POST "$API_BASE/api/financials/onboarding/building/13195/reconstruction-batches/BATCH_ID/review" \
+  -H "Authorization: Bearer $TOKEN_REVIEWER" -H "Content-Type: application/json" -d '{"notes":"Totals verified against AGM pack."}'
+
+curl -X POST "$API_BASE/api/financials/onboarding/building/13195/reconstruction-batches/BATCH_ID/approve" \
+  -H "Authorization: Bearer $TOKEN_APPROVER" -H "Content-Type: application/json" -d '{}'
+
+curl -X POST "$API_BASE/api/financials/onboarding/building/13195/reconstruction-batches/BATCH_ID/sync" \
+  -H "Authorization: Bearer $TOKEN"
+
+curl -X POST "$API_BASE/api/financials/onboarding/building/13195/levy-items/regenerate-plan?from_year=2022&to_year=2022" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{}'</code></pre>
+
+        <h2>Response Fields</h2>
+        <table>
+            <thead><tr><th>Endpoint</th><th>Fields</th></tr></thead>
+            <tbody>
+            <tr><td><code>GET .../reconstruction-batches</code></td><td><code>items[]</code> (batch_id, financial_year_start/end, reconstruction_method, status, unit_count, created_by, created_at, ...), <code>next_cursor</code></td></tr>
+            <tr><td><code>.../sync</code></td><td><code>batch</code> (full batch), <code>sync_result</code> (processed, inserted, duplicates, failed, skipped_other_batch)</td></tr>
+            <tr><td><code>.../generate</code></td><td><code>batch</code>, <code>materialisation_result</code></td></tr>
+            <tr><td><code>.../levy-items/regenerate-plan</code></td><td><code>by_year_fund[]</code> (proposed/regenerated/variance/within_tolerance), <code>lines[]</code> (per-unit-per-year-per-fund), <code>warnings[]</code>, <code>totals_reconcile</code></td></tr>
+            <tr><td><code>.../levy-items/regenerate-apply</code></td><td><code>applied_item_count</code>, <code>total_principal_cents</code>, <code>total_gst_cents</code>, <code>manual_review_count</code>, <code>batch_id</code>, <code>override_reconciliation_mismatch</code>, <code>override_reason</code></td></tr>
+            <tr><td><code>.../reconciliation-summary</code></td><td><code>manifest</code> (version, expected_transaction_count, expected_credit_cents, manifest_hash), <code>by_year_fund[]</code> (annual_levies_proposed_inc_gst_cents, regenerated_levy_items_total_cents, demo_bank_payment_total_cents, existing_levy_items_total_cents, variance_cents, within_tolerance), <code>manual_review</code> (count, total_variance_cents, percentage_of_batch), <code>totals_reconcile</code> (true/false/null — null means "cannot compute", not "computed and mismatched"), <code>warnings[]</code></td></tr>
+            <tr><td><code>.../audit-log</code></td><td><code>batch_id</code>, <code>entries[]</code> — raw <code>audit_logs</code> documents (action, user_id, user_name, details, created_at), newest first</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Frontend</h2>
+        <p>Full workflow UI: <a href="/financials/historical-reconstruction" target="_blank">Historical
+            Reconstruction</a> (nav entry gated on <code>historical_financial_reconstruction</code>,
+            <code>can_manage_finances</code>, and role super_admin/strata_admin/strata_manager). Component:
+            <code>frontend/src/pages/dashboard/financial/HistoricalReconstructionPage.tsx</code>.</p>
+    </main>
+</div>
+</body>
+</html>

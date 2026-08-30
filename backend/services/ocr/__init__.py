@@ -1,0 +1,2 @@
+"""Building-scoped OCR services."""
+

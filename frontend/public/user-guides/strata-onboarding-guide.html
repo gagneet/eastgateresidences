@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Strata Management &amp; Building Onboarding Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .path-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            background: #fafafa;
+        }
+        .path-card.path-1 { border-left: 5px solid #2F4F4F; }
+        .path-card.path-2 { border-left: 5px solid #E07A5F; }
+        .path-card.path-3 { border-left: 5px solid #F2CC8F; }
+
+        .path-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .path-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 15px;
+            color: white;
+            flex-shrink: 0;
+        }
+        .path-1 .path-number { background: #2F4F4F; }
+        .path-2 .path-number { background: #E07A5F; }
+        .path-3 .path-number { background: #c9a43a; }
+
+        .step-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        .step-badge {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #2F4F4F;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 12px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .step-content h4 { margin: 0 0 4px 0; font-size: 15px; }
+        .step-content p  { margin: 0; color: #555; font-size: 14px; line-height: 1.5; }
+
+        .status-badge {
+            display: inline-block;
+            border-radius: 20px;
+            padding: 3px 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-ready    { background: #dcfce7; color: #166534; }
+        .status-partial  { background: #fef9c3; color: #854d0e; }
+        .status-missing  { background: #fee2e2; color: #991b1b; }
+
+        .gap-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .gap-table th { background: #2F4F4F; color: white; padding: 8px 12px; text-align: left; }
+        .gap-table td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+        .gap-table tr:nth-child(even) td { background: #f9fafb; }
+
+        .url-pill {
+            display: inline-block;
+            background: #1e293b;
+            color: #a5f3fc;
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+        .endpoint-pill {
+            display: inline-block;
+            background: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+        .role-pill {
+            display: inline-block;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            margin: 1px;
+        }
+        .role-sa   { background: #fde68a; color: #92400e; }
+        .role-sm   { background: #dbeafe; color: #1e40af; }
+        .role-ec   { background: #e0e7ff; color: #3730a3; }
+        .role-owner{ background: #dcfce7; color: #166534; }
+        .role-pub  { background: #f3f4f6; color: #374151; }
+
+        .flow-arrow {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 20px;
+            margin: 6px 0;
+        }
+        .flow-box {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px 16px;
+            background: white;
+            margin: 4px 0;
+            font-size: 13px;
+        }
+        .flow-box strong { display: block; margin-bottom: 2px; }
+        .flow-box .url  { color: #6b7280; font-size: 11px; font-family: monospace; }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .checklist-item:last-child { border-bottom: none; }
+        .check-icon { color: #22c55e; font-size: 16px; flex-shrink: 0; }
+        .check-optional { color: #9ca3af; font-size: 16px; flex-shrink: 0; }
+        .check-text { font-size: 14px; color: #374151; }
+        .check-text small { color: #9ca3af; display: block; font-size: 12px; }
+
+        .section-header {
+            background: linear-gradient(135deg, #2F4F4F, #3d6b6b);
+            color: white;
+            padding: 14px 20px;
+            border-radius: 10px 10px 0 0;
+            margin-bottom: 0;
+        }
+        .section-body {
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            padding: 20px;
+            margin-bottom: 28px;
+        }
+
+        .nav-link-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: #fafafa;
+        }
+        .nav-link-row .nav-icon { font-size: 18px; }
+        .nav-link-row .nav-label { font-weight: 600; font-size: 14px; flex: 1; }
+        .nav-link-row .nav-url { font-size: 12px; font-family: monospace; color: #6b7280; }
+
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+        .warn-box {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 13px;
+            margin: 12px 0;
+        }
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 13px;
+            margin: 12px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="guide-container">
+
+    <!-- Hero -->
+    <div style="background: linear-gradient(135deg, #2F4F4F 0%, #1a3333 100%); color: white; border-radius: 14px; padding: 32px; margin-bottom: 32px;">
+        <h1 style="margin: 0 0 8px 0; font-size: 26px;">Strata Management &amp; Building Onboarding</h1>
+        <p style="margin: 0; opacity: 0.85; font-size: 15px;">
+            Complete guide to registering a new Strata Management organisation, onboarding a building, and inviting all users to the platform.
+        </p>
+    </div>
+
+    <!-- Quick navigation -->
+    <div class="section-header"><h2 style="margin:0;font-size:16px;">Contents</h2></div>
+    <div class="section-body">
+        <ol style="font-size:14px; line-height:2; margin:0; padding-left:20px;">
+            <li><a href="#overview">Overview — how the platform is structured</a></li>
+            <li><a href="#path1">Path 1 — Public trial request</a></li>
+            <li><a href="#path2">Path 2 — Super Admin creates SM org directly</a></li>
+            <li><a href="#path3">Path 3 — Self-managed scheme</a></li>
+            <li><a href="#wizard">Building onboarding wizard (7 steps)</a></li>
+            <li><a href="#golive">Go-live checklist</a></li>
+            <li><a href="#roles">Inviting owners &amp; other user roles</a></li>
+            <li><a href="#nav">Navigation links &amp; URLs</a></li>
+            <li><a href="#templates">CSV import templates</a></li>
+            <li><a href="#gaps">What is not yet ready</a></li>
+        </ol>
+    </div>
+
+    <!-- Overview -->
+    <a id="overview"></a>
+    <div class="section-header"><h2 style="margin:0;font-size:16px;">1. Overview — Platform Structure</h2></div>
+    <div class="section-body">
+        <p style="font-size:14px; color:#374151;">The platform uses a two-level hierarchy:</p>
+        <div class="two-col">
+            <div style="border:1px solid #d1fae5; border-radius:10px; padding:16px; background:#f0fdf4;">
+                <div style="font-size:22px; margin-bottom:6px;">🏢</div>
+                <strong style="font-size:14px;">Strata Management Organisation</strong>
+                <p style="font-size:13px; color:#555; margin:6px 0 0;">A company or owners committee that manages one or more buildings. Stored as <code>core.tenants</code>.</p>
+            </div>
+            <div style="border:1px solid #dbeafe; border-radius:10px; padding:16px; background:#eff6ff;">
+                <div style="font-size:22px; margin-bottom:6px;">🏗️</div>
+                <strong style="font-size:14px;">Building / Scheme</strong>
+                <p style="font-size:13px; color:#555; margin:6px 0 0;">A single strata plan. Always belongs to one organisation. Stored as <code>core.schemes</code>.</p>
+            </div>
+        </div>
+        <div class="info-box" style="margin-top:16px;">
+            <strong>Two types of organisation:</strong><br>
+            <b>SM-Managed</b> — A strata management firm manages one or more buildings for their clients.<br>
+            <b>Self-Managed</b> — An owners corporation manages their own building directly. Organisation and building are created together (1:1 relationship).
+        </div>
+    </div>
+
+    <!-- Path 1 -->
+    <a id="path1"></a>
+    <div class="section-header"><h2 style="margin:0;font-size:16px;">2. Path 1 — Public Trial Request</h2></div>
+    <div class="section-body">
+        <div class="path-card path-1">
+            <div class="path-header">
+                <div class="path-number" style="background:#2F4F4F;">1</div>
+                <div>
+                    <strong style="font-size:15px;">Trial Request Flow</strong>
+                    <div style="margin-top:3px;">
+                        <span class="role-pill role-pub">Public</span>
+                        <span class="role-pill role-sa">Super Admin</span>
+                    </div>
+                </div>
+                <span class="status-badge status-partial" style="margin-left:auto;">Partial — UI missing</span>
+            </div>
+
+            <div class="flow-box">
+                <strong>① Prospective SM firm fills public form</strong>
+                <span class="url">/request-trial  ⚠️ page not yet built</span>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-box">
+                <strong>② System validates reCAPTCHA + ABN + uniqueness</strong>
+                <span class="url">POST /api/public/trial-request</span>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-box">
+                <strong>③ Super Admin reviews in Leads inbox</strong>
+                <span class="url">/dashboard/admin/leads  →  GET /api/admin/trial-requests</span>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-box">
+                <strong>④ Super Admin approves ⚠️ endpoint not yet built</strong>
+                <span class="url">POST /api/admin/trial-requests/{id}/approve  (spec'd, not implemented)</span>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-box">
+                <strong>⑤ System creates organisation + sends invitation email</strong>
+                <span class="url">core.tenants row created; core.user_invitations sent</span>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-box">
+                <strong>⑥ Strata Admin claims invitation link in email</strong>
+                <span class="url">/register/accept-invitation?token=…</span>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-box">
+                <strong>⑦ Strata Admin runs Building Onboarding Wizard</strong>
+                <span class="url">/dashboard/admin/buildings/onboard</span>
+            </div>
+        </div>
+
+        <h4 style="font-size:14px;">Fields required on the trial request form</h4>
+        <table class="gap-table">
+            <thead><tr><th>Field</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td>Organisation name</td><td>Trading name of the SM firm</td></tr>
+                <tr><td>Legal name</td><td>Full registered company name</td></tr>
+                <tr><td>ABN</td><td>11 digits; validated against ATO checksum; must be unique</td></tr>
+                <tr><td>Jurisdiction</td><td>ACT / NSW / VIC / QLD — governs compliance rules</td></tr>
+                <tr><td>Contact first &amp; last name</td><td>Person who will become Strata Admin</td></tr>
+                <tr><td>Contact email</td><td>Invitation will be sent here</td></tr>
+                <tr><td>Contact phone</td><td>For SA follow-up</td></tr>
+                <tr><td>Message (optional)</td><td>Number of schemes, reason for evaluating</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Path 2 -->
+    <a id="path2"></a>
+    <div class="section-header"><h2 style="margin:0;font-size:16px;">3. Path 2 — SA Creates SM-Managed Org Directly</h2></div>
+    <div class="section-body">
+        <div class="path-card path-2">
+            <div class="path-header">
+                <div class="path-number" style="background:#E07A5F;">2</div>
+                <div>
+                    <strong style="font-size:15px;">SA Direct-Create (SM Organisation)</strong>
+                    <span class="role-pill role-sa" style="margin-left:8px;">Super Admin only</span>
+                </div>
+                <span class="status-badge status-partial" style="margin-left:auto;">Partial — admin page missing</span>
+            </div>
+
+            <div class="nav-link-row">
+                <span class="nav-icon">⚠️</span>
+                <span class="nav-label">Admin → SM Organisations → New</span>
+                <span class="nav-url">/dashboard/admin/sm-organisations/new  (page missing)</span>
+            </div>
+
+            <h4 style="font-size:14px; margin-top:16px;">Fields</h4>
+            <table class="gap-table">
+                <thead><tr><th>Field</th><th>Notes</th></tr></thead>
+                <tbody>
+                    <tr><td>Organisation name</td><td>Displayed in the building switcher</td></tr>
+                    <tr><td>Legal name</td><td>For contracts &amp; compliance docs</td></tr>
+                    <tr><td>ABN</td><td>Must be unique across active tenants</td></tr>
+                    <tr><td>Jurisdiction</td><td>ACT / NSW / VIC / QLD</td></tr>
+                    <tr><td>Admin email</td><td>Strata Admin invitation sent here</td></tr>
+                    <tr><td>Admin name</td><td>Pre-populated in the invitation email</td></tr>
+                </tbody>
+            </table>
+
+            <div class="info-box" style="margin-top:12px;">
+                On submit: <code>core.tenants</code> + <code>core.user_invitations</code> are created in a single Postgres transaction.
+                Invitation expires after 14 days. Endpoint: <code class="endpoint-pill">POST /api/admin/sm-organisations</code>
+            </div>
+        </div>
+    </div>
+
+    <!-- Path 3 -->
+    <a id="path3"></a>
+    <div class="section-header"><h2 style="margin:0;font-size:16px;">4. Path 3 — SA Creates Self-Managed Scheme</h2></div>
+    <div class="section-body">
+        <div class="path-card path-3">
+            <div class="path-header">
+                <div class="path-number" style="background:#c9a43a;">3</div>
+                <div>
+                    <strong style="font-size:15px;">Self-Managed Scheme (no SM firm)</strong>
+                    <span class="role-pill role-sa" style="margin-left:8px;">Super Admin only</span>
+                </div>
+                <span class="status-badge status-partial" style="margin-left:auto;">Partial — form incomplete</span>
+            </div>
+
+            <div class="nav-link-row">
+                <span class="nav-icon">🏛️</span>
+                <span class="nav-label">Admin → SM Organisations → New Self-Managed</span>
+                <span class="nav-url">/dashboard/admin/sm-organisations/new-self-managed</span>
+            </div>
+
+            <h4 style="font-size:14px; margin-top:16px;">Fields</h4>
+            <table class="gap-table">
+                <thead><tr><th>Field</th><th>Notes</th></tr></thead>
+                <tbody>
+                    <tr><td>Scheme name</td><td>e.g. "12 Acacia Rise Owners Corporation"</td></tr>
+                    <tr><td>Plan number</td><td>Strata/unit plan number — becomes the building_id</td></tr>
+                    <tr><td>Jurisdiction</td><td>ACT / NSW / VIC / QLD</td></tr>
+                    <tr><td>EC Admin email</td><td>Committee member who will administer the scheme</td></tr>
+                    <tr><td>EC Admin name</td><td>Pre-populated in invitation email</td></tr>
+                </tbody>
+            </table>
+
+            <div class="info-box" style="margin-top:12px;">
+                Single transaction creates: <code>core.tenants</code> (<code>is_self_managed=TRUE</code>) + <code>core.schemes</code> + invitation.<br>
+                EC Admin logs in and <strong>continues from Step 3</strong> of the building wizard (lots) — scheme identity is pre-created.
+                Endpoint: <code class="endpoint-pill">POST /api/admin/sm-organisations/self-managed</code>
+            </div>
+        </div>
+    </div>
+
+    <!-- Building Wizard -->
+    <a id="wizard"></a>
+    <div class="section-header"><h2 style="margin:0;font-size:16px;">5. Building Onboarding Wizard (7 Steps)</h2></div>
+    <div class="section-body">
+
+        <div class="nav-link-row" style="margin-bottom:16px;">
+            <span class="nav-icon">🧙</span>
+            <span class="nav-label">Admin → Buildings → Onboard New Building</span>
+            <span class="nav-url">/dashboard/admin/buildings/onboard</span>
+        </div>
+        <div class="info-box">
+            <span class="role-pill role-sm">Strata Admin</span>
+            <span class="role-pill role-sm">Strata Manager</span>
+            <span class="role-pill role-ec">EC Admin (self-managed, joins at Step 3)</span>
+            All steps are saved to the server continuously — you can close and resume.
+        </div>
+
+        <!-- Steps -->
+        <div class="step-row" style="margin-top:18px;">
+            <div class="step-badge">1</div>
+            <div class="step-content">
+                <h4>Scheme Identity</h4>
+                <p>Scheme name, strata/unit plan number, jurisdiction, building type (residential / commercial / mixed), total number of lots.</p>
+                <p style="margin-top:6px; font-size:12px; color:#6b7280;">Creates: <code>core.schemes</code> + <code>core.onboarding_sessions</code> — endpoint: POST /api/onboarding/scheme/start</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">2</div>
+            <div class="step-content">
+                <h4>Location &amp; Plan Details</h4>
+                <p>Street address, suburb, state, postcode, council area, lot entitlements basis (unit entitlement / equal share).</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">3</div>
+            <div class="step-content">
+                <h4>Lots / Units Import</h4>
+                <p>Enter lots manually one-by-one, or upload a CSV. For each lot: lot number, unit entitlement, owner name(s), owner email. Secondary owner and current tenant are optional.</p>
+                <p style="margin-top:6px; font-size:12px; color:#6b7280;">Endpoint: POST /api/onboarding/scheme/{"{session_id}"}/lots — idempotent, safe to re-import.</p>
+                <div class="warn-box" style="margin-top:8px;">
+                    CSV validation is basic — duplicate lot numbers and malformed emails are not caught server-side yet.
+                    Double-check your spreadsheet before uploading.
+                </div>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">4</div>
+            <div class="step-content">
+                <h4>Financial Setup</h4>
+                <p>Admin Fund opening balance (cents), Capital Works Fund opening balance (cents), financial year start date, bank account BSB + account number, levy period (quarterly / monthly / annual).</p>
+                <p style="margin-top:6px; font-size:12px; color:#6b7280;">Opening balances become the genesis journal entry in the trust accounting ledger at finalise.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">5</div>
+            <div class="step-content">
+                <h4>EC Members &amp; Roles</h4>
+                <p>Invite committee members by email and assign their role: <strong>Chairman</strong> (full management + voting), <strong>EC Member</strong> (committee governance), <strong>Strata Manager</strong> (operational, if applicable).</p>
+                <p style="margin-top:6px; font-size:12px; color:#6b7280;">Invitations are created at finalise (Step 7), not immediately.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">6</div>
+            <div class="step-content">
+                <h4>Owner Invitations (Optional)</h4>
+                <p>Toggle to send invitation emails to all lot owners entered in Step 3. You can choose to defer this and invite owners later from the Users page.</p>
+            </div>
+        </div>
+
+        <div class="step-row">
+            <div class="step-badge">7</div>
+            <div class="step-content">
+                <h4>Review &amp; Finalise</h4>
+                <p>Review all entries. System validates: at least 1 lot, at least 1 fund with balance, at least 1 EC member invited. Click <strong>Finalise</strong> to go live.</p>
+                <p style="margin-top:6px; font-size:12px; color:#6b7280;">POST /api/onboarding/scheme/{"{session_id}"}/finalize — creates all invitations + marks session completed.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Go-Live Checklist -->
+    <a id="golive"></a>
+    <div class="section-header"><h2 style="margin:0;font-size:16px;">6. Go-Live Checklist</h2></div>
+    <div class="section-body">
+        <p style="font-size:14px; color:#374151; margin-top:0;">After the wizard, work through the go-live checklist to fully activate your building.</p>
+
+        <div class="nav-link-row">
+            <span class="nav-icon">✅</span>
+            <span class="nav-label">Portfolio → Building → Onboarding Checklist</span>
+            <span class="nav-url">/dashboard/portfolio/buildings/{"{id}"}/onboarding  ⚠️ page pending</span>
+        </div>
+
+        <div style="margin-top:14px;">
+            <div class="checklist-item">
+                <span class="check-icon">☑</span>
+                <div class="check-text">Upload building insurance certificate<small>Required for compliance. Go to Documents → Insurance.</small></div>
+            </div>
+            <div class="checklist-item">
+                <span class="check-icon">☑</span>
+                <div class="check-text">Upload most recent AGM minutes<small>Required for levy schedule validation.</small></div>
+            </div>
+            <div class="checklist-item">
+                <span class="check-icon">☑</span>
+                <div class="check-text">Configure levy schedule<small>Set quarterly/monthly amounts, due dates. Go to Finance → Levy Settings.</small></div>
+            </div>
+            <div class="checklist-item">
+                <span class="check-icon">☑</span>
+                <div class="check-text">Set up bank trust account<small>Add BSB + account number. Go to Finance → Trust Accounts.</small></div>
+            </div>
+            <div class="checklist-item">
+                <span class="check-optional">☐</span>
+                <div class="check-text">Send owner welcome emails<small>Optional. Can be done in bulk from Users → Owners.</small></div>
+            </div>
+            <div class="checklist-item">
+                <span class="check-optional">☐</span>
+                <div class="check-text">Set up compliance calendar<small>Optional. Pre-populates AGM deadlines, fire safety, lift inspections.</small></div>
+            </div>
+            <div class="checklist-item">
+                <span class="check-optional">☐</span>
+                <div class="check-text">Add building assets &amp; facilities<small>Optional. Enables maintenance scheduling and capital works planning.</small></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Roles & Invitations -->
+    <a id="roles"></a>
+    <div class="section-header"><h2 style="margin:0;font-size:16px;">7. Inviting Owners &amp; Other User Roles</h2></div>
+    <div class="section-body">
+
+        <div class="warn-box">
+            Owners are always linked to a <strong>specific lot</strong>. Do not invite an owner without first confirming their lot exists and is correctly entered in Step 3 of the wizard.
+        </div>
+
+        <h4 style="font-size:14px;">Available roles and how to invite them</h4>
+        <table class="gap-table" style="margin-top:8px;">
+            <thead>
+                <tr>
+                    <th>Role</th>
+                    <th>What they can do</th>
+                    <th>How to invite</th>
+                    <th>Nav path</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="role-pill role-sm">strata_admin</span></td>
+                    <td>Full platform access for their organisation. Manages all buildings, staff, settings.</td>
+                    <td>Created at SM-org creation or via staff invitation</td>
+                    <td><code>/dashboard/admin/users</code></td>
+                </tr>
+                <tr>
+                    <td><span class="role-pill role-sm">strata_manager</span></td>
+                    <td>Operational management: maintenance, invoices, levies, announcements. Cannot manage staff.</td>
+                    <td>Staff invitation from Admin → Users</td>
+                    <td><code>/dashboard/admin/users</code></td>
+                </tr>
+                <tr>
+                    <td><span class="role-pill role-ec">ec_member + CHAIRMAN</span></td>
+                    <td>Committee chair: governance-chair access is represented by <code>role=ec_member</code> with
+                        <code>ec_position=CHAIRMAN</code>; can approve work orders, governance votes, and budget sign-off.</td>
+                    <td>EC invitation in wizard Step 5, or Users page after go-live</td>
+                    <td><code>/dashboard/admin/users</code></td>
+                </tr>
+                <tr>
+                    <td><span class="role-pill role-ec">ec_member</span></td>
+                    <td>Committee member: votes on proposals, approves work orders, views financial reports.</td>
+                    <td>EC invitation in wizard Step 5, or Users page after go-live</td>
+                    <td><code>/dashboard/admin/users</code></td>
+                </tr>
+                <tr>
+                    <td><span class="role-pill role-owner">owner</span></td>
+                    <td>Views their levy account, financial summary, documents, marketplace, community hub.</td>
+                    <td>Bulk via wizard Step 6, or individually from Users → Owners</td>
+                    <td><code>/dashboard/admin/users</code></td>
+                </tr>
+                <tr>
+                    <td>tenant</td>
+                    <td>Views community hub, marketplace, can submit maintenance requests.</td>
+                    <td>Invited by owner from My Unit, or by manager</td>
+                    <td><code>/dashboard/admin/users</code></td>
+                </tr>
+                <tr>
+                    <td>reception</td>
+                    <td>Building reception / concierge: parcel management, smart requests, view-only access.</td>
+                    <td>Staff invitation — role = reception</td>
+                    <td><code>/dashboard/admin/users</code></td>
+                </tr>
+                <tr>
+                    <td>real_estate_agent</td>
+                    <td>Can request rental certificates, view levy status for their managed lots.</td>
+                    <td>Staff invitation — role = real_estate_agent</td>
+                    <td><code>/dashboard/admin/users</code></td>
+                </tr>
+                <tr>
+                    <td>service_provider</td>
+                    <td>Contractor / supplier: can upload invoices, view assigned work orders.</td>
+                    <td>Staff invitation — role = service_provider</td>
+                    <td><code>/dashboard/admin/users</code></td>
+                </tr>
+                <tr>
+                    <td>guest</td>
+                    <td>Read-only community view. No financial access.</td>
+                    <td>Self-registers via public registration page</td>
+                    <td><code>/register</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h4 style="font-size:14px; margin-top:20px;">Bulk owner invitation (after go-live)</h4>
+        <div class="nav-link-row">
+            <span class="nav-icon">📧</span>
+            <span class="nav-label">Admin → Users → Send Invitations</span>
+            <span class="nav-url">/dashboard/admin/users  →  Bulk Invite tab</span>
+        </div>
+        <p style="font-size:13px; color:#555;">
+            Upload a CSV with columns: <code>lot_number, owner_name, owner_email</code>. The system matches against existing lots and dispatches invitation emails. Owners who already have accounts are skipped.
+        </p>
+
+        <h4 style="font-size:14px; margin-top:20px;">Staff invitation workflow</h4>
+        <div class="flow-box">
+            <strong>① Admin clicks "Invite Staff" from Users page</strong>
+            <span class="url">POST /api/admin/create-staff-user</span>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box">
+            <strong>② System sends invitation email with secure link (14-day expiry)</strong>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box">
+            <strong>③ Staff clicks link → sets password → sees role-appropriate dashboard</strong>
+            <span class="url">/register/accept-invitation?token=…</span>
+        </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <a id="nav"></a>
+    <div class="section-header"><h2 style="margin:0;font-size:16px;">8. Navigation Links &amp; Entry Points</h2></div>
+    <div class="section-body">
+
+        <h4 style="font-size:14px; margin-top:0;">Super Admin — Onboarding entry points</h4>
+        <div class="nav-link-row">
+            <span class="nav-icon">🏢</span>
+            <span class="nav-label">SM Organisations list</span>
+            <span class="nav-url">/dashboard/admin/sm-organisations</span>
+        </div>
+        <div class="nav-link-row">
+            <span class="nav-icon">➕</span>
+            <span class="nav-label">Create SM-managed org (Path 2) <span class="status-badge status-missing">Page missing</span></span>
+            <span class="nav-url">/dashboard/admin/sm-organisations/new</span>
+        </div>
+        <div class="nav-link-row">
+            <span class="nav-icon">🏛️</span>
+            <span class="nav-label">Create self-managed scheme (Path 3) <span class="status-badge status-partial">Partial</span></span>
+            <span class="nav-url">/dashboard/admin/sm-organisations/new-self-managed</span>
+        </div>
+        <div class="nav-link-row">
+            <span class="nav-icon">📋</span>
+            <span class="nav-label">Trial requests / Leads inbox (Path 1) <span class="status-badge status-partial">Partial — approve not wired</span></span>
+            <span class="nav-url">/dashboard/admin/leads</span>
+        </div>
+
+        <h4 style="font-size:14px; margin-top:20px;">Strata Admin / Manager — Building entry points</h4>
+        <div class="nav-link-row">
+            <span class="nav-icon">🧙</span>
+            <span class="nav-label">Building Onboarding Wizard <span class="status-badge status-ready">Ready</span></span>
+            <span class="nav-url">/dashboard/admin/buildings/onboard</span>
+        </div>
+        <div class="nav-link-row">
+            <span class="nav-icon">👥</span>
+            <span class="nav-label">User management &amp; invitations <span class="status-badge status-ready">Ready</span></span>
+            <span class="nav-url">/dashboard/admin/users</span>
+        </div>
+        <div class="nav-link-row">
+            <span class="nav-icon">🗂️</span>
+            <span class="nav-label">Portfolio dashboard <span class="status-badge status-ready">Ready</span></span>
+            <span class="nav-url">/dashboard/portfolio</span>
+        </div>
+        <div class="nav-link-row">
+            <span class="nav-icon">✅</span>
+            <span class="nav-label">Go-live checklist <span class="status-badge status-missing">Page missing</span></span>
+            <span class="nav-url">/dashboard/portfolio/buildings/{"{id}"}/onboarding</span>
+        </div>
+
+        <h4 style="font-size:14px; margin-top:20px;">Public entry points</h4>
+        <div class="nav-link-row">
+            <span class="nav-icon">📝</span>
+            <span class="nav-label">Public trial request form <span class="status-badge status-missing">Page missing</span></span>
+            <span class="nav-url">/request-trial</span>
+        </div>
+        <div class="nav-link-row">
+            <span class="nav-icon">🔑</span>
+            <span class="nav-label">Accept invitation &amp; set password <span class="status-badge status-ready">Ready</span></span>
+            <span class="nav-url">/register/accept-invitation?token=…</span>
+        </div>
+        <div class="nav-link-row">
+            <span class="nav-icon">🔓</span>
+            <span class="nav-label">Owner / guest self-registration <span class="status-badge status-ready">Ready</span></span>
+            <span class="nav-url">/register</span>
+        </div>
+    </div>
+
+    <!-- CSV Templates -->
+    <a id="templates"></a>
+    <div class="section-header"><h2 style="margin:0;font-size:16px;">9. CSV Import Templates</h2></div>
+    <div class="section-body">
+
+        <div class="warn-box">
+            CSV templates for the D-prime import pipeline are <strong>not yet generated</strong>. The wizard currently supports manual lot entry only. Templates below represent the planned format — they will be downloadable directly from the wizard when Phase C-D is complete.
+        </div>
+
+        <h4 style="font-size:14px; margin-top:16px;">Fast-path templates (required for onboarding)</h4>
+        <table class="gap-table">
+            <thead><tr><th>#</th><th>Template name</th><th>Required columns</th><th>Status</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><code>lots.csv</code></td>
+                    <td>lot_number, entitlement, owner_first_name, owner_last_name, owner_email</td>
+                    <td><span class="status-badge status-partial">Wizard supports manual entry; CSV upload basic</span></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><code>owners.csv</code></td>
+                    <td>lot_number, owner_name, owner_email, owner_type (individual/company/trust), secondary_owner_name, secondary_owner_email</td>
+                    <td><span class="status-badge status-missing">Not yet</span></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td><code>users.csv</code></td>
+                    <td>email, first_name, last_name, role, lot_number (optional)</td>
+                    <td><span class="status-badge status-missing">Not yet</span></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td><code>bank_accounts.csv</code></td>
+                    <td>account_name, bsb, account_number, fund_type (admin/capital_works)</td>
+                    <td><span class="status-badge status-missing">Not yet</span></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td><code>opening_balances.csv</code></td>
+                    <td>fund_type, lot_number, balance_cents, as_at_date</td>
+                    <td><span class="status-badge status-missing">Not yet</span></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td><code>levy_rules.csv</code></td>
+                    <td>levy_year, period (Q1-Q4), amount_cents, due_date, fund_type</td>
+                    <td><span class="status-badge status-missing">Not yet</span></td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td><code>annual_budget.csv</code></td>
+                    <td>category, subcategory, budgeted_amount_cents, fund_type, fy_year</td>
+                    <td><span class="status-badge status-missing">Not yet</span></td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td><code>gl_accounts.csv</code></td>
+                    <td>account_code, account_name, account_type (asset/liability/income/expense), fund_type</td>
+                    <td><span class="status-badge status-missing">Not yet</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h4 style="font-size:14px; margin-top:20px;">Full history templates (optional, for East Gate migration)</h4>
+        <table class="gap-table">
+            <thead><tr><th>#</th><th>Template name</th><th>Purpose</th><th>Status</th></tr></thead>
+            <tbody>
+                <tr><td>9</td><td><code>historical_levy_raises.csv</code></td><td>FY2020–FY2025 levy history per lot per quarter</td><td><span class="status-badge status-missing">Not yet</span></td></tr>
+                <tr><td>10</td><td><code>historical_payments.csv</code></td><td>Payment records with dates, amounts, lot references</td><td><span class="status-badge status-missing">Not yet</span></td></tr>
+                <tr><td>11</td><td><code>historical_ownership_periods.csv</code></td><td>Prior owners with settlement dates</td><td><span class="status-badge status-missing">Not yet</span></td></tr>
+                <tr><td>12</td><td><code>vendors.csv</code></td><td>Supplier / contractor ABN, name, contact</td><td><span class="status-badge status-missing">Not yet</span></td></tr>
+                <tr><td>13</td><td><code>open_work_orders.csv</code></td><td>In-progress maintenance requests to migrate</td><td><span class="status-badge status-missing">Not yet</span></td></tr>
+                <tr><td>14</td><td><code>capital_works_plan.csv</code></td><td>15-year capital schedule (asset, year, estimated cost)</td><td><span class="status-badge status-missing">Not yet</span></td></tr>
+            </tbody>
+        </table>
+
+        <div class="info-box" style="margin-top:12px;">
+            Templates will be downloadable from <code>/dashboard/admin/buildings/onboard</code> once Phase C-D of the D-prime roadmap is complete (target: pre Q3 2026).
+        </div>
+    </div>
+
+    <!-- Gap Analysis -->
+    <a id="gaps"></a>
+    <div class="section-header" style="background: linear-gradient(135deg, #991b1b, #7f1d1d);"><h2 style="margin:0;font-size:16px;">10. What Is Not Ready</h2></div>
+    <div class="section-body">
+
+        <table class="gap-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Missing component</th>
+                    <th>Impact</th>
+                    <th>Workaround</th>
+                    <th>Est.</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>G-1</td>
+                    <td><strong>Public trial-request form page</strong><br><small>/request-trial</small></td>
+                    <td>Prospective SM firms cannot self-register. SA must use Path 2 directly.</td>
+                    <td>SA uses <em>Admin → SM Organisations → Direct Create</em></td>
+                    <td>1 day</td>
+                </tr>
+                <tr>
+                    <td>G-2</td>
+                    <td><strong>Trial approve/reject endpoints</strong><br><small>POST /admin/trial-requests/{id}/approve|reject</small></td>
+                    <td>SA cannot convert a trial lead into an active tenant from the UI.</td>
+                    <td>SA uses Path 2 to create org directly; mark lead as <em>converted</em> manually.</td>
+                    <td>2 days</td>
+                </tr>
+                <tr>
+                    <td>G-3</td>
+                    <td><strong>SM-org creation page</strong><br><small>/dashboard/admin/sm-organisations/new</small></td>
+                    <td>SA cannot create an SM-managed org from the UI. Endpoint exists.</td>
+                    <td>Call <code>POST /api/admin/sm-organisations</code> via API directly until UI is built.</td>
+                    <td>1 day</td>
+                </tr>
+                <tr>
+                    <td>G-4</td>
+                    <td><strong>Go-live checklist page</strong><br><small>/dashboard/portfolio/buildings/{id}/onboarding</small></td>
+                    <td>Onboarding progress tracking unavailable in UI. Endpoints exist.</td>
+                    <td>Use checklist items manually via individual settings pages.</td>
+                    <td>2 days</td>
+                </tr>
+                <tr>
+                    <td>G-5</td>
+                    <td><strong>PostGenesis financial-core wire-up</strong></td>
+                    <td>Opening fund balances entered in wizard Step 4 are stored but not yet posted as journal entries to the ledger.</td>
+                    <td>Manually enter opening balances in Trust Accounting after go-live.</td>
+                    <td>2 days</td>
+                </tr>
+                <tr>
+                    <td>G-6</td>
+                    <td><strong>CSV import templates</strong></td>
+                    <td>Bulk lot import requires manual table entry. No downloadable templates.</td>
+                    <td>Use manual row-by-row entry in wizard Step 3 for smaller buildings (&lt;30 lots).</td>
+                    <td>Phase C-D (Q2–Q3 2026)</td>
+                </tr>
+                <tr>
+                    <td>G-7</td>
+                    <td><strong>Lot CSV server-side validation</strong></td>
+                    <td>Duplicate lot numbers and malformed emails are not caught before import.</td>
+                    <td>Validate your spreadsheet manually before uploading.</td>
+                    <td>2 days</td>
+                </tr>
+                <tr>
+                    <td>G-8</td>
+                    <td><strong>Feature toggle auto-seed on new building</strong></td>
+                    <td>New buildings inherit global defaults only. Per-building toggles must be set manually.</td>
+                    <td>After go-live: Admin → Feature Toggles → enable required features.</td>
+                    <td>0.5 day</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="info-box" style="margin-top:16px;">
+            <strong>Priority order:</strong> G-3 (SA org creation) → G-1 (trial form) → G-2 (approval flow) → G-4 (go-live checklist) → G-5 (financial wire-up) → G-6 (templates).
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center; color:#9ca3af; font-size:12px; margin-top:32px; padding-top:16px; border-top:1px solid #e5e7eb;">
+        Last updated 2026-05-03 · Use <strong>your building name</strong> in all communications, not "your building" — guides are building-agnostic · For support: Admin → Help
+    </div>
+
+</div>
+</body>
+</html>

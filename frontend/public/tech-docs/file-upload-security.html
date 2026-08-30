@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>File Upload Security — Technical Documentation</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+    <style>
+        code {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        pre {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 12px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin: 12px 0;
+        }
+
+        th {
+            background: #1e293b;
+            color: #94a3b8;
+            font-weight: 600;
+            text-align: left;
+            padding: 8px 12px;
+        }
+
+        td {
+            border-top: 1px solid rgba(255, 255, 255, .08);
+            padding: 8px 12px;
+            vertical-align: top;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .badge-block {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        .badge-allow {
+            background: #14532d;
+            color: #86efac;
+        }
+
+        .badge-warn {
+            background: #78350f;
+            color: #fde68a;
+        }
+
+        .badge-new {
+            background: #1e3a5f;
+            color: #93c5fd;
+        }
+
+        .callout {
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin: 16px 0;
+        }
+
+        .callout-warn {
+            background: #292524;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .callout-info {
+            background: #0f2044;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .callout-ok {
+            background: #052e16;
+            border-left: 4px solid #22c55e;
+        }
+
+        .mermaid-wrap {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 12px;
+            color: #e2e8f0;
+            line-height: 1.7;
+        }
+
+        h2 {
+            margin-top: 40px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        h3 {
+            margin-top: 24px;
+            color: #94a3b8;
+        }
+
+        .file-label {
+            display: inline-block;
+            background: #1e293b;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #7dd3fc;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">Strata Management Platform</div>
+            <div class="sub">File Upload Security — Technical Reference</div>
+        </div>
+    </div>
+    <span class="header-badge">Developer Docs</span>
+</header>
+
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#overview">Overview</a>
+            <a href="#architecture">Architecture</a>
+            <a href="#how-magika-works">How Magika Works</a>
+            <a href="#blocked-labels">Blocked Labels</a>
+            <a href="#contexts">Upload Contexts</a>
+            <a href="#endpoints">Protected Endpoints</a>
+            <a href="#flow">Request Flow</a>
+            <a href="#fail-open">Fail-Open Design</a>
+            <a href="#email-provider">Email Provider Fix</a>
+            <a href="#leads">Trial Leads System</a>
+            <a href="#testing">Testing</a>
+            <a href="#adding-uploads">Adding New Uploads</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Related Docs</div>
+            <a href="security-hardening.html">Security Hardening</a>
+            <a href="document-converter.html">Document Converter</a>
+            <a href="backend.html">Backend Reference</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Architecture</div>
+            <a href="/docs/architecture/strata_management_master_architecture.md" target="_blank">Master
+                Architecture</a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <h1>File Upload Security</h1>
+        <p style="color:var(--muted)">
+            Magika-based content scanning · 14 protected endpoints · Extension-spoofing prevention
+            <br/><span class="badge badge-new">Added Apr 2026</span>
+        </p>
+
+        <div class="callout callout-ok">
+            <strong>What this covers:</strong> The Magika ML file-scanning barrier integrated into every file upload
+            endpoint, the EMAIL_PROVIDER environment variable fix, and the Trial Leads (lead generation) system.
+            For database schema see <span class="file-label">docs/architecture/database_schema_full_2026.json</span>.
+            For role-based access see <span
+                class="file-label">docs/architecture/role_based_access_architecture.md</span>.
+        </div>
+
+        <!-- ── Overview ────────────────────────────────────────────────────── -->
+        <h2 id="overview">Overview</h2>
+        <p>
+            Every file upload endpoint in the application now passes uploaded bytes through
+            <strong>Google Magika</strong> — an ML model that identifies the true file type from content,
+            regardless of the file extension or <code>Content-Type</code> header the client sends.
+        </p>
+        <p>
+            This closes the classic <em>extension-spoofing</em> attack vector: a Windows executable
+            renamed to <code>invoice.pdf</code> is detected as <code>pe</code> and rejected before any
+            persistence or processing occurs.
+        </p>
+
+        <div class="callout callout-info">
+            <strong>Reference:</strong>
+            <a href="https://github.com/google/magika" target="_blank">github.com/google/magika</a> —
+            Google's content-type detection tool, trained on millions of files. Identifies 200+ file types
+            from byte content in ~5 ms per file. Used by VirusTotal for file triage.
+        </div>
+
+        <!-- ── Architecture ─────────────────────────────────────────────────── -->
+        <h2 id="architecture">Architecture</h2>
+
+        <p>All upload validation is centralised in one utility module:</p>
+        <pre><code>backend/utils/file_scan.py   ← single source of truth for upload security
+backend/routers/             ← 14 endpoints that call scan_upload()
+backend/requirements.txt     ← magika>=0.6.1 added</code></pre>
+
+        <p>The Magika model is loaded once at startup (lazy singleton) and reused across all requests.
+            Inference runs in a dedicated thread pool to avoid blocking the async event loop:</p>
+
+        <pre><code># utils/file_scan.py — core scan function
+async def scan_upload(
+    content: bytes,
+    *,
+    context: str,           # "document" | "image" | "csv" | "pdf" | "converter"
+    filename: str = "",     # for logging only — not used for type detection
+    max_size_bytes: int = None,
+) -> ScanResult: ...</code></pre>
+
+        <!-- ── Mermaid: Component diagram ───────────────────────────────────── -->
+        <h3>Component Diagram</h3>
+        <div class="mermaid-wrap">
+<pre>
+graph TD
+    Client([Browser / API Client])
+
+    subgraph FastAPI["FastAPI Backend"]
+        subgraph Routers["Upload Routers (14 endpoints)"]
+            R1[POST /documents]
+            R2[POST /financial-import/*]
+            R3[POST /finance/upload-*]
+            R4[POST /finance/documents/upload]
+            R5[POST /document-converter/convert]
+            R6[POST /reconciliation/import-deft]
+            R7[POST /reconciliation/runs/{id}/import-statement]
+            R8[POST /maintenance/upload-photo]
+        end
+
+        SC[utils/file_scan.py<br/>scan_upload&#40;&#41;]
+        TP[ThreadPool<br/>max_workers=2]
+        MG[Magika Model<br/>Lazy Singleton]
+    end
+
+    DB[(MongoDB)]
+    FS[(Local Filesystem<br/>maintenance photos)]
+
+    Client -->|UploadFile| Routers
+    Routers -->|await scan_upload&#40;bytes, context&#41;| SC
+    SC -->|run_in_executor| TP
+    TP -->|identify_bytes&#40;&#41;| MG
+    MG -->|ScanResult| TP
+    TP -->|ScanResult| SC
+    SC -->|HTTPException 400/413| Routers
+    SC -->|ScanResult OK| Routers
+    Routers -->|persist| DB
+    R8 -->|write| FS
+</pre>
+        </div>
+
+        <!-- ── How Magika Works ─────────────────────────────────────────────── -->
+        <h2 id="how-magika-works">How Magika Works</h2>
+        <p>
+            Magika uses a lightweight neural network (DL model, ~few MB) to classify file content.
+            Unlike <code>python-magic</code> (which relies on libmagic heuristics), Magika was trained
+            on millions of real-world files and achieves &gt;99% accuracy on common file types.
+        </p>
+        <ul>
+            <li><strong>Input:</strong> first N bytes of the file (reads only what it needs — fast for large files)</li>
+            <li><strong>Output:</strong> <code>label</code>, <code>mime_type</code>, <code>group</code>,
+                <code>score</code> (confidence 0.0–1.0)
+            </li>
+            <li><strong>Speed:</strong> ~5 ms per file after model load; model loaded once at startup</li>
+            <li><strong>Thread-safe:</strong> yes — the model is read-only after load</li>
+        </ul>
+
+        <p>The <code>ScanResult</code> dataclass returned by <code>scan_upload()</code>:</p>
+        <pre><code>@dataclass
+class ScanResult:
+    label: str       # Magika label, e.g. "pdf", "shell", "pe"
+    mime_type: str   # Standard MIME type, e.g. "application/pdf"
+    score: float     # Confidence 0.0–1.0
+    group: str       # Category: "document", "code", "binary", "image", etc.</code></pre>
+
+        <!-- ── Blocked Labels ─────────────────────────────────────────────── -->
+        <h2 id="blocked-labels">Blocked Labels</h2>
+        <p>
+            These labels are <strong>always rejected</strong> regardless of upload context.
+            The check is performed before the per-context allowlist check.
+        </p>
+        <table>
+            <thead>
+            <tr>
+                <th>Category</th>
+                <th>Magika Labels</th>
+                <th>Why Blocked</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Native executables</td>
+                <td><code>pe</code> <code>elf</code> <code>macho</code> <code>dex</code> <code>apk</code>
+                    <code>jar</code> <code>class</code> <code>msi</code> <code>cab</code></td>
+                <td>Executable code — can be launched server-side or distributed to users</td>
+            </tr>
+            <tr>
+                <td>Shell scripts</td>
+                <td><code>shell</code> <code>powershell</code> <code>batch</code></td>
+                <td>Can be executed by the OS — remote code execution if stored and run</td>
+            </tr>
+            <tr>
+                <td>Interpreted scripts</td>
+                <td><code>python</code> <code>perl</code> <code>php</code> <code>ruby</code> <code>vba</code></td>
+                <td>Interpreted code — RCE / macro execution risk</td>
+            </tr>
+            <tr>
+                <td>Web scripts</td>
+                <td><code>javascript</code> <code>typescript</code></td>
+                <td>XSS / client-side code execution if served back</td>
+            </tr>
+            <tr>
+                <td>Embedded database</td>
+                <td><code>sqlite</code></td>
+                <td>No legitimate upload use case; may contain PII</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="callout callout-warn">
+            <strong>Important:</strong> The label strings above are <em>Magika's actual output labels</em> —
+            not MIME types, not extensions. For example, Magika labels all POSIX shell scripts (bash, sh, zsh)
+            as <code>shell</code>, not <code>bash</code>. Windows batch files are <code>batch</code>, not
+            <code>bat</code>.
+            Always verify actual labels via <code>m.identify_bytes(content).output.label</code> if adding new entries.
+        </div>
+
+        <!-- ── Upload Contexts ─────────────────────────────────────────────── -->
+        <h2 id="contexts">Upload Contexts</h2>
+        <p>
+            Each endpoint specifies a <strong>context</strong> that selects the appropriate per-context
+            allowlist. If the detected label is not in the allowlist, the upload is rejected with HTTP 400.
+        </p>
+        <table>
+            <thead>
+            <tr>
+                <th>Context</th>
+                <th>Size Limit</th>
+                <th>Allowed Labels (examples)</th>
+                <th>Used By</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>document</code></td>
+                <td>25 MB</td>
+                <td>pdf, docx, xlsx, pptx, rtf, txt, csv, jpeg, png, gif, webp, svg, unknown</td>
+                <td>General document uploads</td>
+            </tr>
+            <tr>
+                <td><code>image</code></td>
+                <td>10 MB</td>
+                <td>jpeg, png, gif, webp, bmp, tiff, heic</td>
+                <td>Maintenance photo uploads (strict — no SVG, PDF, etc.)</td>
+            </tr>
+            <tr>
+                <td><code>csv</code></td>
+                <td>10 MB</td>
+                <td>csv, tsv, txt, unknown</td>
+                <td>Financial imports, reconciliation imports (lenient — encoding variants may be detected as
+                    txt/unknown)
+                </td>
+            </tr>
+            <tr>
+                <td><code>pdf</code></td>
+                <td>50 MB</td>
+                <td>pdf <em>(only)</em></td>
+                <td>Financial document ingestion (strict)</td>
+            </tr>
+            <tr>
+                <td><code>converter</code></td>
+                <td>20 MB</td>
+                <td>pdf, docx, xlsx, pptx, html, csv, markdown, jpeg, png, svg, unknown</td>
+                <td>Document converter (broad — supports many input types)</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="callout callout-info">
+            <strong>Why <code>csv</code> allows <code>unknown</code>:</strong> CSV files with unusual
+            encodings (Windows-1252, Latin-1) or without headers are sometimes classified as <code>unknown</code>
+            by Magika. Since CSV content is never executed and is parsed into structured DB records, allowing
+            <code>unknown</code> here is safe. The financial import endpoint still enforces its own
+            <code>Content-Type</code> header check and 10 MB size limit.
+        </div>
+
+        <!-- ── Protected Endpoints ─────────────────────────────────────────── -->
+        <h2 id="endpoints">Protected Endpoints</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>File</th>
+                <th>Context</th>
+                <th>Additional Guards</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>POST /api/documents</code> (server.py)</td>
+                <td>server.py:4413</td>
+                <td>document</td>
+                <td>can_upload_documents permission, XSS sanitisation</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/documents</code> (router)</td>
+                <td>routers/documents.py:80</td>
+                <td>document</td>
+                <td>can_upload_documents permission</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/financial-import/unit-owners</code></td>
+                <td>routers/financial_import.py:47</td>
+                <td>csv</td>
+                <td>10 MB limit + Content-Type whitelist (pre-existing)</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/financial-import/annual-levy</code></td>
+                <td>routers/financial_import.py:47</td>
+                <td>csv</td>
+                <td>same</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/financial-import/budget-categories</code></td>
+                <td>routers/financial_import.py:47</td>
+                <td>csv</td>
+                <td>same</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/financial-import/unit-levy-status</code></td>
+                <td>routers/financial_import.py:47</td>
+                <td>csv</td>
+                <td>same</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/finance/upload-budget-categories</code></td>
+                <td>routers/finance.py:3315</td>
+                <td>csv</td>
+                <td>can_manage_finances permission</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/finance/upload-actuals</code></td>
+                <td>routers/finance.py:3452</td>
+                <td>csv</td>
+                <td>can_manage_finances permission</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/finance/upload-unit-ledger</code></td>
+                <td>routers/finance.py:3548</td>
+                <td>csv</td>
+                <td>can_manage_finances permission</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/finance/upload-budget-actuals</code></td>
+                <td>routers/finance.py:3735</td>
+                <td>csv</td>
+                <td>can_manage_finances permission</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/finance/documents/upload</code></td>
+                <td>routers/finance_intelligence.py:458</td>
+                <td>pdf</td>
+                <td>super_admin only + .pdf extension check (pre-existing)</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/document-converter/convert</code></td>
+                <td>routers/document_converter.py:287</td>
+                <td>converter</td>
+                <td>20 MB limit (pre-existing) + rate limit 6/min</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/reconciliation/import-deft</code></td>
+                <td>routers/reconciliation.py:47</td>
+                <td>csv</td>
+                <td>can_manage_finances permission</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/reconciliation/runs/{id}/import-statement</code></td>
+                <td>routers/trust_reconciliation.py:209</td>
+                <td>csv</td>
+                <td>can_manage_trust_reconciliation permission</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/maintenance/upload-photo</code></td>
+                <td>routers/tenant_maintenance.py:215</td>
+                <td>image</td>
+                <td>Content-Type + extension whitelist (pre-existing), path traversal prevention</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- ── Request Flow ────────────────────────────────────────────────── -->
+        <h2 id="flow">Request Flow</h2>
+        <p>Every upload endpoint follows this sequence (mermaid sequence diagram):</p>
+        <div class="mermaid-wrap">
+<pre>
+sequenceDiagram
+    participant C as Client
+    participant R as FastAPI Router
+    participant S as scan_upload()
+    participant T as Thread Pool
+    participant M as Magika Model
+    participant D as MongoDB / FS
+
+    C->>R: POST /api/.../upload (multipart)
+    R->>R: Auth check (JWT + permission)
+    R->>R: content = await file.read()
+    R->>S: await scan_upload(content, context=X)
+
+    Note over S: 1. Empty check
+    alt content is empty
+        S-->>R: HTTPException 400 "Empty file"
+        R-->>C: 400 Bad Request
+    end
+
+    Note over S: 2. Size check
+    alt len(content) > limit
+        S-->>R: HTTPException 413 "File too large"
+        R-->>C: 413 Payload Too Large
+    end
+
+    Note over S: 3. Magika scan (async, thread pool)
+    S->>T: run_in_executor(_scan_sync, content)
+    T->>M: m.identify_bytes(content)
+    M-->>T: MagikaResult {label, mime, score}
+    T-->>S: ScanResult
+
+    Note over S: 4. Blocked-labels gate
+    alt label in BLOCKED_LABELS
+        S-->>R: HTTPException 400 "Not permitted"
+        R-->>C: 400 Bad Request
+    end
+
+    Note over S: 5. Context allowlist gate
+    alt label not in context_allowlist
+        S-->>R: HTTPException 400 "Content mismatch"
+        R-->>C: 400 Bad Request
+    end
+
+    S-->>R: ScanResult (OK)
+    R->>D: Persist / process file
+    R-->>C: 200 OK
+</pre>
+        </div>
+
+        <!-- ── Fail-Open ───────────────────────────────────────────────────── -->
+        <h2 id="fail-open">Fail-Open Design</h2>
+        <p>
+            If the <code>magika</code> package is not installed (e.g., a minimal dev environment),
+            the application continues to work with degraded security:
+        </p>
+        <ul>
+            <li>Size limits are still enforced.</li>
+            <li>A <code>WARNING</code> is logged: <em>"File type scan skipped (Magika unavailable)"</em></li>
+            <li>The upload proceeds; <code>ScanResult(label="unknown", score=0.0)</code> is returned.</li>
+            <li>Blocked-labels and context-allowlist checks are <strong>skipped</strong>.</li>
+        </ul>
+        <div class="callout callout-warn">
+            <strong>Production requirement:</strong> <code>magika</code> must be installed in the backend
+            venv. Run <code>pip install magika&gt;=0.6.1</code> or include it in the install step.
+            The fail-open design exists only to prevent total outage during dependency issues —
+            not as a permanent operating mode.
+        </div>
+        <pre><code># Check Magika is working
+cd backend
+venv/bin/python -c "from magika import Magika; m = Magika(); print(m.identify_bytes(b'%PDF').output.label)"
+# Expected output: txt  (short snippet — real PDFs return "pdf")</code></pre>
+
+        <!-- ── Email Provider Fix ─────────────────────────────────────────── -->
+        <h2 id="email-provider">EMAIL_PROVIDER Environment Variable Fix</h2>
+        <p>
+            Prior to this session, the <code>EMAIL_PROVIDER</code> variable defined in
+            <code>backend/.env</code> was never imported into <code>config.py</code>.
+            As a result, <code>get_email_settings()</code> always fell back to Resend
+            (if <code>RESEND_API_KEY</code> was set), silently ignoring a configured SMTP override.
+        </p>
+
+        <h3>Fix</h3>
+        <pre><code># backend/config.py (added)
+EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', '')  # 'resend' | 'sendgrid' | 'smtp'
+
+# backend/utils/email.py — fallback chain now honours the env var
+default_provider = EMAIL_PROVIDER or ("resend" if RESEND_API_KEY else "smtp")</code></pre>
+
+        <h3>Priority Order</h3>
+        <p>Email provider resolution (first match wins):</p>
+        <ol>
+            <li><code>db.email_settings</code> record — persisted UI configuration (highest priority)</li>
+            <li><code>EMAIL_PROVIDER</code> env var — explicit env override</li>
+            <li><code>RESEND_API_KEY</code> present → Resend</li>
+            <li>Fallback → SMTP</li>
+        </ol>
+
+        <!-- ── Trial Leads System ─────────────────────────────────────────── -->
+        <h2 id="leads">Trial Leads System</h2>
+        <p>
+            The walkthrough request form on the StrataOS marketing page
+            (<code>/strata-features.html</code>) now persists every submission to MongoDB
+            as a <strong>lead document</strong>, so no lead data is lost even if the notification
+            email fails.
+        </p>
+
+        <h3>Backend</h3>
+        <pre><code>backend/routers/trial_request.py
+
+POST  /api/public/trial-request          — public (no auth), reCAPTCHA v3
+GET   /api/admin/trial-requests          — super_admin only, paginated + filters
+PATCH /api/admin/trial-requests/{id}     — super_admin only, update status/notes</code></pre>
+
+        <h3>Collection: <code>trial_requests</code></h3>
+        <p>
+            In <code>GLOBAL_COLLECTIONS</code> — platform-wide, not building-scoped
+            (leads belong to the SaaS operator, not a tenant building).
+        </p>
+        <pre><code>{
+  "id": "uuid-v4",
+  "name": "Jane Smith",
+  "company": "Hillview Strata",
+  "email": "jane@hillview.com.au",
+  "phone": "0400 000 000",
+  "lots": "120",
+  "state": "NSW",
+  "message": "...",
+  "status": "new",         // new | contacted | demo_scheduled | converted | disqualified
+  "notes": "",
+  "source_ip": "1.2.3.4",
+  "email_sent": true,
+  "submitted_at": "2026-04-20T...",
+  "updated_at": "2026-04-20T...",
+  "updated_by": null
+}</code></pre>
+
+        <h3>MongoDB Indexes</h3>
+        <pre><code>db.trial_requests.create_index("id", unique=True)
+db.trial_requests.create_index([("status", 1), ("submitted_at", -1)])
+db.trial_requests.create_index("email")</code></pre>
+
+        <h3>Frontend — Trial Leads Admin Page</h3>
+        <pre><code>frontend/src/pages/dashboard/admin/LeadsPage.jsx
+frontend/src/app/(dashboard)/admin/leads/page.tsx
+URL: /admin/leads   (isAdmin() gate — super_admin only)</code></pre>
+        <p>Features: stat cards (Total / New / Converted / Demo Scheduled), search, status filter,
+            date range filter, paginated table, edit dialog (status + notes).</p>
+
+        <h3>Leads Data Flow</h3>
+        <div class="mermaid-wrap">
+<pre>
+sequenceDiagram
+    participant B as Browser (Marketing Page)
+    participant G as reCAPTCHA v3
+    participant A as FastAPI
+    participant DB as MongoDB trial_requests
+    participant EM as Email (SMTP/Resend)
+    participant N as Bell Notifications
+
+    B->>G: Get captcha token
+    G-->>B: token (score 0-1)
+    B->>A: POST /api/public/trial-request {name, company, email, ..., captcha_token}
+    A->>G: Verify token (server-side)
+    G-->>A: {success, score}
+    alt score < 0.5
+        A-->>B: 400 "Captcha failed"
+    end
+    A->>DB: insert_one(lead_doc, status="new", email_sent=false)
+    A->>EM: send_email_async to TRIAL_REQUEST_EMAIL
+    alt email success
+        A->>DB: update_one {email_sent: true}
+    end
+    A->>N: create_user_notification for all super_admin users
+    A-->>B: 200 {status:"ok", message:"..."}
+</pre>
+        </div>
+
+        <!-- ── Testing ──────────────────────────────────────────────────────── -->
+        <h2 id="testing">Testing</h2>
+
+        <h3>File Scan Tests</h3>
+        <pre><code>tests/backend/test_file_scan.py   — 39 tests
+
+# Run
+backend/venv/bin/python -m pytest tests/backend/test_file_scan.py -v</code></pre>
+        <p>Coverage: BLOCKED_LABELS completeness, context allowlists, size gate, blocked-label gate,
+            context-allowlist gate, fail-open (Magika unavailable), extension-spoofing scenarios.</p>
+
+        <h3>Trial Leads Tests</h3>
+        <pre><code>tests/backend/test_trial_request.py   — 44 tests
+
+# Run
+backend/venv/bin/python -m pytest tests/backend/test_trial_request.py -v</code></pre>
+
+        <h3>Test Patterns — Mocking <code>scan_upload</code></h3>
+        <p>In tests for upload endpoints, patch <code>_scan_sync</code> to avoid running real Magika inference:</p>
+        <pre><code>from unittest.mock import patch
+from utils.file_scan import ScanResult
+
+with patch("utils.file_scan._scan_sync",
+           return_value=ScanResult(label="pdf", mime_type="application/pdf",
+                                   score=0.99, group="document")):
+    # call your upload endpoint
+    result = await my_upload_endpoint(file=mock_file, ...)
+
+# To simulate Magika unavailable (fail-open):
+with patch("utils.file_scan._scan_sync", return_value=None):
+    result = await scan_upload(b"content", context="document")</code></pre>
+
+        <!-- ── Adding New Upload Endpoints ───────────────────────────────────── -->
+        <h2 id="adding-uploads">Adding New Upload Endpoints</h2>
+        <p>Any new <code>UploadFile</code> endpoint <strong>must</strong> call <code>scan_upload()</code>
+            after reading the file bytes:</p>
+
+        <pre><code>from utils.file_scan import scan_upload
+
+@router.post("/my-feature/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+):
+    content = await file.read()
+
+    # REQUIRED — security barrier
+    await scan_upload(content, context="document", filename=file.filename or "")
+
+    # ... persist content ...
+</code></pre>
+
+        <p>Choose the <code>context</code> that most closely matches the intended file type:</p>
+        <ul>
+            <li><code>"document"</code> — general attachments (PDFs, Office docs, images)</li>
+            <li><code>"image"</code> — photos only (JPEG, PNG, GIF, WebP)</li>
+            <li><code>"csv"</code> — CSV/TSV data imports</li>
+            <li><code>"pdf"</code> — strict PDF-only (financial reports)</li>
+            <li><code>"converter"</code> — broad format support for document conversion</li>
+        </ul>
+
+        <p>To add a new context, edit <code>utils/file_scan.py</code>:</p>
+        <ol>
+            <li>Add a <code>frozenset</code> of allowed labels to <code>CONTEXT_ALLOWLISTS</code></li>
+            <li>Add a size limit to <code>_DEFAULT_SIZE_LIMITS</code></li>
+            <li>Add tests in <code>test_file_scan.py</code> covering: allowed type passes, blocked type rejected,
+                dangerous label rejected
+            </li>
+        </ol>
+
+        <div class="callout callout-warn">
+            <strong>Never allow a label that is in <code>BLOCKED_LABELS</code></strong> inside any context
+            allowlist. The blocked-label gate runs first, but defence-in-depth requires the allowlist to
+            also not contain dangerous types. The test suite asserts this invariant automatically.
+        </div>
+
+        <p style="margin-top:40px;color:var(--muted);font-size:12px">
+            Last updated: April 2026 · <a href="index.html">← Tech Docs Index</a>
+        </p>
+    </main>
+</div>
+</body>
+</html>

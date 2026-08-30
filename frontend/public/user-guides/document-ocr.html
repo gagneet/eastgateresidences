@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Document OCR Workspace – User Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        table.status-flow {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        table.status-flow th, table.status-flow td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        table.status-flow th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em">Your Building</div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform</div>
+            </div>
+        </div>
+        <div class="badge">User Guide</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Navigation</h3>
+        <a href="index.html">Home</a>
+        <a href="full_guide.html">Full Guide</a>
+        <a href="document-upload-safety.html">Document Upload Safety</a>
+        <a aria-current="page" href="document-ocr.html">Document OCR Workspace</a>
+    </nav>
+
+    <article>
+        <h1>Document OCR Workspace</h1>
+        <p>Added 2026-07-27. The Document OCR Workspace reads text and structured fields out of a scanned or
+            photographed document — AGM minutes, a rates notice, an insurance certificate, a contract, maintenance
+            evidence, a bank statement, or any other general document — so you don't have to retype it. It is
+            separate from, and broader than, the OCR built into Invoice upload: invoices have their own dedicated
+            OCR step because they need very specific fields (ABN, GST, line items); this workspace is for everything
+            else your building handles as paperwork.</p>
+
+        <div class="card callout info">
+            <strong>Who can access this?</strong> Strata Admins, Strata Managers, and Super Admins. The page is
+            only visible when the <em>Document OCR</em> feature toggle is enabled for your building.
+        </div>
+
+        <h2>Getting there</h2>
+        <p>Dashboard → <strong>Document OCR</strong>. Choose a file, pick a document type (or leave it as
+            "general document"), and optionally choose a specific OCR provider — most buildings should leave this
+            on <strong>Auto</strong>, which uses whichever provider your building is configured for and falls back
+            to a safe default automatically if that provider is unavailable.</p>
+
+        <h2>What happens after you upload</h2>
+        <table class="status-flow">
+            <thead>
+            <tr>
+                <th>Status</th>
+                <th>What it means</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Processing</td>
+                <td>Your file has been received and is being read. The page checks back every couple of seconds
+                    automatically — you don't need to refresh.
+                </td>
+            </tr>
+            <tr>
+                <td>Completed</td>
+                <td>Extraction finished. You'll see the extracted text and any structured fields the provider found,
+                    with a confidence score.
+                </td>
+            </tr>
+            <tr>
+                <td>Needs Review</td>
+                <td>Extraction finished, but confidence was low enough that a human should check the result before
+                    relying on it — a common outcome for handwritten notes or poor-quality scans.
+                </td>
+            </tr>
+            <tr>
+                <td>Failed</td>
+                <td>The document could not be read (for example, an unsupported file, or the file was empty). You
+                    can try again with a clearer scan or a different file.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div class="card callout warn">
+            <strong>Large files run in the background.</strong> Extraction never blocks or ties up your browser
+            request — you can navigate away and come back to the same job later from the job list.
+        </div>
+
+        <h2>Publishing to the document library</h2>
+        <p>Once a job reaches Completed or Needs Review, click <strong>Publish to Documents</strong> to save the
+            extracted text into your building's document library under the document type you chose — the same
+            library used by Document Upload elsewhere in the platform, with the same permission rules for who can
+            see it afterward.</p>
+
+        <h2>Provider availability</h2>
+        <p>Which OCR providers are available depends on how your building is configured. A basic provider is always
+            available as a safe fallback. More advanced providers may be configured per building by your Super
+            Admin — if the one your building normally uses is temporarily unavailable, the workspace automatically
+            falls back rather than failing your upload.</p>
+
+        <h2>Test / demo data</h2>
+        <p>Only Super Admins can mark an OCR job as test/demo data. Test jobs and any documents published from them
+            are excluded from your building's ordinary job list and document library views, and can be cleaned up
+            without affecting real records.</p>
+
+        <h2>Building isolation</h2>
+        <p>Every OCR job, result, and published document is strictly scoped to your building. Managers with access
+            to multiple buildings will only see jobs for the building they are currently logged into.</p>
+    </article>
+</main>
+</body>
+</html>

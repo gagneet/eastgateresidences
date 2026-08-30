@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard v2 Extras API — StrataOS Tech Docs</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 860px; margin: 2rem auto; padding: 0 1.5rem; color: #1e293b; line-height: 1.6; }
+    h1 { font-size: 1.75rem; font-weight: 800; color: #0f172a; }
+    h2 { font-size: 1.2rem; font-weight: 700; margin-top: 2rem; border-bottom: 1px solid #e2e8f0; padding-bottom: .4rem; }
+    code, pre { background: #f1f5f9; border-radius: .4rem; font-family: 'JetBrains Mono', monospace; }
+    code { padding: .15em .4em; font-size: .875em; }
+    pre { padding: 1rem; overflow-x: auto; font-size: .8rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    th { background: #f8fafc; text-align: left; padding: .5rem .75rem; border: 1px solid #e2e8f0; font-weight: 700; }
+    td { padding: .5rem .75rem; border: 1px solid #e2e8f0; vertical-align: top; }
+    .badge { display: inline-block; padding: .1em .5em; border-radius: .25rem; font-size: .75rem; font-weight: 700; }
+    .get { background: #dbeafe; color: #1d4ed8; }
+    .warn { background: #fef9c3; color: #92400e; padding: .75rem 1rem; border-left: 4px solid #fbbf24; border-radius: .25rem; }
+  </style>
+</head>
+<body>
+  <h1>Dashboard v2 Extras API</h1>
+  <p>Auxiliary owner-dashboard signals endpoint. Introduced in PR #428 (May 2026).</p>
+
+  <h2>Endpoint</h2>
+  <p>
+    <span class="badge get">GET</span>
+    <code>/api/analytics/dashboard-v2-extras</code>
+  </p>
+
+  <h2>Authentication</h2>
+  <p>Requires a valid Bearer JWT (<code>get_approved_user</code> dependency). The building context is resolved automatically from the JWT or the <code>X-Building-ID</code> header (super-admin override).</p>
+
+  <h2>Query Parameters</h2>
+  <table>
+    <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>unit_number</code></td><td>string</td><td>No</td><td>Request per-unit signals (market estimate, cost categories, badges, open requests). Omit for building-wide signals only.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Authorization</h2>
+  <p>
+    When <code>unit_number</code> is supplied and differs from the requesting user's own unit, the caller must hold one of:
+    <code>super_admin</code>, <code>strata_manager</code>, <code>strata_admin</code>, or <code>ec_member</code>.
+    Owners may only request their own unit's signals. Returns HTTP 403 otherwise.
+  </p>
+
+  <h2>Response Schema</h2>
+  <pre><code>{
+  "building_id": string,
+  "unit_number": string | null,
+
+  // Building-scope signals
+  "emergency_contacts": [
+    { "label": string, "phone": string, "detail": string | null }
+  ],
+  "market_signals": {
+    "suburb_label": string,
+    "median_levy_pct_delta": number | null,    // YoY % change in median levy
+    "unit_estimate": number | null,            // AUD market estimate for this unit
+    "suburb_median": number | null,
+    "unit_yoy_pct": number | null,
+    "rental_yield": number | null,
+    "days_on_market": number | null,
+    "building_premium_pct": number | null,
+    "trend_7yr": number[],                    // 7 monthly data points
+    "comparable_sales": [
+      {
+        "address": string,
+        "sold_price": number,
+        "sold_date": string,       // YYYY-MM-DD
+        "bedrooms": number,
+        "type": string             // "apartment" | "townhouse" etc.
+      }
+    ]
+  },
+  "cost_categories": [
+    { "name": string, "annual": number, "color": string | null }
+  ],
+  "cost_yoy_delta_pct": number | null,
+
+  // Insurance — live data from insurance_policies collection when available;
+  // seeded fallback for demo buildings; {} if no policy exists.
+  "insurance": {
+    "renews_on": string | null,        // ISO date e.g. "2026-11-15"
+    "no_premium_hike": boolean | null,
+    "source": "live" | "seeded"       // present only when live data is used
+  },
+
+  // Unit-scope signals (only when unit_number supplied)
+  "badges": {
+    "active_voter": boolean,
+    "event_host": boolean
+  },
+  "owner_requests": [
+    {
+      "id": string,
+      "reference": string,
+      "status": string,          // "in_progress" | "awaiting_owner" | "overdue"
+      "title": string,
+      "summary": string | null,
+      "needs_reply": boolean
+    }
+  ],
+
+  "source": "seeded" | "empty"   // "empty" when building has no signals documents
+}</code></pre>
+
+  <h2>Data Sources</h2>
+  <table>
+    <thead><tr><th>Field group</th><th>Primary source</th><th>Fallback</th></tr></thead>
+    <tbody>
+      <tr><td>Emergency contacts, market signals, cost categories, badges</td><td><code>db.dashboard_v2_signals</code> (building/unit scope)</td><td>Empty array/object — frontend renders CTA state</td></tr>
+      <tr><td>Insurance renewal date</td><td><code>db.insurance_policies</code> — most recent active/pending_renewal policy for the building</td><td><code>db.dashboard_v2_signals</code> seeded value; then <code>{}</code></td></tr>
+      <tr><td>Owner open requests</td><td><code>db.dashboard_v2_signals</code> unit-scope seed (demo buildings)</td><td>Frontend also fetches <code>GET /workflow-requests?limit=5</code> and prefers live data when non-empty</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warn">
+    <strong>Note:</strong> <code>owner_requests</code> in this endpoint contains seeded demo data only. The owner dashboard also calls <code>GET /workflow-requests?limit=5</code> in parallel and uses live results when available, falling back to these seeded entries for demo buildings.
+  </div>
+
+  <h2>Frontend Usage</h2>
+  <p>
+    Fetched in <code>frontend/src/app/(dashboard)/dashboard/page.tsx</code> as part of the main <code>Promise.all</code>.
+    Result passed as <code>data.dashboard_v2_extras</code> to <code>OwnerDashboard</code>, which distributes it to:
+  </p>
+  <ul>
+    <li><code>BuildingStrengthCard</code> — insurance signal</li>
+    <li><code>ThisWeekActions</code> — week action rows</li>
+    <li><code>TrueCostBreakdown</code> — cost categories + YoY delta</li>
+    <li><code>MarketIntelExpanded</code> — market signals</li>
+    <li><code>YourRequestsCard</code> — owner requests (fallback) + emergency contacts</li>
+  </ul>
+
+  <h2>Seed Data</h2>
+  <p>
+    Demo building <code>UP-DEMO-001</code> (StrataOS Residences) is seeded by
+    <code>backend/seeds/demo_customer.py</code> layer <code>layer_7_dashboard_v2_signals</code>.
+    Run <code>python3 seeds/demo_customer.py</code> to seed; idempotent.
+  </p>
+
+  <h2>Related Files</h2>
+  <ul>
+    <li><code>backend/routers/analytics.py</code> — endpoint implementation (end of file)</li>
+    <li><code>backend/seeds/demo_customer.py</code> — <code>layer_7_dashboard_v2_signals</code></li>
+    <li><code>frontend/src/app/(dashboard)/dashboard/page.tsx</code> — fetch caller</li>
+    <li><code>frontend/src/app/(dashboard)/dashboard/OwnerDashboard.tsx</code> — consumer</li>
+    <li><code>docs/architecture/strata_management_master_architecture.md</code> §7.10</li>
+  </ul>
+
+  <p style="color:#94a3b8;font-size:.8rem;margin-top:2rem">Last updated: 2026-05-26 · PR #428 · dashboard-v2 feature</p>
+</body>
+</html>

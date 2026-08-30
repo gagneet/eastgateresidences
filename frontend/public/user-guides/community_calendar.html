@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Community Calendar — User Guide | <span data-bldg="name">your building</span></title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-yellow {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-purple {
+            background: #ede9fe;
+            color: #5b21b6;
+        }
+
+        .badge-teal {
+            background: #ccfbf1;
+            color: #0f766e;
+        }
+
+        .badge-orange {
+            background: #ffedd5;
+            color: #9a3412;
+        }
+
+        .badge-gray {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .step {
+            border-left: 4px solid #2F4F4F;
+            padding: 10px 16px;
+            margin: 12px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        th {
+            background: #2F4F4F;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0;
+        }
+
+        .warn-box {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0;
+        }
+
+        .event-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← Back to User Guides</a>
+        <h1>Community Calendar</h1>
+        <p>Every building event — levies, meetings, maintenance, bookings, and compliance — in one place.</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2>What Is the Community Calendar?</h2>
+        <p>The Community Calendar is a comprehensive, building-wide view of <strong>everything scheduled</strong> for
+            your strata community. Instead of juggling separate levy notices, maintenance schedules, and meeting
+            invitations, this single calendar consolidates all event types into a month-by-month grid.</p>
+        <p>Events are colour-coded by type so you can see at a glance what kind of activity is happening on any given
+            day.</p>
+        <p>Navigate to: <strong>Dashboard → Calendar</strong></p>
+    </section>
+
+    <section>
+        <h2>Who Can See the Calendar?</h2>
+        <table>
+            <tr>
+                <th>Role</th>
+                <th>Access</th>
+            </tr>
+            <tr>
+                <td><span class="badge badge-blue">Owner</span></td>
+                <td>View all events; see their own bookings highlighted</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-blue">Tenant</span></td>
+                <td>View community events and their own bookings; levy due dates shown (read-only)</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-blue">EC Member / Chairman</span></td>
+                <td>View all events; can add new events</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-blue">Strata Manager / Super Admin</span></td>
+                <td>Full access — view, add, edit, and delete events</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2>Event Types</h2>
+        <p>The calendar displays eight categories of events, each with its own colour indicator.</p>
+
+        <table>
+            <tr>
+                <th>Event Type</th>
+                <th>Colour</th>
+                <th>Description</th>
+                <th>Source</th>
+            </tr>
+            <tr>
+                <td><strong>Community Events</strong></td>
+                <td><span class="event-dot" style="background:#4f8cff;"></span> Blue</td>
+                <td>Social gatherings, community notices, building-wide announcements with a date attached (e.g. BBQ,
+                    working bee, pool closure)
+                </td>
+                <td>Manually added by EC / managers</td>
+            </tr>
+            <tr>
+                <td><strong>AGMs &amp; Meetings</strong></td>
+                <td><span class="event-dot" style="background:#7c3aed;"></span> Purple</td>
+                <td>Annual General Meetings, EGMs, committee meetings, and all formal strata meetings. Includes agenda
+                    links when available.
+                </td>
+                <td>Meetings collection (manually added)</td>
+            </tr>
+            <tr>
+                <td><strong>Levy Due Dates</strong></td>
+                <td><span class="event-dot" style="background:#f59e0b;"></span> Amber</td>
+                <td>Quarterly levy payment deadlines for the current financial year. Clicking the event shows the amount
+                    due for your unit.
+                </td>
+                <td>Auto-populated from building levy schedule</td>
+            </tr>
+            <tr>
+                <td><strong>PPM Maintenance</strong></td>
+                <td><span class="event-dot" style="background:#10b981;"></span> Green</td>
+                <td>Planned Preventive Maintenance visits — lift servicing, fire system checks, pool treatments, garden
+                    maintenance, and all other scheduled contractor visits.
+                </td>
+                <td>Auto-populated from PPM schedule</td>
+            </tr>
+            <tr>
+                <td><strong>Compliance Deadlines</strong></td>
+                <td><span class="event-dot" style="background:#ef4444;"></span> Red</td>
+                <td>Statutory compliance due dates — fire safety statement, asbestos register review, WHS audits,
+                    insurance renewal, and any regulatory deadline tracked in the compliance module.
+                </td>
+                <td>Auto-populated from compliance_items schedule</td>
+            </tr>
+            <tr>
+                <td><strong>Bookings — Move In / Out</strong></td>
+                <td><span class="event-dot" style="background:#f97316;"></span> Orange</td>
+                <td>Scheduled move-in and move-out bookings for residents using the building's lift and loading bay.
+                    Required for coordinating access and avoiding conflicts.
+                </td>
+                <td>Auto-populated from move_bookings collection</td>
+            </tr>
+            <tr>
+                <td><strong>Bookings — Amenities</strong></td>
+                <td><span class="event-dot" style="background:#0ea5e9;"></span> Sky</td>
+                <td>Resident bookings for shared amenities — common room, BBQ area, gym, rooftop, or other bookable
+                    spaces. Shows the booking unit and time slot.
+                </td>
+                <td>Auto-populated from amenity_bookings collection</td>
+            </tr>
+            <tr>
+                <td><strong>Announcements</strong></td>
+                <td><span class="event-dot" style="background:#64748b;"></span> Slate</td>
+                <td>Announcements posted by management that have a specific effective date or expiry — such as water
+                    shutoffs, lift outages, or by-law reminders.
+                </td>
+                <td>Auto-populated from announcements with event_date set</td>
+            </tr>
+        </table>
+
+        <div class="info-box">
+            <strong>Auto-populated events:</strong> PPM items, Compliance Deadlines, Levy Due Dates, Move Bookings, and
+            Amenity Bookings are all populated automatically from their respective building schedules. You do not need
+            to manually add these — they appear as soon as the schedule is configured by your manager.
+        </div>
+    </section>
+
+    <section>
+        <h2>How to Navigate</h2>
+
+        <h3>Month View</h3>
+        <p>The default view is a standard monthly grid. Each day cell shows coloured event dots or short event titles
+            for events occurring that day.</p>
+        <ul>
+            <li>Use the <strong>&lt; Previous</strong> and <strong>Next &gt;</strong> arrows at the top to move between
+                months.
+            </li>
+            <li>Click <strong>Today</strong> to jump back to the current month.</li>
+            <li>The current day is highlighted with a bold border.</li>
+        </ul>
+
+        <h3>Clicking a Day</h3>
+        <div class="step"><strong>Step 1:</strong> Click any day in the grid that shows one or more event indicators.
+        </div>
+        <div class="step"><strong>Step 2:</strong> A details panel opens on the right (or below on mobile) listing all
+            events for that day.
+        </div>
+        <div class="step"><strong>Step 3:</strong> Click any individual event in the list to expand it and see full
+            details — description, time, location, assigned contractor (for PPM), or booking unit.
+        </div>
+
+        <h3>Upcoming Events Sidebar</h3>
+        <p>The right-hand sidebar shows the next 10 upcoming events across all categories. This gives a quick linear
+            view of what is coming up without having to navigate month by month. Events in the sidebar are sorted by
+            date ascending.</p>
+
+        <h3>Filtering by Event Type</h3>
+        <p>Use the filter chips above the calendar grid to show or hide specific event types. For example, deselect "PPM
+            Maintenance" to declutter the view if you only want to see meetings and levy dates.</p>
+    </section>
+
+    <section>
+        <h2>Adding a New Event (Managers and EC Only)</h2>
+        <p>Strata managers, administrators, EC members, and the chairman can add new Community Events, Meetings, or
+            dated Announcements directly from the calendar.</p>
+
+        <div class="step"><strong>Step 1:</strong> Click the <strong>+ Add Event</strong> button in the top-right of the
+            calendar view. Alternatively, click on a specific day to open the day panel, then click <strong>Add to this
+                day</strong>.
+        </div>
+        <div class="step"><strong>Step 2:</strong> Fill in the event form — select event type, enter title, date/time,
+            location (optional), and description. For meetings, you can attach an agenda document.
+        </div>
+        <div class="step"><strong>Step 3:</strong> Click <strong>Save Event</strong>. The event appears immediately on
+            the calendar and in the upcoming sidebar.
+        </div>
+        <div class="step"><strong>Step 4 (optional):</strong> To send a notification to all residents about the new
+            event, tick <strong>Notify all residents</strong> before saving. This dispatches an email and in-app
+            notification.
+        </div>
+
+        <div class="warn-box">
+            <strong>Note:</strong> PPM Maintenance, Compliance Deadlines, Levy Due Dates, Move Bookings, and Amenity
+            Bookings cannot be manually added from the calendar — they are managed through their respective modules
+            (PPM, Compliance, Finance, and Bookings). Changes to those schedules automatically update the calendar.
+        </div>
+    </section>
+
+    <section>
+        <h2>PPM and Compliance Auto-Population</h2>
+        <p>Two event types are populated entirely from automated building schedules:</p>
+
+        <h3>PPM (Planned Preventive Maintenance)</h3>
+        <p>When your strata manager configures the PPM schedule (under <strong>Maintenance → PPM Schedule</strong>),
+            each scheduled task automatically creates a calendar entry on the relevant date. Common PPM items include:
+        </p>
+        <ul>
+            <li>Lift inspection and servicing</li>
+            <li>Fire system check and test</li>
+            <li>Pool water treatment and cleaning</li>
+            <li>Garage door and intercom servicing</li>
+            <li>Common area pest control</li>
+            <li>Gutters and drainage inspection</li>
+        </ul>
+        <p>If a PPM visit is rescheduled by the contractor, the calendar entry updates automatically once the manager
+            updates the PPM record.</p>
+
+        <h3>Compliance Deadlines</h3>
+        <p>Compliance items tracked in the Compliance module (fire safety statement, asbestos register, WHS audit, etc.)
+            each carry a due date. That due date is mirrored as a red calendar event. Once the compliance item is marked
+            complete, the red event updates to show it is resolved.</p>
+
+        <div class="info-box">
+            <strong>Who manages these?</strong> Only your strata manager or building administrator can create, modify,
+            or delete PPM schedule items and compliance deadlines. If you notice an error in a scheduled maintenance
+            date, contact your manager.
+        </div>
+    </section>
+
+    <section>
+        <h2>Bookings on the Calendar</h2>
+        <p>Move-in/out bookings and amenity reservations are visible to all residents so the community can see when
+            shared facilities are in use.</p>
+
+        <table>
+            <tr>
+                <th>Booking Type</th>
+                <th>What Residents See</th>
+                <th>Privacy</th>
+            </tr>
+            <tr>
+                <td>Move In / Out</td>
+                <td>Date, time slot, and unit number of the move booking. Lift and loading bay unavailable during this
+                    window.
+                </td>
+                <td>Unit number shown; resident name not shown to other residents</td>
+            </tr>
+            <tr>
+                <td>Amenity Booking</td>
+                <td>Facility name, date, and time slot. Example: "Common Room — 2:00 PM – 5:00 PM"</td>
+                <td>Unit number shown; resident name not shown to other residents</td>
+            </tr>
+        </table>
+
+        <p>To make a new booking, navigate to <strong>Dashboard → Bookings</strong> rather than adding it from the
+            calendar. Once a booking is confirmed, it appears on the calendar automatically.</p>
+    </section>
+
+    <section>
+        <h2>Frequently Asked Questions</h2>
+
+        <h3>Why don't I see any PPM events?</h3>
+        <p>PPM events only appear once the PPM schedule has been configured by your strata manager. If the calendar
+            shows no green events, the PPM module may not yet be set up for your building. Contact your strata
+            manager.</p>
+
+        <h3>Can I export the calendar to my phone?</h3>
+        <p>A calendar export (iCal / .ics) is planned for a future release. At present, key dates such as levy due dates
+            are also shown on your My Finances page and can be noted manually.</p>
+
+        <h3>I can see a compliance deadline is overdue — what do I do?</h3>
+        <p>If a compliance deadline is shown as overdue (past the due date and not yet marked complete), this requires
+            urgent attention from your strata manager or EC. Raise it at the next committee meeting or contact your
+            manager directly.</p>
+
+        <h3>Can I delete an event someone else created?</h3>
+        <p>Only strata managers and super admins can delete events. EC members and the chairman can delete events they
+            personally created. If you notice an incorrect event, contact your manager to have it removed.</p>
+
+        <h3>The calendar shows a levy due date that does not match my notice — why?</h3>
+        <p>Levy due dates on the calendar are sourced from the building-wide payment schedule, not individual unit
+            notices. If your unit has a custom payment arrangement, the date shown may differ. Contact your strata
+            manager for clarification.</p>
+    </section>
+
+</main>
+
+<footer>
+    <p><span data-bldg="name">your building</span> | Executive Committee | Strata Manager<br>
+        E: <a data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC
+            email</a><br>
+        P: <span data-bldg="contact_phone">(contact number)</span></p>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

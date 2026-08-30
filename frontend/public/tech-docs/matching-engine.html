@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Matching Engine – Tech Reference</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #0f172a;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px 60px;
+        }
+
+        h1 {
+            color: #f8fafc;
+            font-size: 28px;
+            margin-bottom: 4px;
+        }
+
+        h2 {
+            color: #f1f5f9;
+            font-size: 20px;
+            margin-top: 36px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 6px;
+        }
+
+        h3 {
+            color: #cbd5e1;
+            font-size: 15px;
+            margin-top: 20px;
+        }
+
+        section {
+            background: #111827;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        code, pre {
+            background: #020617;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        code {
+            padding: 2px 6px;
+            color: #7dd3fc;
+        }
+
+        pre {
+            padding: 16px;
+            overflow-x: auto;
+            color: #e2e8f0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 13px;
+        }
+
+        th, td {
+            border-bottom: 1px solid #334155;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .auto {
+            background: #14532d;
+            color: #86efac;
+        }
+
+        .review {
+            background: #713f12;
+            color: #fde68a;
+        }
+
+        .note {
+            background: #1e3a5f;
+            border-left: 3px solid #3b82f6;
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Payment Matching Engine</h1>
+    <p style="color:#94a3b8">Phase 3 – Financial Processing Overhaul | <code>backend/integrations/matching/</code></p>
+
+    <section>
+        <h2>Overview</h2>
+        <p>The matching engine maps incoming bank transactions to open strata levies using an eight-layer pipeline. Each
+            layer scores the best candidate lot; the engine stops at the first layer that meets or exceeds the
+            auto-allocate threshold. Items below the threshold enter a human review queue.</p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Component</th>
+                <th>Location</th>
+                <th>Purpose</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>engine.py</code></td>
+                <td><code>integrations/matching/</code></td>
+                <td>Orchestrator: agency sweep check, layer cascade, queue insert, idempotency guard</td>
+            </tr>
+            <tr>
+                <td><code>layers/base.py</code></td>
+                <td><code>integrations/matching/layers/</code></td>
+                <td><code>LotCandidate</code>, <code>MatchScore</code>, <code>MatchLayer</code> Protocol</td>
+            </tr>
+            <tr>
+                <td><code>layers/l1_exact_crn.py</code> … <code>l8_unidentified.py</code></td>
+                <td>same</td>
+                <td>One file per layer (L1–L8)</td>
+            </tr>
+            <tr>
+                <td><code>routers/financial_matching.py</code></td>
+                <td><code>backend/routers/</code></td>
+                <td>REST API: queue list, item detail, decide, stats</td>
+            </tr>
+            <tr>
+                <td><code>routers/bank_feeds.py</code></td>
+                <td><code>backend/routers/</code></td>
+                <td>Dispatches newly synced Demo Bank rows and rematches existing Postgres bank transactions</td>
+            </tr>
+            <tr>
+                <td><code>scripts/migrations/migration_014_*.py</code></td>
+                <td><code>backend/scripts/migrations/</code></td>
+                <td>Creates <code>match_review_queue</code> and <code>payer_entities</code> collections + indexes</td>
+            </tr>
+            <tr>
+                <td><code>seeds/matching_demo_data.py</code></td>
+                <td><code>backend/seeds/</code></td>
+                <td>Seeds 20 synthetic queue entries per building, all <code>is_test_data=True</code></td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Bank-feed sync and rematch entry points</h2>
+        <p><code>POST /api/bank-feeds/sync</code> promotes Demo Bank staged transactions into
+            <code>finance.bank_transactions</code>. Each newly inserted row is dispatched to this engine as a background
+            task. Duplicate Postgres rows are skipped by the database uniqueness rule and do not create duplicate queue
+            items.</p>
+        <p><code>POST /api/bank-feeds/rematch</code> is the backfill path for rows that already exist in
+            <code>finance.bank_transactions</code>. It loads canonical Postgres rows for one account reference, rebuilds a
+            <code>BankTxObserved</code> envelope, and calls <code>match()</code> with
+            <code>inbox_event_id = bank_transaction_id</code>.</p>
+        <div class="note">
+            <strong>Idempotency boundary</strong> — the matching engine treats an existing
+            <code>inbox_event_id</code> as an idempotent replay. Rematch reports <code>created</code> for new queue documents
+            and <code>skipped_existing</code> for rows already represented in <code>match_review_queue</code>.
+        </div>
+    </section>
+
+    <section>
+        <h2>Eight-layer pipeline</h2>
+        <p>Layers run in order. The engine stops at the first layer whose score ≥ <code>auto_match_threshold</code>
+            (default 0.90). L8 always runs last as a catch-all.</p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Layer name</th>
+                <th>Score</th>
+                <th>Signal used</th>
+                <th>Default outcome</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>L1</td>
+                <td>ExactCRN</td>
+                <td>1.00</td>
+                <td>BPAY CRN — MOD10V05 checksum + lot lookup</td>
+                <td><span class="badge auto">auto-allocated</span></td>
+            </tr>
+            <tr>
+                <td>L2</td>
+                <td>NppE2E</td>
+                <td>0.95</td>
+                <td>NPP / OSKO End-to-End Reference ID</td>
+                <td><span class="badge auto">auto-allocated</span></td>
+            </tr>
+            <tr>
+                <td>L3</td>
+                <td>PartialCRN</td>
+                <td>0.90</td>
+                <td>CRN prefix substring in payment description</td>
+                <td><span class="badge review">review</span></td>
+            </tr>
+            <tr>
+                <td>L4</td>
+                <td>UnitRefAmountTiming</td>
+                <td>0.85</td>
+                <td>Unit/lot number in description + amount match + ≤30 days from due date</td>
+                <td><span class="badge review">review</span></td>
+            </tr>
+            <tr>
+                <td>L5</td>
+                <td>JWNameExactAmount</td>
+                <td>0.80</td>
+                <td>Jaro-Winkler owner-name similarity ≥ 0.88 + exact levy amount</td>
+                <td><span class="badge review">review</span></td>
+            </tr>
+            <tr>
+                <td>L6</td>
+                <td>SurnameFuzzy</td>
+                <td>0.60</td>
+                <td>Surname token-sort-ratio ≥ 80 (amount not required)</td>
+                <td><span class="badge review">review</span></td>
+            </tr>
+            <tr>
+                <td>L7</td>
+                <td>ExactAmountUnique</td>
+                <td>0.50</td>
+                <td>Exact amount matches exactly one open levy</td>
+                <td><span class="badge review">review</span></td>
+            </tr>
+            <tr>
+                <td>L8</td>
+                <td>Unidentified</td>
+                <td>0.00</td>
+                <td>Catch-all — score always 0</td>
+                <td><span class="badge review">review</span></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="note">
+            <strong>MOD10V05 CRN format</strong> — 13-digit numeric string. Scheme prefix = <code>0{building_id}</code>
+            (6 digits). Positions 7–11 = lot number (5 digits). Position 12 = instalment counter (1 digit). Position 13
+            = MOD10V05 check digit. Validated by <code>validate_crn()</code> in <code>l1_exact_crn.py</code>.
+        </div>
+    </section>
+
+    <section>
+        <h2>Agency sweep detection</h2>
+        <p>Runs <em>before</em> the eight layers. Triggers when both conditions are true:</p>
+        <ol>
+            <li><code>tx.amount_cents &gt; max(candidate.open_levy_cents for candidate in candidates)</code></li>
+            <li>Any <code>entity_name</code> from the global <code>payer_entities</code> collection is a substring of
+                the lowercased payment description
+            </li>
+        </ol>
+        <p>When triggered, <code>match_type = "agency_sweep"</code>, <code>best_score = 0.0</code>, SLA window is 48 h
+            (vs 24 h for normal items). The item goes to the review queue for manual splitting.</p>
+        <p><code>payer_entities</code> is a <strong>global</strong> (non-tenant-scoped) collection. Schema:</p>
+        <pre>{ bsb: str, account_number: str, entity_name: str (lowercase), entity_type: str, created_at: str }</pre>
+        <p>Unique index: <code>(bsb, account_number)</code>.</p>
+    </section>
+
+    <section>
+        <h2>MatchingEngine API</h2>
+        <pre>from integrations.matching import engine
+
+result: EngineResult = await engine.match(
+    tx: BankTxObserved,
+    candidates: list[LotCandidate],
+    db,                          # Motor database handle
+    inbox_event_id: str,         # idempotency key
+    auto_match_threshold: float = 0.90,
+    is_test_data: bool = False,
+)</pre>
+
+        <h3>EngineResult fields</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Description</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>queue_id</code></td>
+                <td>str</td>
+                <td>Inserted ObjectId string (None on idempotent replay)</td>
+            </tr>
+            <tr>
+                <td><code>match_type</code></td>
+                <td>str</td>
+                <td><code>auto | review | agency_sweep | unidentified</code></td>
+            </tr>
+            <tr>
+                <td><code>best_score</code></td>
+                <td>float</td>
+                <td>Highest score across all layers</td>
+            </tr>
+            <tr>
+                <td><code>best_layer</code></td>
+                <td>str</td>
+                <td>Name of the layer that produced <code>best_score</code></td>
+            </tr>
+            <tr>
+                <td><code>best_lot</code></td>
+                <td>LotCandidate | None</td>
+                <td>Best candidate lot (None for agency_sweep/unidentified)</td>
+            </tr>
+            <tr>
+                <td><code>all_scores</code></td>
+                <td>list[MatchScore]</td>
+                <td>All layer results run (stops early on auto-allocate)</td>
+            </tr>
+            <tr>
+                <td><code>is_auto_allocated</code></td>
+                <td>bool</td>
+                <td>True when score ≥ threshold</td>
+            </tr>
+            <tr>
+                <td><code>is_idempotent_replay</code></td>
+                <td>bool</td>
+                <td>True when a queue doc already exists for this <code>inbox_event_id</code></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>Idempotency</h3>
+        <p>Before inserting a new queue document, the engine calls <code>find_one({"tenant_id": ..., "inbox_event_id":
+            ...})</code>. If a match exists, it returns an <code>EngineResult</code> from the existing document without
+            writing anything. The unique compound index <code>(tenant_id, inbox_event_id)</code> provides a DB-level
+            safety net.</p>
+    </section>
+
+    <section>
+        <h2>MongoDB collections</h2>
+
+        <h3><code>match_review_queue</code> (tenant-scoped)</h3>
+        <pre>{
+  tenant_id: str,            // building_id
+  inbox_event_id: str,       // idempotency key (ULID or provider txn id)
+  status: "pending" | "allocate" | "reject" | "unidentified",
+  match_type: "auto" | "review" | "agency_sweep" | "unidentified",
+  tx: { amount_cents: int, description: str, ... },
+  candidates: [{ lot_id, unit_number, owner_name }],
+  all_scores: [{ lot_id, score, layer }],
+  best_score: float,
+  best_layer: str,
+  best_lot_id: str | null,
+  sla_due_at: ISO8601,
+  created_at: ISO8601,
+  decided_at: ISO8601 | null,
+  decided_by: str | null,
+  decision: str | null,
+  candidates_snapshot: object | null,  // frozen at decision time
+  is_test_data: bool
+}</pre>
+        <p>Indexes:</p>
+        <ul>
+            <li><code>uq_tenant_inbox_event</code> — unique <code>(tenant_id, inbox_event_id)</code></li>
+            <li><code>idx_tenant_status</code> — <code>(tenant_id, status)</code></li>
+            <li><code>idx_tenant_sla</code> — <code>(tenant_id, sla_due_at)</code></li>
+        </ul>
+
+        <h3><code>payer_entities</code> (global)</h3>
+        <pre>{ bsb, account_number, entity_name, entity_type, created_at }</pre>
+        <p>Index: unique <code>(bsb, account_number)</code>. Not tenant-scoped — shared across all buildings.</p>
+    </section>
+
+    <section>
+        <h2>REST API endpoints</h2>
+        <p>All endpoints are under <code>/api/financial/matching/</code>. Require <code>strata_manager</code>,
+            <code>strata_admin</code>, <code>ec_member</code> (including an EC member holding the chairman
+            <em>position</em> — <code>chairman</code> is not itself a role), or <code>super_admin</code> role. Gated by
+            <code>financial_integration_layer_v2</code> feature toggle.</p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Method</th>
+                <th>Path</th>
+                <th>Description</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>GET</code></td>
+                <td><code>/financial/matching/queue</code></td>
+                <td>Paginated list of queue items. Query params: <code>status</code> (default: <code>pending</code>),
+                    <code>page</code>, <code>page_size</code>. Excludes <code>is_test_data=true</code> records.
+                </td>
+            </tr>
+            <tr>
+                <td><code>GET</code></td>
+                <td><code>/financial/matching/queue/{item_id}</code></td>
+                <td>Single item by ObjectId. 404 on invalid ID or not found.</td>
+            </tr>
+            <tr>
+                <td><code>POST</code></td>
+                <td><code>/financial/matching/queue/{item_id}/decide</code></td>
+                <td>Record a decision. Body: <code>{ action, lot_id?, amount_cents?, notes? }</code>. Validates: <code>action
+                    ∈ {allocate, reject, unidentified}</code>; <code>allocate</code> requires <code>lot_id</code> and
+                    positive <code>amount_cents</code>. Emits <code>MatchDecisionRecorded</code> to
+                    <code>event_log</code> with frozen <code>candidates_snapshot</code>. Returns 409 if item already
+                    decided, 422 on validation failure.
+                </td>
+            </tr>
+            <tr>
+                <td><code>POST</code></td>
+                <td><code>/financial/matching/queue/bulk-decide</code></td>
+                <td>Bounded bulk close-out for backlog clearance. Body: <code>{ action, notes, direction?,
+                    match_type?, max_items?, dry_run? }</code>. <code>action ∈ {reject, unidentified}</code> only —
+                    <code>allocate</code> fails validation by design (bulk allocation would post to the ledger and
+                    double-count historical backfill rows). <code>dry_run</code> defaults to <code>true</code>;
+                    <code>max_items</code> caps at 1000 per call. Each real decision is race-guarded on
+                    <code>status=pending</code>, emits <code>MatchDecisionRecorded</code> with a shared
+                    <code>bulk_operation_id</code>, and records <code>extracted_lot_code</code> audit metadata
+                    (no <code>candidates_snapshot</code> is frozen on bulk decisions). See
+                    <code>docs/runbooks/east_gate_match_queue_backlog_clearance_2026_07_03.md</code>.
+                </td>
+            </tr>
+            <tr>
+                <td><code>GET</code></td>
+                <td><code>/financial/matching/stats</code></td>
+                <td>Returns <code>{ queue_depth, sla_breach_count, auto_match_rate, total_last_7_days,
+                    auto_allocated_last_7_days }</code>. Rate is computed over last 7 days; returns 0.0 when no
+                    activity.
+                </td>
+            </tr>
+            <tr>
+                <td><code>POST</code></td>
+                <td><code>/financial/matching/queue/{item_id}/promote-high-confidence</code></td>
+                <td>Deterministic ledger promotion bypassing the generic 8-layer scoring entirely, for
+                    <code>source_type</code> values known to be exact by construction
+                    (<code>synthetic_from_budget</code>, <code>historical_mongo</code> — see
+                    <code>_PROMOTABLE_SOURCE_TYPES</code>). Requires the underlying transaction to have
+                    <code>confidence="high"</code> and <code>requires_review=False</code>; 409 otherwise.
+                    <code>strata_web_inferred_payment</code> transactions are deliberately never eligible here —
+                    they always carry <code>requires_review=True</code> regardless of confidence tier and route
+                    through the normal queue instead (GAP-FIN-015 criterion 8).
+                </td>
+            </tr>
+            <tr>
+                <td><code>POST</code></td>
+                <td><code>/financial/matching/historical-reconstruction/run</code></td>
+                <td>GAP-FIN-015 criterion 6. Body: <code>{ from_year, to_year, dry_run? }</code>. Synthesizes one
+                    admin+sinking <code>demo_bank_transactions</code> row per unit per quarter for the requested
+                    year range from <code>annual_levies</code> budget rates × unit UOE, tagged
+                    <code>source_type="synthetic_from_budget"</code>. Building-agnostic (scoped to the caller's
+                    own building via <code>get_current_building</code> — no <code>building_id</code> field on the
+                    request body) and idempotent (SHA-256 idempotency key + <code>$setOnInsert</code>): safe to
+                    re-run. <code>dry_run</code> defaults <code>true</code> and performs zero writes. 400 if
+                    <code>from_year &gt; to_year</code>; 409 if the building has no <code>annual_levies</code>/
+                    <code>units</code> data for the range. See
+                    <code>backend/services/historical_levy_reconstruction_service.py</code> (importable service —
+                    also callable from <code>scripts/migrations/migration_026_synthesize_historical_levy_payments.py</code>,
+                    now a thin CLI wrapper around the same function).
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>DecideRequest schema</h3>
+        <pre>{ action: "allocate" | "reject" | "unidentified",
+  lot_id?: str,          // required when action=allocate
+  amount_cents?: int,    // required when action=allocate, must be > 0
+  notes?: str }</pre>
+
+        <h3>BulkDecideRequest schema</h3>
+        <pre>{ action: "reject" | "unidentified",   // allocate is rejected at validation
+  notes: str,                          // required, 10–2000 chars, stored on every decision
+  direction?: "inflow" | "outflow",    // sign filter on tx.amount_cents
+  match_type?: "unidentified" | "review" | "agency_sweep" | "auto",
+  max_items?: int,                     // default 500, hard cap 1000
+  dry_run?: bool }                     // default true — pass false to mutate</pre>
+
+        <h3>HistoricalReconstructionRequest schema</h3>
+        <pre>{ from_year: int,   // 2000-2100
+  to_year: int,     // 2000-2100, must be >= from_year
+  dry_run?: bool }  // default true — pass false to write demo_bank_transactions rows</pre>
+    </section>
+
+    <section>
+        <h2>Feature toggles</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Key</th>
+                <th>Default</th>
+                <th>Purpose</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>financial_integration_layer_v2</code></td>
+                <td>disabled</td>
+                <td>Enables the matching queue UI and all matching endpoints. Requires <code>super_admin</code> to
+                    enable.
+                </td>
+            </tr>
+            <tr>
+                <td><code>matching_auto_allocate_enabled</code></td>
+                <td>disabled</td>
+                <td>When enabled, items at/above threshold are auto-posted to the ledger without entering the review
+                    queue. Depends on <code>financial_integration_layer_v2</code>.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Multi-tenant isolation</h2>
+        <ul>
+            <li><code>match_review_queue</code> is in <code>TENANT_SCOPED_COLLECTIONS</code> — the <code>TenantScopedDatabase</code>
+                wrapper automatically injects <code>{"tenant_id": current_building_id}</code> into every query.
+            </li>
+            <li><code>payer_entities</code> is in <code>GLOBAL_COLLECTIONS</code> — not scoped; accessible to all
+                buildings.
+            </li>
+            <li>The engine records <code>tenant_id = tx.tenant_id</code> on every queue document — even if a candidate
+                lot belongs to a different building, the queue document is always stamped with the transaction's
+                building.
+            </li>
+            <li>Candidate scoping (ensuring only lots from the correct building are passed to the engine) is the
+                responsibility of the caller, not the engine itself.
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Running migration 014</h2>
+        <pre>cd backend
+python3 scripts/migrations/migration_014_create_matching_collections.py
+# rollback:
+python3 scripts/migrations/migration_014_rollback.py</pre>
+
+        <h2>Seeding demo data</h2>
+        <pre>cd backend
+python3 seeds/matching_demo_data.py</pre>
+        <p>Seeds 20 entries per building (all <code>is_test_data=True</code>) covering all eight layer scenarios plus
+            agency sweep. Also seeds the <code>payer_entities</code> collection with "ray white gungahlin".</p>
+    </section>
+</main>
+</body>
+</html>

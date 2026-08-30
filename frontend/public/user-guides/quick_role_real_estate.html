@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Real Estate Agent Quick Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform</div>
+            </div>
+        </div>
+        <div class="badge">Agent Quick Guide</div>
+    </div>
+</header>
+<main>
+    <nav>
+        <h3>Quick Links</h3>
+        <ul>
+            <li><a href="#get-started">Get Started</a></li>
+            <li><a href="#key-tasks">Key Tasks</a></li>
+            <li><a href="#maintenance">Maintenance</a></li>
+        </ul>
+    </nav>
+    <article class="content">
+        <h1>Real Estate Agent — Quick Guide</h1>
+        <div class="card callout info">
+            <strong>Your role:</strong> You manage specific properties on behalf of owners. You only see properties
+            assigned to you.
+        </div>
+
+        <h2 id="get-started">Getting Started</h2>
+        <ol>
+            <li>Login at your building portal</li>
+            <li>Go to <strong>Dashboard → OwnerHub → Agent Dashboard</strong></li>
+            <li>Review your assigned properties and any pending actions</li>
+        </ol>
+
+        <h2 id="key-tasks">Key Daily Tasks</h2>
+        <ul>
+            <li>✅ Check <strong>Maintenance Requests</strong> for new/urgent items</li>
+            <li>✅ Review <strong>Leases Expiring Soon</strong> (90-day alert)</li>
+            <li>✅ Update request statuses after tradesperson visits</li>
+            <li>✅ Reply to tenant messages</li>
+        </ul>
+
+        <h2 id="maintenance">Processing a Maintenance Request</h2>
+        <ol>
+            <li>Go to <strong>My Tenancy → Maintenance Requests</strong></li>
+            <li>Open the request → click <strong>Update Request</strong></li>
+            <li>Set status, assign tradesperson, schedule date</li>
+            <li>Mark <strong>Completed</strong> when done</li>
+        </ol>
+
+        <div class="card callout warn">
+            <strong>Emergency requests</strong> must be actioned same day. Contact the owner immediately for approval if
+            cost exceeds your delegated authority.
+        </div>
+    </article>
+</main>
+<footer>
+    <span data-bldg="name">your building</span> •
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>External API v1 – StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">StrataOS</div>
+            <div class="sub">Technical Documentation · External API v1</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a class="active" data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span>
+                External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Sections</div>
+            <a href="#overview">Overview</a>
+            <a href="#authentication">Authentication</a>
+            <a href="#scopes">Scopes</a>
+            <a href="#creating-keys">Creating API Keys</a>
+            <a href="#postman">Postman Setup</a>
+            <a href="#endpoints-building">Building &amp; Units</a>
+            <a href="#endpoints-finance">Finance</a>
+            <a href="#endpoints-maintenance">Maintenance</a>
+            <a href="#endpoints-workorders">Work Orders</a>
+            <a href="#endpoints-service">Service Provider</a>
+            <a href="#endpoints-oc">Owners Corporation</a>
+            <a href="#webhooks">Webhooks</a>
+            <a href="#errors">Error Reference</a>
+            <a href="#rate-limits">Rate Limits</a>
+            <a href="#feature-toggle">Feature Toggle</a>
+            <a href="#changelog">Changelog</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+
+        <h1>External API v1</h1>
+        <p>The External API provides programmatic access to StrataOS building data for third-party integrations —
+            property management software, service provider portals, accounting packages, and IoT devices.</p>
+        <div class="alert alert-info">
+            <strong>Base URL:</strong> <code>https://your-strataos-domain/api/v1</code><br>
+            All endpoints require an API key unless marked <span class="badge badge-green">Public</span>.
+        </div>
+        <div class="callout">
+            <strong>Performance &amp; contract tests.</strong> The External API v1 ships with dedicated perf/smoke
+            scripts: a k6 benchmark (<code>tests/performance/external_api_benchmark.ts</code>, all <code>/v1</code>
+            reads + opt-in writes) and a newman-runnable Postman collection
+            (<code>tests/performance/postman/strataos_external_api_v1.postman_collection.json</code>, each request
+            asserting status + a response-time budget). An OpenAPI drift guard
+            (<code>scripts/validation/validate_external_api_openapi.py</code>) keeps this reference in sync with the
+            live router. See the <a href="testing.html#performance">Testing → Performance</a> page.
+        </div>
+
+        <!-- ─── Overview ──────────────────────────────────────────────────────────── -->
+        <h2 id="overview">Overview</h2>
+        <p>The External API follows REST conventions:</p>
+        <ul>
+            <li>All requests and responses use <strong>JSON</strong> (<code>Content-Type: application/json</code>)</li>
+            <li>Authentication via <code>X-API-Key</code> header</li>
+            <li>HTTP status codes follow standard semantics (200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403
+                Forbidden, 404 Not Found, 429 Too Many Requests, 503 Service Unavailable)
+            </li>
+            <li>All timestamps are <strong>ISO 8601 UTC</strong> (e.g. <code>2026-03-09T04:00:00Z</code>)</li>
+            <li>Monetary values are in <strong>Australian Dollars (AUD)</strong></li>
+            <li>Pagination uses <code>?skip=0&amp;limit=50</code> query params (max limit: 200)</li>
+        </ul>
+        <table>
+            <thead>
+            <tr>
+                <th>Property</th>
+                <th>Value</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Base URL</td>
+                <td><code>https://your-strataos-domain/api/v1</code></td>
+            </tr>
+            <tr>
+                <td>Protocol</td>
+                <td>HTTPS only (HTTP redirected)</td>
+            </tr>
+            <tr>
+                <td>Format</td>
+                <td>JSON</td>
+            </tr>
+            <tr>
+                <td>Auth Header</td>
+                <td><code>X-API-Key: egst_&lt;your-key&gt;</code></td>
+            </tr>
+            <tr>
+                <td>API Version</td>
+                <td>v1 (stable)</td>
+            </tr>
+            <tr>
+                <td>Router file</td>
+                <td><code>backend/routers/external_api.py</code></td>
+            </tr>
+            <tr>
+                <td>Models file</td>
+                <td><code>backend/models/external_api_models.py</code></td>
+            </tr>
+            <tr>
+                <td>Auth util</td>
+                <td><code>backend/utils/api_key_auth.py</code></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- ─── Authentication ────────────────────────────────────────────────────── -->
+        <h2 id="authentication">Authentication</h2>
+        <p>All API calls except <code>GET /health</code> require an API key passed in the
+            <code>X-API-Key</code> header. <code>GET /scopes</code> requires a valid API key but does not require a
+            specific scope.</p>
+        <h3>API Key Format</h3>
+        <pre><code>egst_&lt;32-character-random-token&gt;
+Example: egst_Kx9mPqR2vTnL8wJcYd4hBzAeUfGs6WiN</code></pre>
+        <ul>
+            <li>Prefix: <code>egst_</code> (East Gate Strata)</li>
+            <li>Keys are generated using <code>secrets.token_urlsafe(32)</code></li>
+            <li><strong>The raw key is shown ONCE at creation</strong> — store it securely (password manager, vault). It
+                cannot be retrieved again.
+            </li>
+            <li>Only the SHA-256 hash is stored in MongoDB (<code>api_keys</code> collection)</li>
+        </ul>
+        <h3>Request Example</h3>
+        <pre><code>curl -H "X-API-Key: egst_Kx9mPqR2vTnL8wJcYd4hBzAeUfGs6WiN" \
+     https://eastgateresidences.com.au/api/v1/building</code></pre>
+        <h3>Authentication Errors</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Status</th>
+                <th>Reason</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>401</td>
+                <td>Missing or invalid API key</td>
+            </tr>
+            <tr>
+                <td>401</td>
+                <td>Key has been revoked (<code>is_active: false</code>)</td>
+            </tr>
+            <tr>
+                <td>401</td>
+                <td>Key has expired (<code>expires_at</code> in the past)</td>
+            </tr>
+            <tr>
+                <td>403</td>
+                <td>Key does not have the required scope</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- ─── Scopes ─────────────────────────────────────────────────────────────── -->
+        <h2 id="scopes">Scopes</h2>
+        <p>Each API key is granted a list of <strong>scopes</strong> that determine what it can access. Scopes follow a
+            <code>action:resource</code> pattern.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Scope</th>
+                <th>Access Granted</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>read:building</code></td>
+                <td>Building info, unit list, unit details</td>
+            </tr>
+            <tr>
+                <td><code>read:finance</code></td>
+                <td>Finance summary, budget categories, transactions, levy balances, OC summaries</td>
+            </tr>
+            <tr>
+                <td><code>read:maintenance</code></td>
+                <td>Maintenance requests, defect list</td>
+            </tr>
+            <tr>
+                <td><code>write:maintenance</code></td>
+                <td>Report new defects / maintenance requests</td>
+            </tr>
+            <tr>
+                <td><code>read:work-orders</code></td>
+                <td>Work order list and details</td>
+            </tr>
+            <tr>
+                <td><code>write:work-orders</code></td>
+                <td>Update work order status</td>
+            </tr>
+            <tr>
+                <td><code>write:service</code></td>
+                <td>Service provider: submit quotes and invoices</td>
+            </tr>
+            <tr>
+                <td><code>manage:webhooks</code></td>
+                <td>Register, list, and delete outbound webhooks</td>
+            </tr>
+            <tr>
+                <td><code>admin</code></td>
+                <td>All scopes (full access)</td>
+            </tr>
+            </tbody>
+        </table>
+        <div class="alert alert-warning">
+            <strong>Principle of least privilege:</strong> Grant only the scopes your integration actually needs.
+            Service providers should only receive <code>read:work-orders</code>, <code>write:work-orders</code>, and
+            <code>write:service</code>. Accounting integrations should receive <code>read:finance</code> only.
+        </div>
+
+        <!-- ─── Creating Keys ─────────────────────────────────────────────────────── -->
+        <h2 id="creating-keys">Creating &amp; Managing API Keys</h2>
+        <p>API keys are managed via the portal UI (<strong>Admin Console → API Keys</strong>) or directly via the
+            internal API using a JWT bearer token.</p>
+
+        <h3>Create a Key (Internal API — JWT Auth)</h3>
+        <pre><code>POST /api/v1/api-keys
+Authorization: Bearer &lt;jwt-token&gt;
+Content-Type: application/json
+
+{
+  "name": "Accounting Integration — Xero",
+  "description": "Read-only access for Xero reconciliation",
+  "scopes": ["read:finance"],
+  "expires_at": "2027-01-01T00:00:00Z"
+}</code></pre>
+        <p><strong>Response (201):</strong></p>
+        <pre><code>{
+  "id": "key_abc123",
+  "name": "Accounting Integration — Xero",
+  "scopes": ["read:finance"],
+  "is_active": true,
+  "created_at": "2026-03-09T04:00:00Z",
+  "expires_at": "2027-01-01T00:00:00Z",
+  "last_used_at": null,
+  "created_by": "administrator@eastgateresidences.com.au",
+  "raw_key": "egst_Kx9mPqR2vTnL8wJcYd4hBzAeUfGs6WiN"
+}</code></pre>
+        <div class="alert alert-danger"><strong>⚠ Save the <code>raw_key</code> immediately.</strong> It will never be
+            shown again. If lost, revoke and create a new key.
+        </div>
+
+        <h3>List Keys</h3>
+        <pre><code>GET /api/v1/api-keys?include_inactive=false
+Authorization: Bearer &lt;jwt-token&gt;</code></pre>
+
+        <h3>Revoke a Key</h3>
+        <pre><code>DELETE /api/v1/api-keys/{key_id}
+Authorization: Bearer &lt;jwt-token&gt;</code></pre>
+        <p>Revoked keys return HTTP 401 immediately and cannot be re-activated — create a new key instead.</p>
+
+        <!-- ─── Postman ─────────────────────────────────────────────────────────────── -->
+        <h2 id="postman">Postman Setup Guide</h2>
+        <p>This guide walks you through configuring Postman to test all External API endpoints with automatic API key
+            injection.</p>
+        <div class="callout">
+            <strong>Cutover-aware environment.</strong> The shipped Postman environment now includes
+            <code>buildingId</code>, <code>financial_year</code>, <code>bank_provider</code>, and
+            <code>bank_mode</code> so the same collection can exercise mock banking, PostgreSQL-backed finance reads,
+            and legacy Mongo fallback during phased rollout.
+        </div>
+
+        <h3>Step 1 — Create a Postman Workspace</h3>
+        <ol>
+            <li>Open Postman and click <strong>Workspaces → Create Workspace</strong></li>
+            <li>Name it <strong>StrataOS External API</strong></li>
+            <li>Set visibility to <strong>Personal</strong> (or Team if sharing)</li>
+        </ol>
+
+        <h3>Step 2 — Create a Collection</h3>
+        <ol>
+            <li>Click <strong>Collections → + New Collection</strong></li>
+            <li>Name: <strong>StrataOS External API v1</strong></li>
+            <li>Add a description: <em>External API for East Gate Residences strata management platform</em></li>
+        </ol>
+
+        <h3>Step 3 — Set Collection Variables</h3>
+        <p>In the collection, click <strong>Variables</strong> tab and add:</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Variable</th>
+                <th>Initial Value</th>
+                <th>Current Value</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>base_url</code></td>
+                <td><code>https://eastgateresidences.com.au/api/v1</code></td>
+                <td><em>(same)</em></td>
+            </tr>
+            <tr>
+                <td><code>api_key</code></td>
+                <td><code>egst_your_key_here</code></td>
+                <td><em>paste your real key</em></td>
+            </tr>
+            <tr>
+                <td><code>jwt_token</code></td>
+                <td><em>(empty)</em></td>
+                <td><em>paste JWT for key management calls</em></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>Step 4 — Set Collection-Level Authentication</h3>
+        <ol>
+            <li>Go to the collection <strong>Authorization</strong> tab</li>
+            <li>Type: <strong>API Key</strong></li>
+            <li>Key: <code>X-API-Key</code></li>
+            <li>Value: <code>{{api_key}}</code></li>
+            <li>Add to: <strong>Header</strong></li>
+        </ol>
+        <p>All requests in the collection will automatically send the <code>X-API-Key</code> header. You can override on
+            individual requests where JWT auth is needed instead (e.g. key management endpoints).</p>
+
+        <h3>Step 5 — Create Request Folders</h3>
+        <p>Organise requests into folders matching the API sections:</p>
+        <pre><code>📁 Eastgate External API v1
+  📁 Health & Info
+  📁 Building & Units
+  📁 Finance
+  📁 Maintenance
+  📁 Work Orders
+  📁 Service Provider
+  📁 Owners Corporation
+  📁 Webhooks
+  📁 API Key Management (JWT auth)</code></pre>
+
+        <h3>Step 6 — Add Sample Requests</h3>
+        <p><strong>Health Check (no auth required):</strong></p>
+        <pre><code>GET {{base_url}}/health</code></pre>
+        <p>Expected: <code>{"status": "ok"}</code></p>
+
+        <p><strong>Get Building Info:</strong></p>
+        <pre><code>GET {{base_url}}/building
+X-API-Key: {{api_key}}</code></pre>
+
+        <p><strong>List Units (paginated):</strong></p>
+        <pre><code>GET {{base_url}}/units?skip=0&limit=20
+X-API-Key: {{api_key}}</code></pre>
+
+        <p><strong>Report a Defect (write:maintenance scope):</strong></p>
+        <pre><code>POST {{base_url}}/building/defects
+X-API-Key: {{api_key}}
+Content-Type: application/json
+
+{
+  "title": "Water leak in car park Level B1",
+  "description": "Visible water seeping from ceiling near parking bay 42",
+  "location": "Basement Level B1, Bay 42",
+  "priority": "high"
+}</code></pre>
+
+        <h3>Step 7 — Environment for Local Development</h3>
+        <p>Create a separate Postman Environment for local testing:</p>
+        <table>
+            <thead>
+            <tr>
+                <th>Variable</th>
+                <th>Local Value</th>
+                <th>Production Value</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>base_url</code></td>
+                <td><code>http://localhost:8003/api/v1</code></td>
+                <td><code>https://eastgateresidences.com.au/api/v1</code></td>
+            </tr>
+            <tr>
+                <td><code>api_key</code></td>
+                <td><em>dev key</em></td>
+                <td><em>prod key</em></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>Step 8 — Import via OpenAPI (Optional)</h3>
+        <p>The browser-facing OpenAPI export is generated into the public tech-docs pack. Import that copy when you
+            want Postman to match the same auth model as Swagger UI:</p>
+        <ol>
+            <li>Download: <code>/tech-docs/strataos-openapi.json</code>, or open <code>/tech-docs/swagger.html</code>
+                for browser testing.
+            </li>
+            <li>In Postman: <strong>Import → File → strataos-openapi.json</strong></li>
+            <li>Select <strong>Postman Collection v2.1</strong></li>
+            <li>Prefer the generated collection at
+                <code>/tech-docs/postman/strataos_demo_collection.json</code> when you want auth helpers, demo
+                variables, and the <code>building_id=demo</code> safety default.
+            </li>
+        </ol>
+        <div class="alert alert-info">The public Swagger UI at <code>/tech-docs/swagger.html</code> loads
+            <code>/tech-docs/strataos-openapi.json</code>. It is the validated browser entry point for trying generated
+            routes. All External API routes appear under the <strong>External API v1</strong> tag.
+        </div>
+
+        <!-- ─── Endpoints: Building ───────────────────────────────────────────────── -->
+        <h2 id="endpoints-building">Building &amp; Units Endpoints</h2>
+        <p><strong>Required scope:</strong> <code>read:building</code></p>
+
+        <h3>GET /building</h3>
+        <p>Returns building metadata.</p>
+        <pre><code>GET /api/v1/building
+
+Response 200:
+{
+  "name": "East Gate Residences",
+  "strata_plan": "13195",
+  "address": "Denman Prospect ACT 2611",
+  "total_units": 87,
+  "manager": "Civium Property Group",
+  "contact_email": "ec@eastgateresidences.com.au",
+  "contact_phone": "(02) 6285 0325"
+}</code></pre>
+
+        <h3>GET /units</h3>
+        <p>Paginated list of all units.</p>
+        <pre><code>GET /api/v1/units?skip=0&limit=50
+
+Query params:
+  skip    int  Default: 0
+  limit   int  Default: 50, max: 200
+
+Response 200: Array of UnitSummary objects
+[
+  {
+    "unit_number": "UA001",
+    "unit_type": "apartment",
+    "floor": 1,
+    "bedrooms": 2,
+    "bathrooms": 1,
+    "car_spaces": 1,
+    "entitlement": 65,
+    "is_tenanted": false,
+    "owner_name": "John Smith"
+  },
+  ...
+]</code></pre>
+
+        <h3>GET /units/{unit_number}</h3>
+        <p>Full details for a single unit.</p>
+        <pre><code>GET /api/v1/units/TH017
+
+Response 200: UnitDetail object
+{
+  "unit_id": "...",
+  "unit_number": "TH017",
+  "unit_type": "townhouse",
+  "bedrooms": 3,
+  "bathrooms": 2,
+  "car_spaces": 2,
+  "entitlement": 100,
+  "is_tenanted": false,
+  "owner_name": "Avneet Rooprai",
+  "levy_balance": {
+    "financial_year": "2026",
+    "opening_balance": 0.0,
+    "levied_amount": 7090.04,
+    "paid_amount": 1800.0,
+    "closing_balance": 5290.04,
+    "arrears": 0.0
+  }
+}</code></pre>
+
+        <h3>GET /units/{unit_number}/levy</h3>
+        <p>Historical levy balance data for a unit.</p>
+        <pre><code>GET /api/v1/units/TH017/levy
+
+Response 200: Array of UnitLevyBalance objects (all years)</code></pre>
+
+        <!-- ─── Endpoints: Finance ─────────────────────────────────────────────────── -->
+        <h2 id="endpoints-finance">Finance Endpoints</h2>
+        <p><strong>Required scope:</strong> <code>read:finance</code></p>
+        <div class="callout">
+            <strong>Finance read cutover.</strong> <code>GET /finance/summary</code>, <code>GET /oc/levies</code>, and
+            <code>GET /units/{unit_number}/levy-balance</code> switch to PostgreSQL when
+            <code>financial_integration_layer_v2</code>, <code>financial_pg_reads_enabled</code>, and
+            <code>external_api_finance_pg_enabled</code> are all enabled for the scheme. Otherwise the legacy
+            Mongo-backed read path stays active. This is separate from the internal dashboard finance routes:
+            <code>/api/finance/building-overview</code> and <code>/api/finance/unit-dashboard-overview/{unit_number}</code>
+            are JWT-authenticated internal API routes, not External API v1 endpoints.
+        </div>
+
+        <h3>GET /finance/summary</h3>
+        <pre><code>GET /api/v1/finance/summary?financial_year=2026
+
+Response 200:
+{
+  "financial_year": "2026",
+  "admin_fund": {
+    "budgeted": 340870.20,
+    "actual_income": 312450.00,
+    "actual_expenses": 298000.00,
+    "net_position": 14450.00
+  },
+  "sinking_fund": {
+    "budgeted": 99504.90,
+    "actual_income": 89200.00,
+    "actual_expenses": 45000.00,
+    "net_position": 44200.00
+  },
+  "levy_arrears_total": 20168.35
+}</code></pre>
+
+        <h3>GET /finance/budget</h3>
+        <pre><code>GET /api/v1/finance/budget?financial_year=2026
+
+Response 200: Array of BudgetCategoryResponse
+[
+  {
+    "category_name": "Insurance",
+    "fund_type": "admin",
+    "budgeted_amount": 45000.00,
+    "actual_amount": 43200.00,
+    "variance": 1800.00
+  },
+  ...
+]</code></pre>
+
+        <h3>GET /finance/transactions</h3>
+        <pre><code>GET /api/v1/finance/transactions?skip=0&limit=50&unit=TH017&from_date=2026-01-01
+
+Query params:
+  skip        int     Default: 0
+  limit       int     Default: 50, max: 200
+  unit        string  Filter by unit number
+  from_date   date    ISO 8601 date
+  to_date     date    ISO 8601 date
+  type        string  Filter by transaction type
+
+Response 200: Array of TransactionSummary</code></pre>
+
+        <!-- ─── Endpoints: Maintenance ─────────────────────────────────────────────── -->
+        <h2 id="endpoints-maintenance">Maintenance Endpoints</h2>
+        <p><strong>Read scope:</strong> <code>read:maintenance</code> &nbsp;|&nbsp; <strong>Write scope:</strong> <code>write:maintenance</code>
+        </p>
+
+        <h3>GET /building/defects</h3>
+        <pre><code>GET /api/v1/building/defects?status=open&skip=0&limit=50
+
+Query params:
+  status      string  open | in_progress | resolved | closed
+  priority    string  low | medium | high | critical
+  skip, limit int
+
+Response 200: Array of DefectSummary</code></pre>
+
+        <h3>POST /building/defects</h3>
+        <pre><code>POST /api/v1/building/defects
+Content-Type: application/json
+
+{
+  "title": "Cracked pathway near building entrance",
+  "description": "1m crack in pathway, trip hazard",
+  "location": "Front entrance, north side",
+  "priority": "medium"
+}
+
+Response 201:
+{
+  "id": "def_xyz",
+  "title": "Cracked pathway near building entrance",
+  "status": "open",
+  "priority": "medium",
+  "submitted_at": "2026-03-09T04:00:00Z"
+}</code></pre>
+
+        <h3>GET /maintenance</h3>
+        <pre><code>GET /api/v1/maintenance?status=in_progress&skip=0&limit=50
+
+Response 200: Array of MaintenanceRequestSummary</code></pre>
+
+        <h3>GET /maintenance/{request_id}</h3>
+        <pre><code>GET /api/v1/maintenance/req_abc123
+
+Response 200: Full MaintenanceRequestSummary with work_order_ids</code></pre>
+
+        <h3>PUT /maintenance/{request_id}</h3>
+        <pre><code>PUT /api/v1/maintenance/req_abc123
+Content-Type: application/json
+
+{
+  "status": "in_progress",
+  "notes": "Contractor on site 10 March"
+}
+
+Response 200: {"message": "Updated"}</code></pre>
+
+        <!-- ─── Endpoints: Work Orders ─────────────────────────────────────────────── -->
+        <h2 id="endpoints-workorders">Work Order Endpoints</h2>
+        <p><strong>Read scope:</strong> <code>read:work-orders</code> &nbsp;|&nbsp; <strong>Write scope:</strong> <code>write:work-orders</code>
+        </p>
+
+        <h3>GET /work-orders</h3>
+        <pre><code>GET /api/v1/work-orders?status=approved&vendor=Acme+Plumbing
+
+Query params:
+  status      string  new | quote_requested | approved | in_progress | completed | cancelled
+  vendor      string  Filter by vendor/contractor name
+  skip, limit int
+
+Response 200: Array of WorkOrderSummary</code></pre>
+
+        <h3>GET /work-orders/{wo_id}</h3>
+        <pre><code>GET /api/v1/work-orders/wo_abc123
+
+Response 200: Full WorkOrderSummary with costs and dates</code></pre>
+
+        <!-- ─── Endpoints: Service Provider ───────────────────────────────────────── -->
+        <h2 id="endpoints-service">Service Provider Endpoints</h2>
+        <p><strong>Required scope:</strong> <code>write:service</code></p>
+        <p>These endpoints are designed for external service provider integrations (contractors, trade portals).</p>
+
+        <h3>GET /service/work-orders</h3>
+        <p>Returns work orders available for the vendor identified by the API key's name.</p>
+        <pre><code>GET /api/v1/service/work-orders
+
+Response 200: Array of WorkOrderSummary
+(filtered to: NEW, QUOTE_REQUESTED, APPROVED, IN_PROGRESS)</code></pre>
+
+        <h3>POST /service/quotes</h3>
+        <pre><code>POST /api/v1/service/quotes
+Content-Type: application/json
+
+{
+  "work_order_id": "wo_abc123",
+  "amount": 2450.00,
+  "description": "Supply and install 50m waterproofing membrane, incl labour",
+  "valid_until": "2026-04-01",
+  "notes": "Includes 12-month workmanship warranty"
+}
+
+Response 201: QuoteResponse with id and submitted_at</code></pre>
+
+        <h3>GET /service/quotes</h3>
+        <pre><code>GET /api/v1/service/quotes
+
+Response 200: Array of QuoteResponse objects submitted by this key</code></pre>
+
+        <h3>POST /service/invoices</h3>
+        <pre><code>POST /api/v1/service/invoices
+Content-Type: application/json
+
+{
+  "work_order_id": "wo_abc123",
+  "invoice_number": "INV-2026-0042",
+  "invoice_date": "2026-03-09",
+  "amount": 2450.00,
+  "gst": 245.00,
+  "description": "Waterproofing works as per WO wo_abc123"
+}
+
+Response 201: InvoiceStatusResponse with status "pending_approval"</code></pre>
+
+        <h3>GET /service/invoices/{invoice_id}</h3>
+        <pre><code>GET /api/v1/service/invoices/inv_xyz789
+
+Response 200:
+{
+  "id": "inv_xyz789",
+  "work_order_id": "wo_abc123",
+  "invoice_number": "INV-2026-0042",
+  "amount": 2450.00,
+  "gst": 245.00,
+  "status": "approved",
+  "submitted_at": "2026-03-09T04:00:00Z",
+  "approved_at": "2026-03-10T09:30:00Z"
+}</code></pre>
+
+        <!-- ─── Endpoints: OC ──────────────────────────────────────────────────────── -->
+        <h2 id="endpoints-oc">Owners Corporation Endpoints</h2>
+        <p><strong>Required scope:</strong> <code>read:finance</code></p>
+
+        <h3>GET /oc/summary</h3>
+        <pre><code>GET /api/v1/oc/summary
+
+Response 200:
+{
+  "total_units": 87,
+  "occupied_units": 87,
+  "tenanted_units": 12,
+  "owner_occupier_units": 75,
+  "current_financial_year": "2026",
+  "total_levy_income_budgeted": 440375.10,
+  "total_levy_collected": 312450.00,
+  "collection_rate_pct": 70.95,
+  "units_in_arrears": 23
+}</code></pre>
+
+        <h3>GET /oc/levies</h3>
+        <pre><code>GET /api/v1/oc/levies?financial_year=2026
+
+Response 200: OCLevySummary for the requested (or latest started) year
+{
+  "financial_year": "2026",
+  "admin_fund_budgeted": 340870.02,
+  "sinking_fund_budgeted": 99504.90,
+  "total_budgeted": 440375.10,
+  "total_collected": 312450.00,
+  "total_outstanding": 127925.10,
+  "levy_periods": [
+    {"quarter_no": 0, "issue_date": "2026-07-01", "due_date": "2026-07-01", "status": "approved"}
+  ]
+}</code></pre>
+
+        <!-- ─── Webhooks ──────────────────────────────────────────────────────────── -->
+        <h2 id="webhooks">Webhooks</h2>
+        <p><strong>Required scope:</strong> <code>manage:webhooks</code></p>
+        <p>Register a URL to receive real-time event notifications when things change in the system.</p>
+
+        <h3>Supported Events</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Event</th>
+                <th>Triggered When</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>maintenance.created</code></td>
+                <td>New maintenance request submitted</td>
+            </tr>
+            <tr>
+                <td><code>maintenance.updated</code></td>
+                <td>Maintenance request status changes</td>
+            </tr>
+            <tr>
+                <td><code>maintenance.resolved</code></td>
+                <td>Maintenance request resolved/closed</td>
+            </tr>
+            <tr>
+                <td><code>work_order.created</code></td>
+                <td>New work order raised</td>
+            </tr>
+            <tr>
+                <td><code>work_order.updated</code></td>
+                <td>Work order status changes</td>
+            </tr>
+            <tr>
+                <td><code>work_order.completed</code></td>
+                <td>Work order marked complete</td>
+            </tr>
+            <tr>
+                <td><code>levy.paid</code></td>
+                <td>Levy payment confirmed</td>
+            </tr>
+            <tr>
+                <td><code>levy.overdue</code></td>
+                <td>Levy payment becomes overdue</td>
+            </tr>
+            <tr>
+                <td><code>quote.submitted</code></td>
+                <td>Service provider submits a quote</td>
+            </tr>
+            <tr>
+                <td><code>invoice.submitted</code></td>
+                <td>Invoice submitted for a work order</td>
+            </tr>
+            <tr>
+                <td><code>invoice.approved</code></td>
+                <td>Invoice approved by EC</td>
+            </tr>
+            <tr>
+                <td><code>invoice.paid</code></td>
+                <td>Invoice payment processed</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>Register a Webhook</h3>
+        <pre><code>POST /api/v1/webhooks
+Content-Type: application/json
+
+{
+  "url": "https://your-system.com/webhooks/eastgate",
+  "events": ["maintenance.created", "work_order.updated"],
+  "secret": "your-hmac-secret-here",
+  "description": "My property management system webhook"
+}
+
+Response 201:
+{
+  "id": "wh_abc123",
+  "url": "https://your-system.com/webhooks/eastgate",
+  "events": ["maintenance.created", "work_order.updated"],
+  "is_active": true,
+  "created_at": "2026-03-09T04:00:00Z"
+}</code></pre>
+
+        <h3>Webhook Payload Format</h3>
+        <pre><code>{
+  "event": "maintenance.created",
+  "timestamp": "2026-03-09T04:00:00Z",
+  "data": {
+    "id": "req_abc123",
+    "title": "Water leak in common area",
+    "priority": "high",
+    "status": "open",
+    ...
+  }
+}</code></pre>
+
+        <h3>HMAC Signature Verification</h3>
+        <p>If you provided a <code>secret</code>, each webhook delivery includes an <code>X-Webhook-Signature</code>
+            header. Verify it to ensure the payload is genuine:</p>
+        <pre><code># Python example
+import hmac, hashlib
+
+def verify_webhook(payload_bytes: bytes, signature_header: str, secret: str) -> bool:
+    expected = "sha256=" + hmac.new(
+        secret.encode(), payload_bytes, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature_header)
+
+# Node.js example
+const crypto = require('crypto');
+function verifyWebhook(payloadBuffer, signatureHeader, secret) {
+  const expected = 'sha256=' + crypto
+    .createHmac('sha256', secret)
+    .update(payloadBuffer)
+    .digest('hex');
+  return crypto.timingSafeEqual(
+    Buffer.from(expected), Buffer.from(signatureHeader)
+  );
+}</code></pre>
+
+        <h3>List Webhooks</h3>
+        <pre><code>GET /api/v1/webhooks
+
+Response 200: Array of registered webhooks for this API key</code></pre>
+
+        <h3>Delete a Webhook</h3>
+        <pre><code>DELETE /api/v1/webhooks/{webhook_id}
+
+Response 200: {"message": "Deleted"}</code></pre>
+
+        <h3>List Supported Event Types</h3>
+        <pre><code>GET /api/v1/webhook-events
+
+Response 200: Array of event name strings</code></pre>
+
+        <!-- ─── Error Reference ────────────────────────────────────────────────────── -->
+        <h2 id="errors">Error Reference</h2>
+        <p>All errors follow the standard FastAPI error format:</p>
+        <pre><code>{
+  "detail": "Human-readable error message"
+}</code></pre>
+        <table>
+            <thead>
+            <tr>
+                <th>HTTP Status</th>
+                <th>Meaning</th>
+                <th>Common Cause</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>400</td>
+                <td>Bad Request</td>
+                <td>Invalid request body, missing required field, invalid date format</td>
+            </tr>
+            <tr>
+                <td>401</td>
+                <td>Unauthorized</td>
+                <td>Missing <code>X-API-Key</code> header, invalid key, expired key, revoked key</td>
+            </tr>
+            <tr>
+                <td>403</td>
+                <td>Forbidden</td>
+                <td>API key does not have required scope</td>
+            </tr>
+            <tr>
+                <td>404</td>
+                <td>Not Found</td>
+                <td>Unit number, work order ID, or other resource not found</td>
+            </tr>
+            <tr>
+                <td>422</td>
+                <td>Validation Error</td>
+                <td>Request body fails Pydantic validation — check <code>detail</code> array for field errors</td>
+            </tr>
+            <tr>
+                <td>429</td>
+                <td>Too Many Requests</td>
+                <td>Rate limit exceeded — back off and retry after the <code>Retry-After</code> header value</td>
+            </tr>
+            <tr>
+                <td>503</td>
+                <td>Service Unavailable</td>
+                <td>External API feature toggle is disabled by administrator</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- ─── Rate Limits ───────────────────────────────────────────────────────── -->
+        <h2 id="rate-limits">Rate Limits</h2>
+        <p>The External API inherits the same rate limiting as the main API (configured in <code>backend/utils/rate_limit.py</code>).
+            Limits are applied per IP address and can be scaled by the global rate limit multiplier or disabled via the
+            <code>rate_limiting</code> feature toggle.</p>
+        <ul>
+            <li>Default: <strong>100 requests / minute</strong> per IP</li>
+            <li>If exceeded: HTTP 429 with <code>Retry-After</code> header</li>
+            <li>Implement exponential backoff in your integration for resilience</li>
+        </ul>
+        <pre><code># Retry-After example in Python
+import time, requests
+
+def call_api_with_retry(url, headers, max_retries=3):
+    for attempt in range(max_retries):
+        resp = requests.get(url, headers=headers)
+        if resp.status_code == 429:
+            wait = int(resp.headers.get('Retry-After', 5)) * (2 ** attempt)
+            time.sleep(wait)
+            continue
+        return resp
+    raise Exception("Rate limit exceeded after retries")</code></pre>
+
+        <!-- ─── Feature Toggle ────────────────────────────────────────────────────── -->
+        <h2 id="feature-toggle">Feature Toggle</h2>
+        <p>The External API is controlled by the <code>external_api</code> feature toggle. Finance read-source
+            selection is controlled separately by the canonical finance cutover toggles.</p>
+        <ul>
+            <li>Toggle key: <code>external_api</code></li>
+            <li>Default: <strong>Enabled</strong></li>
+            <li>When disabled: all <code>/api/v1/*</code> endpoints return HTTP 503</li>
+            <li>Manage via: <strong>Admin Console → Feature Toggles</strong></li>
+        </ul>
+        <p>Finance cutover toggles for these endpoints:</p>
+        <ul>
+            <li><code>financial_integration_layer_v2</code> — umbrella gate</li>
+            <li><code>financial_pg_reads_enabled</code> — enables PostgreSQL current-balance reads</li>
+            <li><code>external_api_finance_pg_enabled</code> — activates the external finance read-model path</li>
+        </ul>
+        <p>Generated Postman artifacts use <code>X-API-Key: {{api_key}}</code> for partner-facing
+            <code>/api/v1/*</code> requests. The key-management endpoints under
+            <code>/api/v1/api-keys</code> remain JWT bearer-authenticated admin operations because they create and
+            revoke external keys.</p>
+        <p>The health check endpoint (<code>GET /api/v1/health</code>) is public, but it is still mounted under the
+            External API router and therefore follows the <code>external_api</code> feature-toggle gate.</p>
+
+        <!-- ─── Changelog ─────────────────────────────────────────────────────────── -->
+        <h2 id="changelog">Changelog</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Version</th>
+                <th>Date</th>
+                <th>Changes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>v1.3</td>
+                <td>2026-07-15</td>
+                <td>
+                    Revalidated public browser artifacts: <code>/tech-docs/swagger.html</code>,
+                    <code>/tech-docs/strataos-openapi.json</code>, and
+                    <code>/tech-docs/postman/*</code>. Confirmed <code>GET /api/v1/health</code> is public,
+                    <code>GET /api/v1/scopes</code> uses <code>X-API-Key</code>, and
+                    <code>/api/v1/api-keys</code> remains JWT bearer-authenticated.
+                </td>
+            </tr>
+            <tr>
+                <td>v1.2</td>
+                <td>2026-07-12</td>
+                <td>
+                    Documentation refreshed for finance cutover behavior and generated Postman authentication:
+                    partner-facing <code>/api/v1/*</code> requests use <code>X-API-Key</code>, while
+                    <code>/api/v1/api-keys</code> management remains JWT bearer-authenticated. Clarified that internal
+                    dashboard finance contracts are separate from External API v1.
+                </td>
+            </tr>
+            <tr>
+                <td>v1.1</td>
+                <td>2026-04-22</td>
+                <td>
+                    Invoice OCR feature added — strata managers can upload contractor invoices and quotes for
+                    AI-assisted field extraction (Claude Vision primary, Mindee fallback). Creates expense
+                    transactions in the financial ledger on confirmation and generates payment receipt PDFs.
+                    Internal management feature; not exposed via the External API (<code>/api/v1/*</code>).
+                    New packages: <code>anthropic&gt;=0.52.0</code>, <code>mindee&gt;=4.0.0</code>.
+                    New env vars: <code>ANTHROPIC_API_KEY</code>, <code>MINDEE_API_KEY</code>.
+                </td>
+            </tr>
+            <tr>
+                <td>v1.0</td>
+                <td>2026-03</td>
+                <td>
+                    Initial release — 46 endpoints across 10 domains. API key auth with scope-based access. HMAC webhook
+                    delivery. Feature toggle control. Audit logging.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Jurisdictional Rule Engine — Technical Reference</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="guide-container">
+    <h1>Jurisdictional Rule Engine — Technical Reference</h1>
+    <p class="intro">
+        Pure domain layer encoding all Australian strata statutory rules as versioned JSON data files.
+        Eliminates inline <code>if jurisdiction ==</code> branches from financial logic.
+        Supports ACT, NSW, VIC, QLD.
+    </p>
+
+    <h2>Architecture</h2>
+    <p>
+        The engine follows a strict two-layer separation:
+    </p>
+    <ul>
+        <li><strong>Domain layer</strong> (<code>backend/domain/jurisdictional_rules.py</code>) —
+            pure synchronous Python, no DB access. Loads JSON rule files once per jurisdiction
+            and caches them at module level. Exposes typed accessor methods.
+        </li>
+        <li><strong>Service layer</strong> (<code>backend/services/jurisdiction_service.py</code>) —
+            DB-aware. Resolves a building's jurisdiction from <code>buildings.jurisdiction</code>
+            and merges per-building overrides from <code>jurisdictional_rule_overrides</code>.
+            Delegates all statutory rule lookups to the domain engine.
+        </li>
+    </ul>
+
+    <h2>Rule Files</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>File</th>
+            <th>Jurisdiction</th>
+            <th>Primary Legislation</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>backend/domain/rules/act.json</code></td>
+            <td>ACT</td>
+            <td>Unit Titles (Management) Act 2011; Agents Act 2003</td>
+        </tr>
+        <tr>
+            <td><code>backend/domain/rules/nsw.json</code></td>
+            <td>NSW</td>
+            <td>Strata Schemes Management Act 2015; Property Stock and Business Agents Regulation 2022</td>
+        </tr>
+        <tr>
+            <td><code>backend/domain/rules/vic.json</code></td>
+            <td>VIC</td>
+            <td>Owners Corporations Act 2006; Estate Agents Act 1980</td>
+        </tr>
+        <tr>
+            <td><code>backend/domain/rules/qld.json</code></td>
+            <td>QLD</td>
+            <td>Body Corporate and Community Management Act 1997 (Standard Module)</td>
+        </tr>
+        </tbody>
+    </table>
+    <p>Each rule entry has this shape:</p>
+    <pre>
+{
+  "value": 10,
+  "unit": "percent",
+  "legislation": "UTMA 2011 s.76",
+  "effective": "2011-01-01",
+  "notes": "Default simple interest on unpaid levies: 10% per annum."
+}</pre>
+
+    <h2>Engine API (<code>JurisdictionalRuleEngine</code>)</h2>
+    <p>
+        Import the module-level singleton:
+    </p>
+    <pre>from domain.jurisdictional_rules import rule_engine</pre>
+    <table>
+        <thead>
+        <tr>
+            <th>Method</th>
+            <th>Return type</th>
+            <th>Description</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>max_interest_rate_pa(jurisdiction)</code></td>
+            <td><code>Decimal</code></td>
+            <td>Statutory maximum levy interest rate per annum</td>
+        </tr>
+        <tr>
+            <td><code>interest_grace_period_days(jurisdiction)</code></td>
+            <td><code>int</code></td>
+            <td>Days before interest accrues (0 = immediate)</td>
+        </tr>
+        <tr>
+            <td><code>can_transfer_between_funds(jurisdiction)</code></td>
+            <td><code>bool</code></td>
+            <td>False for QLD (prohibited by BCCM reg 100(7))</td>
+        </tr>
+        <tr>
+            <td><code>inter_fund_transfer_resolution_required(jurisdiction)</code></td>
+            <td><code>str</code></td>
+            <td>"none" / "ordinary" / "special" / "prohibited"</td>
+        </tr>
+        <tr>
+            <td><code>overbudget_threshold_pct(jurisdiction)</code></td>
+            <td><code>Decimal | None</code></td>
+            <td>NSW = 10%; ACT/VIC/QLD = None</td>
+        </tr>
+        <tr>
+            <td><code>trust_withdrawal_authority_roles(jurisdiction)</code></td>
+            <td><code>list[str]</code></td>
+            <td>Roles authorised to initiate trust withdrawals</td>
+        </tr>
+        <tr>
+            <td><code>pooled_trust_permitted(jurisdiction)</code></td>
+            <td><code>bool</code></td>
+            <td>False for VIC and QLD</td>
+        </tr>
+        <tr>
+            <td><code>interest_belongs_to(jurisdiction)</code></td>
+            <td><code>str</code></td>
+            <td>"scheme" or "statutory_account" (NSW)</td>
+        </tr>
+        <tr>
+            <td><code>trial_balance_deadline_days(jurisdiction)</code></td>
+            <td><code>int</code></td>
+            <td>Days after AGM for trial balance (ACT=15, NSW=21)</td>
+        </tr>
+        <tr>
+            <td><code>audit_deadline(jurisdiction)</code></td>
+            <td><code>str</code></td>
+            <td>Human-readable audit deadline ("30 September", "pre-AGM")</td>
+        </tr>
+        <tr>
+            <td><code>committee_spending_cap_formula(jurisdiction)</code></td>
+            <td><code>str | None</code></td>
+            <td>"$200 * lot_count" for QLD; None for others</td>
+        </tr>
+        <tr>
+            <td><code>committee_spending_cap_per_lot_cents(jurisdiction)</code></td>
+            <td><code>int | None</code></td>
+            <td>QLD = 20000 (i.e. $200.00)</td>
+        </tr>
+        <tr>
+            <td><code>min_withholding_pct_no_abn(jurisdiction)</code></td>
+            <td><code>Decimal</code></td>
+            <td>47% for all jurisdictions (ATO rule)</td>
+        </tr>
+        <tr>
+            <td><code>get_effective_rules(jurisdiction)</code></td>
+            <td><code>dict</code></td>
+            <td>Full rules dict (excludes _meta key) for admin display</td>
+        </tr>
+        <tr>
+            <td><code>get_meta(jurisdiction)</code></td>
+            <td><code>dict</code></td>
+            <td>Legislation name, last_reviewed date</td>
+        </tr>
+        <tr>
+            <td><code>valid_jurisdictions()</code></td>
+            <td><code>list[str]</code></td>
+            <td>["ACT", "NSW", "VIC", "QLD"]</td>
+        </tr>
+        </tbody>
+    </table>
+    <p>
+        Passing an unknown jurisdiction raises <code>ValueError</code>.
+        The engine is case-insensitive: <code>"act"</code> and <code>"ACT"</code> are equivalent.
+    </p>
+
+    <h2>Collections</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Collection</th>
+            <th>Tenant-scoped</th>
+            <th>Purpose</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>ownership_periods</code></td>
+            <td>Yes</td>
+            <td>Bitemporal lot ownership records (effective_from / effective_to)</td>
+        </tr>
+        <tr>
+            <td><code>jurisdiction_config</code></td>
+            <td>Yes</td>
+            <td>Per-building jurisdiction assignment (overrides buildings.jurisdiction)</td>
+        </tr>
+        <tr>
+            <td><code>jurisdictional_rule_overrides</code></td>
+            <td>No (global)</td>
+            <td>Per-jurisdiction rule overrides applied by super admin</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Endpoints</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Method</th>
+            <th>Path</th>
+            <th>Auth</th>
+            <th>Description</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>GET</td>
+            <td><code>/api/jurisdictional-rules/</code></td>
+            <td>Manager / admin</td>
+            <td>Returns effective rules for a building (jurisdiction, meta, typed_rules, full_rules). Query param:
+                <code>building_id</code>.
+            </td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td><code>/api/jurisdictional-rules/all</code></td>
+            <td>Manager / admin</td>
+            <td>Returns typed_rules for all supported jurisdictions.</td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td><code>/api/jurisdictional-rules/supported</code></td>
+            <td>Any authenticated</td>
+            <td>Returns list of supported jurisdiction codes.</td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td><code>/api/settlement-adjustment/{lot_id}</code></td>
+            <td>Manager / EC member</td>
+            <td>Pro-rata levy split. Query params: <code>building_id</code>, <code>date</code> (YYYY-MM-DD).</td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td><code>/api/settlement-adjustment/{lot_id}/history</code></td>
+            <td>Manager / admin</td>
+            <td>Full ownership history for a lot (EC members excluded).</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Settlement Adjustment Response</h2>
+    <pre>
+{
+  "lot_id": "5",
+  "building_id": "13195",
+  "settlement_date": "2025-05-01",
+  "outgoing_owner": "John Smith",
+  "period_start": "2025-04-01",
+  "period_end": "2025-06-30",
+  "period_days": 90,
+  "outgoing_days": 30,
+  "incoming_days": 60,
+  "total_levy_cents": 153000,
+  "outgoing_levy_cents": 51000,
+  "incoming_levy_cents": 102000,
+  "outgoing_levy_aud": "510.00",
+  "incoming_levy_aud": "1020.00"
+}</pre>
+
+    <h2>Ownership Periods</h2>
+    <p>
+        The <code>ownership_periods</code> collection stores a bitemporal record of lot ownership.
+        Each document has <code>effective_from</code> (mandatory) and <code>effective_to</code>
+        (null = current owner). The unique compound index on
+        <code>(building_id, lot_id, effective_from)</code> prevents duplicate period starts.
+    </p>
+    <p>
+        <code>OwnershipService.resolve_owner(lot_id, building_id, as_at)</code> returns the owner
+        record active at the given datetime. This is used by the matching engine's
+        JW name-match layer to verify payment provenance.
+    </p>
+
+    <h2>Adding a New Jurisdiction</h2>
+    <ol>
+        <li>Create <code>backend/domain/rules/{code}.json</code> following the existing schema.</li>
+        <li>Add the code to <code>_VALID_JURISDICTIONS</code> in <code>jurisdictional_rules.py</code>.</li>
+        <li>Add tests in <code>tests/backend/domain/test_jurisdictional_rules.py</code>.</li>
+        <li>Run migration to set <code>buildings.jurisdiction</code> for any existing buildings in that state.</li>
+    </ol>
+
+    <h2>Per-Building Overrides</h2>
+    <p>
+        A super admin can write a document to <code>jurisdictional_rule_overrides</code> for a
+        jurisdiction to apply custom values. <code>JurisdictionService.get_all_rules(building_id)</code>
+        merges these over the base JSON rules. Per-building overrides stored in
+        <code>jurisdiction_config</code> take precedence over jurisdiction-wide overrides.
+    </p>
+
+    <h2>Performance Notes</h2>
+    <ul>
+        <li>JSON rule files are loaded once per jurisdiction and cached in the module-level
+            <code>_CACHE</code> dict. No DB access occurs on any financial write path for base rule lookups.
+        </li>
+        <li>The engine is thread-safe for reads (immutable cached dicts). No locking is needed.</li>
+        <li>Per-building override resolution does require one <code>jurisdiction_config.find_one</code>
+            call; this is already on the hot path via <code>JurisdictionService</code>.
+        </li>
+    </ul>
+</div>
+</body>
+</html>

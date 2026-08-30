@@ -1,0 +1,26 @@
+{
+  "name": "East Gate",
+  "short_name": "East Gate",
+  "description": "East Gate — Strata Management Platform",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#2F4F4F",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/"
+}

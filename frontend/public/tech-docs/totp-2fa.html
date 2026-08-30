@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>TOTP 2FA — Tech Docs | East Gate Residences</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        th {
+            background: #2F4F4F;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← Back to Tech Docs</a>
+        <h1>TOTP Two-Factor Authentication</h1>
+        <p>Time-based OTP 2FA — P0-02</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2>Overview</h2>
+        <p>TOTP 2FA (RFC 6238) is implemented via the <code>pyotp</code> library. Secrets are stored encrypted in
+            MongoDB using the existing <code>ENCRYPTION_KEY</code> Fernet scheme. Backup codes are hashed with bcrypt.
+        </p>
+        <p><strong>Soft enforcement</strong>: accounts without <code>totp_enabled=True</code> continue to log in
+            normally.</p>
+    </section>
+
+    <section>
+        <h2>Files</h2>
+        <ul>
+            <li><code>backend/routers/totp.py</code> — All TOTP endpoints</li>
+            <li><code>backend/models/user.py</code> — <code>totp_enabled</code>, <code>totp_verified_at</code> fields
+                added to UserResponse
+            </li>
+            <li><code>backend/utils/crypto.py</code> — encrypt_sensitive/decrypt_sensitive helpers</li>
+            <li><code>tests/backend/test_totp.py</code> — 17 unit tests</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Endpoints</h2>
+        <table>
+            <tr>
+                <th>Method</th>
+                <th>Path</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td>POST</td>
+                <td>/api/auth/totp/setup</td>
+                <td>Generate secret + QR code (does not enable)</td>
+            </tr>
+            <tr>
+                <td>POST</td>
+                <td>/api/auth/totp/verify</td>
+                <td>Verify code and enable 2FA</td>
+            </tr>
+            <tr>
+                <td>GET</td>
+                <td>/api/auth/totp/status</td>
+                <td>Current 2FA state for authenticated user</td>
+            </tr>
+            <tr>
+                <td>POST</td>
+                <td>/api/auth/totp/disable</td>
+                <td>Disable 2FA (requires valid code)</td>
+            </tr>
+            <tr>
+                <td>POST</td>
+                <td>/api/auth/totp/challenge</td>
+                <td>Exchange totp_pending token + code for full JWT</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2>Database Schema</h2>
+        <p>Added to each user document in MongoDB:</p>
+        <pre><code>{
+  "totp_enabled": false,           // boolean — default false
+  "totp_verified_at": null,        // ISO timestamp — set when enabled
+  "totp_secret_encrypted": "enc:…", // Fernet-encrypted base32 secret
+  "totp_backup_codes_hashed": []   // list of bcrypt hashes
+}</code></pre>
+    </section>
+
+    <section>
+        <h2>Login Flow Integration</h2>
+        <p>When a user with <code>totp_enabled=True</code> logs in, the login endpoint responds with:</p>
+        <pre><code>{
+  "status": "totp_required",
+  "totp_token": "eyJ…"  // short-lived JWT (type=totp_pending, exp=5min)
+}</code></pre>
+        <p>The NextAuth <code>auth.ts</code> authorize callback detects <code>status === "totp_required"</code> and
+            stores the <code>totp_token</code> in the NextAuth session (<code>session.totp_required = true</code>,
+            <code>session.totp_token = &lt;pending JWT&gt;</code>). The <code>LoginPage.jsx</code> then reads the
+            session and redirects to the TOTP challenge page (<code>/login/totp-challenge</code>).</p>
+        <p>On the challenge page (<code>frontend/src/app/(public)/login/totp-challenge/page.tsx</code>), the user enters
+            their 6-digit authenticator code (or a backup code). The page calls <code>POST
+                /api/auth/totp/challenge</code> with the <code>totp_token</code> and <code>code</code>. On success, a
+            full session JWT is returned and the user is redirected to <code>/dashboard</code>.</p>
+    </section>
+
+    <section>
+        <h2>Secret Storage</h2>
+        <p>Secrets are encrypted with the existing <code>ENCRYPTION_KEY</code> from <code>config.py</code> (Fernet) via
+            <code>utils/crypto.py → encrypt_sensitive()</code>. This is the same key used by the Asset Register — no new
+            key management needed.</p>
+        <p>Backup codes are hashed with bcrypt (cost factor 12) and stored as a list of hashes. The plain-text codes are
+            shown once on setup and never persisted.</p>
+    </section>
+
+    <section>
+        <h2>Running Tests</h2>
+        <pre><code>MONGO_URL=mongodb://localhost:27018 DB_NAME=eastgate_test \
+  python3 -m pytest tests/backend/test_totp.py -v</code></pre>
+    </section>
+
+</main>
+
+<footer>
+    <p>East Gate Residences Platform — Tech Docs</p>
+    <p><a href="index.html">Back to Tech Docs</a></p>
+</footer>
+</body>
+</html>

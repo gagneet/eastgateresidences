@@ -1,0 +1,270 @@
+{
+  "_meta": {
+    "jurisdiction": "VIC",
+    "primary_legislation": "Owners Corporations Act 2006 (VIC)",
+    "trust_law": "Estate Agents Act 1980 (VIC)",
+    "last_reviewed": "2026-04-25"
+  },
+  "max_interest_rate_pa": {
+    "value": 10,
+    "unit": "percent",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.29",
+    "effective": "2007-01-01",
+    "notes": "Default interest on unpaid fees: 10% per annum simple interest."
+  },
+  "max_interest_rate_pa_by_special_resolution": {
+    "value": 10,
+    "unit": "percent",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.29",
+    "effective": "2007-01-01",
+    "notes": "VIC does not permit a higher rate by special resolution."
+  },
+  "interest_grace_period_days": {
+    "value": 0,
+    "unit": "days",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.29",
+    "effective": "2007-01-01",
+    "notes": "No statutory grace period — interest accrues from due date."
+  },
+  "can_transfer_between_funds": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "Owners Corporations Act 2006 (VIC) ss.36–45",
+    "effective": "2007-01-01",
+    "notes": "Transfers between maintenance and general funds permitted via maintenance fund regime."
+  },
+  "inter_fund_transfer_resolution_required": {
+    "value": "special",
+    "unit": "enum",
+    "legislation": "Owners Corporations Act 2006 (VIC) ss.36–45",
+    "effective": "2007-01-01",
+    "notes": "Special resolution required for maintenance fund transfers. Allowed values: none, ordinary, general_meeting, special, prohibited."
+  },
+  "overbudget_threshold_pct": {
+    "value": null,
+    "unit": "percent",
+    "legislation": null,
+    "effective": null,
+    "notes": "VIC does not impose a statutory over-budget cap."
+  },
+  "overbudget_requires_resolution_above_pct": {
+    "value": null,
+    "unit": "percent",
+    "legislation": null,
+    "effective": null,
+    "notes": "No statutory over-budget resolution trigger in VIC."
+  },
+  "trust_withdrawal_authority_roles": {
+    "value": [
+      "registered_manager"
+    ],
+    "excluded": [],
+    "unit": "roles",
+    "legislation": "Estate Agents Act 1980 (VIC)",
+    "effective": "1980-01-01",
+    "notes": "Trust withdrawals authorised by the registered owners corporation manager per EAA."
+  },
+  "trial_balance_deadline_days": {
+    "value": 30,
+    "unit": "calendar_days",
+    "legislation": "Estate Agents Act 1980 (VIC); Estate Agents (Professional Conduct) Regulations",
+    "effective": "1980-01-01",
+    "notes": "Monthly trial balance required per professional standards — 30 days after month-end."
+  },
+  "audit_deadline": {
+    "value": "pre-AGM",
+    "unit": "date",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.35",
+    "effective": "2007-01-01",
+    "notes": "Tier 1 (>100 lots or >$200k) and Tier 2 (>50 lots or >$75k) schemes must be audited before AGM."
+  },
+  "pooled_trust_permitted": {
+    "value": false,
+    "unit": "bool",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.122(2)(c)",
+    "effective": "2007-01-01",
+    "notes": "Separate trust accounts required per scheme (s.122(2)(c)), with exceptions for same-plan consent (s.122(3)) and statutory trusts."
+  },
+  "interest_belongs_to": {
+    "value": "scheme",
+    "unit": "enum",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.122(4)",
+    "effective": "2007-01-01",
+    "notes": "Interest on trust funds accrues to the scheme per s.122(4). Allowed values: scheme, statutory_account, body_corporate."
+  },
+  "committee_spending_cap_formula": {
+    "value": null,
+    "unit": "formula",
+    "legislation": null,
+    "effective": null,
+    "notes": "VIC does not impose a per-lot committee spending cap formula."
+  },
+  "min_withholding_pct_no_abn": {
+    "value": 47,
+    "unit": "percent",
+    "legislation": "ITAA 1997 (Commonwealth) s.12-190",
+    "effective": "2000-07-01",
+    "notes": "ATO PAYG withholding: 47% on payments to suppliers without ABN."
+  },
+  "agm_notice_days": {
+    "value": 14,
+    "unit": "days",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.92",
+    "effective": "2007-01-01",
+    "notes": "14 days notice for general meetings."
+  },
+  "record_retention_years": {
+    "value": 7,
+    "unit": "years",
+    "legislation": "Owners Corporations Act 2006 (VIC)",
+    "effective": "2007-01-01",
+    "notes": "Records kept 7 years."
+  },
+  "levy_interest_rate_default_percent": {
+    "value": 10,
+    "unit": "percent",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.29",
+    "effective": "2007-01-01",
+    "notes": "Default levy interest 10% pa."
+  },
+  "levy_interest_rate_max_percent": {
+    "value": 10,
+    "unit": "percent",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.29",
+    "effective": "2007-01-01",
+    "notes": "Maximum levy interest 10% pa."
+  },
+  "levy_interest_rate_min_percent": {
+    "value": 0,
+    "unit": "percent",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.29",
+    "effective": "2007-01-01",
+    "notes": "OC may resolve a lower rate."
+  },
+  "audit_threshold_budget_aud": {
+    "value": 200000,
+    "unit": "AUD",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.35 (Tier 2)",
+    "effective": "2021-12-01",
+    "notes": "Tier 2 audit trigger: fees collected >$75k OR >50 lots. Tier 1: >$200k OR >100 lots."
+  },
+  "audit_threshold_lots": {
+    "value": 100,
+    "unit": "count",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.35 (Tier 1)",
+    "effective": "2021-12-01",
+    "notes": "Tier 1 mandates full external audit: >100 lots or >$200k fees collected."
+  },
+  "financial_statements_deadline_months": {
+    "value": 3,
+    "unit": "months",
+    "legislation": "Owners Corporations Act 2006 (VIC)",
+    "effective": "2007-01-01",
+    "notes": "Financial statements must be tabled at AGM within 3 months of year-end."
+  },
+  "sinking_fund_review_years": {
+    "value": 10,
+    "unit": "years",
+    "legislation": "Owners Corporations Act 2006 (VIC) ss.36–45",
+    "effective": "2021-12-01",
+    "notes": "Maintenance plan must be reviewed every 10 years."
+  },
+  "public_liability_minimum_aud": {
+    "value": 10000000,
+    "unit": "AUD",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.58",
+    "effective": "2007-01-01",
+    "notes": "Minimum $10M public liability insurance."
+  },
+  "building_insurance_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.58",
+    "effective": "2007-01-01",
+    "notes": "Building insurance at replacement value — mandatory."
+  },
+  "manager_contract_max_years": {
+    "value": 5,
+    "unit": "years",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.122B",
+    "effective": "2021-12-01",
+    "notes": "Owners corporation manager contract max 5 years."
+  },
+  "record_inspection_days": {
+    "value": 10,
+    "unit": "days",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.148",
+    "effective": "2007-01-01",
+    "notes": "Records must be available for inspection within 10 days of request."
+  },
+  "capital_funding_standard_notice_days": {
+    "value": 28,
+    "unit": "days",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.31; Consumer Affairs Victoria fees guidance",
+    "effective": "2007-01-01",
+    "notes": "Fee notices are issued in approved form and generally provide at least 28 days for payment."
+  },
+  "capital_funding_emergency_notice_days": {
+    "value": 28,
+    "unit": "days",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.31",
+    "effective": "2007-01-01",
+    "notes": "No shorter generic emergency special-fee period is encoded; urgent works must use legal-review override."
+  },
+  "capital_funding_notice_period_verified": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.31; Consumer Affairs Victoria fees guidance",
+    "effective": "2007-01-01",
+    "notes": "The 28-day first fee notice payment period is encoded from official Victorian guidance."
+  },
+  "capital_funding_resolution_required": {
+    "value": "ordinary_or_special_when_triggered",
+    "unit": "enum",
+    "legislation": "Owners Corporations Act 2006 (VIC) ss.23-24",
+    "effective": "2007-01-01",
+    "notes": "Special fees usually require ordinary resolution; a special resolution is required where the special fee is more than double current annual fees."
+  },
+  "capital_funding_special_resolution_trigger": {
+    "value": "special_fee_more_than_double_annual_fees",
+    "unit": "enum",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.24",
+    "effective": "2007-01-01",
+    "notes": "Consumer Affairs Victoria states special resolution is required where special fees are more than double current annual fees."
+  },
+  "capital_funding_allocation_basis": {
+    "value": "lot_liability",
+    "unit": "enum",
+    "legislation": "Owners Corporations Act 2006 (VIC) ss.23-24",
+    "effective": "2007-01-01",
+    "notes": "Annual and special fees are generally charged by lot liability."
+  },
+  "capital_funding_benefit_principle_available": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.49",
+    "effective": "2007-01-01",
+    "notes": "The benefit principle may affect maintenance and repair cost allocation where lot owners benefit substantially more than others."
+  },
+  "capital_funding_tenant_consultation_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "Owners Corporations Act 2006 (VIC); Consumer Affairs Victoria maintenance guidance",
+    "effective": "2007-01-01",
+    "notes": "Occupiers and tenants may need works-entry notice and must comply with owners corporation rules; tenant-impact communications should be tracked separately from levy votes."
+  },
+  "capital_funding_hardship_notice_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "Owners Corporations Act 2006 (VIC) s.31; Consumer Affairs Victoria hardship guidance",
+    "effective": "2007-01-01",
+    "notes": "VIC fee notices and recovery workflows should support hardship and payment-plan pathways."
+  },
+  "capital_funding_hybrid_legal_review_required": {
+    "value": true,
+    "unit": "bool",
+    "legislation": "Owners Corporations Act 2006 (VIC); lender/legal-advice dependent",
+    "effective": "2007-01-01",
+    "notes": "Hybrid owner-funded and loan-funded structures require recorded legal approval before notices or credits are issued."
+  }
+}

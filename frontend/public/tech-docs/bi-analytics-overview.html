@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>BI Analytics Phase 2 — Overview — StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet">
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">StrataOS</div>
+            <div class="sub">Technical Documentation · BI Analytics Phase 2</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">BI Analytics</div>
+            <a class="active" href="bi-analytics-overview.html"><span class="icon">📊</span> BI Overview</a>
+            <a href="bi-analytics-building-api.html"><span class="icon">🏢</span> Building Endpoints</a>
+            <a href="bi-analytics-portfolio-api.html"><span class="icon">🗂️</span> Portfolio Endpoints</a>
+            <a href="bi-analytics-owner-api.html"><span class="icon">👤</span> Owner Endpoints</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Related Domains</div>
+            <a href="management-hierarchy.html"><span class="icon">🏛️</span> Management Hierarchy</a>
+            <a href="intelligence-module.html"><span class="icon">🧠</span> Intelligence Module</a>
+            <a href="feature-toggles.html"><span class="icon">🎛️</span> Feature Toggles</a>
+            <a href="trust-accounting.html"><span class="icon">🏦</span> Trust Accounting</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#overview">Overview</a>
+            <a href="#access-tiers">Access Tiers</a>
+            <a href="#toggles">Feature Toggles</a>
+            <a href="#data-architecture">Data Architecture</a>
+            <a href="#frontend-pages">Frontend Pages</a>
+            <a href="#featuretrace">FeatureTrace</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main>
+        <section id="overview">
+            <h1>BI Analytics Phase 2 — Overview</h1>
+            <p>BI Analytics Phase 2 extends the platform from a single-building analytics view to a hierarchical,
+            role-scoped intelligence workspace covering four access tiers: <strong>building</strong>,
+            <strong>manager portfolio</strong>, <strong>agency</strong>, and <strong>platform</strong>.</p>
+            <p>All endpoints are served from <code>backend/routers/bi.py</code> (prefix <code>/api/bi</code>) and
+            backed by <code>backend/services/bi_service.py</code>. The read path prefers the canonical PostgreSQL
+            <code>analytics</code> schema when <code>bi_pg_primary_enabled</code> is <code>true</code> for the
+            building; otherwise it falls back to MongoDB aggregations automatically.</p>
+
+            <h2 id="access-tiers">Access Tiers</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>Tier</th>
+                    <th>URL Prefix</th>
+                    <th>Scope</th>
+                    <th>Role Gate</th>
+                    <th>Toggle</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><strong>Building</strong></td>
+                    <td><code>/bi/building/{building_id}/*</code></td>
+                    <td>One building's 14 KPI panels</td>
+                    <td>super_admin, strata_admin, strata_manager, ec_member</td>
+                    <td><code>bi_analytics_building_enabled</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Owner</strong></td>
+                    <td><code>/bi/owner/{owner_id}/*</code></td>
+                    <td>Investment analytics for one owner's lot(s)</td>
+                    <td>Owner (own lots only) or super_admin</td>
+                    <td><code>bi_analytics_building_enabled</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Manager Portfolio</strong></td>
+                    <td><code>/bi/manager/{manager_id}/*</code></td>
+                    <td>Assigned buildings only for a strata_manager</td>
+                    <td>super_admin, strata_admin, strata_manager (own portfolio)</td>
+                    <td><code>bi_portfolio_analytics_enabled</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Agency</strong></td>
+                    <td><code>/bi/agency/{agency_id}/*</code></td>
+                    <td>All buildings under one strata company</td>
+                    <td>super_admin, strata_admin</td>
+                    <td><code>bi_analytics_agency_enabled</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Platform</strong></td>
+                    <td><code>/bi/platform/*</code></td>
+                    <td>Cross-agency, all buildings</td>
+                    <td>super_admin only</td>
+                    <td><code>bi_analytics_platform_enabled</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Management Entity</strong></td>
+                    <td><code>/bi/management-entity/{id}/*</code></td>
+                    <td>Buildings under one management entity</td>
+                    <td>super_admin, strata_admin</td>
+                    <td><code>management_hierarchy_enabled</code></td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="toggles">
+            <h2>Feature Toggles</h2>
+            <p>Each tier has an independent feature toggle. All are global-default <code>true</code> except
+            <code>bi_pg_primary_enabled</code>, which is per-building and defaults to <code>false</code>.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Toggle Key</th>
+                    <th>Default</th>
+                    <th>Controls</th>
+                    <th>Depends On</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>bi_analytics_enabled</code></td>
+                    <td>true</td>
+                    <td>Legacy alias for building-tier (backward compat)</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td><code>bi_analytics_building_enabled</code></td>
+                    <td>true</td>
+                    <td><code>/bi/building/*</code> and <code>/bi/owner/*</code> endpoint reads</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td><code>bi_portfolio_analytics_enabled</code></td>
+                    <td>true</td>
+                    <td><code>/bi/manager/*</code> portfolio endpoints</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td><code>bi_analytics_agency_enabled</code></td>
+                    <td>true</td>
+                    <td><code>/bi/agency/*</code> cross-building endpoints</td>
+                    <td><code>bi_analytics_platform_enabled</code></td>
+                </tr>
+                <tr>
+                    <td><code>bi_analytics_platform_enabled</code></td>
+                    <td>true</td>
+                    <td><code>/bi/platform/*</code> endpoints; super_admin only</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td><code>bi_pg_primary_enabled</code></td>
+                    <td><strong>false</strong></td>
+                    <td>Switches read from MongoDB fallback to PG <code>analytics</code> schema</td>
+                    <td><code>bi_analytics_enabled</code></td>
+                </tr>
+                </tbody>
+            </table>
+            <p><strong>Per-building activation:</strong> enable <code>bi_pg_primary_enabled</code> only after
+            <code>GET /api/bi/building/{id}/cutover-status</code> returns all checks green.</p>
+        </section>
+
+        <section id="data-architecture">
+            <h2>Data Architecture</h2>
+            <h3>Read Path</h3>
+            <pre><code>Request → bi.py router
+  ↓
+bi_service.py — checks bi_pg_primary_enabled for building
+  ├── [PG path ON]  → analytics.fact_levy_charge + analytics.fact_levy_payment
+  │                   analytics.fact_arrears_snapshot
+  │                   analytics.fact_work_order
+  │                   analytics.fact_financial_balance
+  │                   (Alembic 0052 — canonical_bi_schema)
+  └── [PG path OFF] → MongoDB aggregations (fallback, always available)
+       ↓
+  Response + "source": "postgres_bi" | "mongo"</code></pre>
+
+            <h3>PostgreSQL Analytics Schema (Alembic 0052)</h3>
+            <p>All BI fact tables live in the <code>analytics</code> schema. They are populated by ETL jobs
+            triggered via <code>POST /api/bi/admin/etl/run</code> or the admin ETL status page.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Table</th>
+                    <th>Contents</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr><td><code>analytics.fact_levy_charge + analytics.fact_levy_payment</code></td><td>Monthly Due-date Collection Rate per building (charges due as-of-today)</td></tr>
+                <tr><td><code>analytics.fact_arrears_snapshot</code></td><td>Arrears totals and hotspot lots per building (per-unit; no cross-unit netting)</td></tr>
+                <tr><td><code>analytics.fact_work_order</code></td><td>Monthly spend by category</td></tr>
+                <tr><td><code>analytics.fact_financial_balance</code></td><td>Admin and sinking fund KPIs / full-year levy coverage (fund health) per building</td></tr>
+                <tr><td><code>analytics.fact_compliance_event</code></td><td>Compliance certificate status per building</td></tr>
+                <tr><td><code>analytics.fact_capex_plan + analytics.fact_capex_actual</code></td><td>CapEx actuals vs. capital plan per building</td></tr>
+                <tr><td><code>analytics.fact_utility_bill</code></td><td>Utility usage (water, electricity) per unit</td></tr>
+                </tbody>
+            </table>
+            <p class="callout"><strong>Metric contract (GAP-FIN-040):</strong> collection-rate panels report the
+            <strong>Due-date Collection Rate</strong> only (charges due as-of-today; canonical
+            <code>get_collection_rate_metrics()</code>). <strong>Full-Year Levy Coverage / Fund Health</strong> is a
+            separate figure sourced from <code>analytics.fact_financial_balance</code> and must never be labelled
+            "collection rate." Arrears snapshots are per-unit (<code>unit_arrears_and_credit()</code>) with no
+            cross-unit netting.</p>
+
+            <h3>ETL Status &amp; Cutover Check</h3>
+            <ul>
+                <li><code>GET /api/bi/admin/etl-status</code> — per-building ETL freshness and row counts</li>
+                <li><code>GET /api/bi/building/{id}/cutover-status</code> — readiness checks before enabling PG primary</li>
+                <li><code>POST /api/bi/admin/etl/run</code> — trigger ETL refresh (super_admin only)</li>
+            </ul>
+
+            <h3>Response Envelope</h3>
+            <p>All BI endpoints return a standard wrapper:</p>
+            <pre><code>{
+  "data": { /* endpoint-specific payload */ },
+  "building_id": "13195",
+  "source": "postgres_bi" | "mongo"
+}</code></pre>
+        </section>
+
+        <section id="frontend-pages">
+            <h2>Frontend Pages</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>Route</th>
+                    <th>Component</th>
+                    <th>Toggle</th>
+                    <th>Role</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td><code>/intelligence/bi</code></td>
+                    <td><code>pages/dashboard/BIAnalyticsPage.tsx</code></td>
+                    <td><code>bi_analytics_building_enabled</code></td>
+                    <td>super_admin, strata_admin, strata_manager, ec_member</td>
+                </tr>
+                <tr>
+                    <td><code>/intelligence/bi/manager/[id]</code></td>
+                    <td><code>pages/dashboard/ManagerBIAnalyticsPage.tsx</code></td>
+                    <td><code>bi_portfolio_analytics_enabled</code></td>
+                    <td>super_admin, strata_admin, strata_manager</td>
+                </tr>
+                <tr>
+                    <td><code>/intelligence/bi/agency/[id]</code></td>
+                    <td><code>pages/dashboard/AgencyBIAnalyticsPage.tsx</code></td>
+                    <td><code>bi_analytics_agency_enabled</code></td>
+                    <td>super_admin, strata_admin</td>
+                </tr>
+                <tr>
+                    <td><code>/intelligence/bi/platform</code></td>
+                    <td><code>pages/dashboard/PlatformBIAnalyticsPage.tsx</code></td>
+                    <td><code>bi_analytics_platform_enabled</code></td>
+                    <td>super_admin only</td>
+                </tr>
+                <tr>
+                    <td><code>/dashboard/admin/etl-status</code></td>
+                    <td><code>pages/dashboard/admin/ETLStatusPage.tsx</code></td>
+                    <td>—</td>
+                    <td>super_admin only</td>
+                </tr>
+                </tbody>
+            </table>
+            <p><strong>BIAnalyticsPage.tsx</strong> renders 14 panels grouped by domain: Financial (4), Maintenance (3),
+            Compliance (2), Occupancy (2), Asset Risk (2), Requests (1). Each panel calls its respective
+            <code>/bi/building/{id}/*</code> endpoint independently so panels load in parallel.</p>
+        </section>
+
+        <section id="featuretrace">
+            <h2>FeatureTrace</h2>
+            <pre><code># Tag: bi-analytics
+# Key files:
+#   frontend/src/pages/dashboard/BIAnalyticsPage.tsx
+#   frontend/src/pages/dashboard/ManagerBIAnalyticsPage.tsx
+#   frontend/src/pages/dashboard/AgencyBIAnalyticsPage.tsx
+#   frontend/src/pages/dashboard/PlatformBIAnalyticsPage.tsx
+#   backend/routers/bi.py
+#   backend/services/bi_service.py
+#   backend/alembic/versions/0052_canonical_bi_schema.py
+#   tests/backend/test_bi_router.py
+
+# Run: python3 scripts/validation/generate_featuretrace_map.py bi-analytics --format all</code></pre>
+        </section>
+    </main>
+</div>
+</body>
+</html>

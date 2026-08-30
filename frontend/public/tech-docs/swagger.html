@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StrataOS API Swagger</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css" />
+  <script src="auth-guard.js"></script>
+  <style>
+    body { margin: 0; background: #f7fafc; }
+    .topbar { display: none; }
+    .doc-header { padding: 18px 28px; background: #1f3f3f; color: white; font-family: Inter, system-ui, sans-serif; }
+    .doc-header h1 { margin: 0 0 6px; font-size: 22px; }
+    .doc-header p { margin: 0; color: rgba(255,255,255,.75); font-size: 13px; }
+    .doc-links { margin-top: 10px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .doc-links a { color: #f2cc8f; text-decoration: none; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="doc-header">
+    <h1>StrataOS API Swagger</h1>
+    <p>Generated 2026-08-29 from the live FastAPI route table. Examples default to <code>building_id=UPDEMO5</code> (seeded demo, safe to mutate); <code>{{eastgate_building_id}}</code>=<code>13195</code> is real East Gate data and is read-only.</p>
+    <div class="doc-links">
+      <a href="strataos-openapi.json">OpenAPI JSON</a>
+      <a href="postman/strataos_demo_collection.json">Postman collection</a>
+      <a href="postman/strataos_demo_environment.json">Postman environment</a>
+      <a href="api.html">API docs overview</a>
+    </div>
+  </div>
+  <div id="swagger-ui"></div>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    window.ui = SwaggerUIBundle({
+      url: 'strataos-openapi.json',
+      dom_id: '#swagger-ui',
+      deepLinking: true,
+      persistAuthorization: true,
+      displayOperationId: true,
+      defaultModelsExpandDepth: 1,
+      tryItOutEnabled: true
+    });
+  </script>
+</body>
+</html>

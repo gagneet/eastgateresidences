@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Strata Admin Handbook</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform</div>
+            </div>
+        </div>
+        <div class="badge">Organisation Admin Handbook</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Navigation</h3>
+        <div class="card callout info" style="margin-top:14px">
+            <strong>Role model</strong><br/>
+            <code>strata_admin</code> is the organisation-administration role. Chairperson duties are handled through
+            EC membership and EC position data, not a separate <code>chairman</code> login role.
+        </div>
+    </nav>
+
+    <article class="content">
+        <h1>Strata Admin Handbook</h1>
+        <p>Strata Admins manage organisation-level operations across assigned buildings: portfolio visibility, user and
+            role administration, reporting, settings, workflow oversight, and controlled access to finance,
+            compliance, maintenance, documents, and insurance tools.</p>
+
+        <div class="card callout success">
+            <strong>Primary responsibility</strong>
+            <p>Keep each assigned building operationally configured, correctly staffed, and safely scoped. Always check
+                the selected building before viewing or changing records.</p>
+        </div>
+
+        <h2 id="scope">Access Scope</h2>
+        <ul>
+            <li><strong>Assigned buildings only:</strong> Your building selector controls all building-scoped data.</li>
+            <li><strong>Organisation controls:</strong> You may see portfolio, reports, users, and settings where your
+                permission flags allow it.</li>
+            <li><strong>No tenant bypass:</strong> You cannot view buildings outside your assigned scope, and you should
+                not use screenshots or exports from one building while working in another.</li>
+            <li><strong>Super Admin boundary:</strong> Platform-wide configuration, protected toggles, and emergency
+                overrides remain Super Admin responsibilities unless explicitly delegated.</li>
+        </ul>
+
+        <h2 id="navigation">Menu And Discovery</h2>
+        <p>The sidebar is served by the backend navigation configuration for <code>strata_admin</code>. New advanced
+            menu suggestions rotate through unseen items on login/config refresh. Opening a suggested page marks that
+            feature as seen; dismissing a suggestion starts the configured cooldown.</p>
+        <ul>
+            <li><strong>Dashboard:</strong> organisation or building overview for the active context.</li>
+            <li><strong>Portfolio:</strong> assigned-building list, operational signals, and cross-building review.</li>
+            <li><strong>Users &amp; Roles:</strong> user approvals, role updates, and permission flag review.</li>
+            <li><strong>Reports:</strong> management and operational reporting.</li>
+            <li><strong>Organisation Settings:</strong> settings available to your role and selected building.</li>
+            <li><strong>Advanced tools:</strong> finance, compliance, maintenance, workflows, levy management,
+                documents, insurance, GST/BAS, and other enabled modules.</li>
+        </ul>
+        <div class="shot"><strong>Screenshot placeholder:</strong> Strata Admin sidebar with portfolio, users, reports,
+            settings, and advanced suggestions
+        </div>
+
+        <h2 id="users">Users And Roles</h2>
+        <ul>
+            <li><strong>Review registrations:</strong> Approve, reject, or request more information for pending users
+                after checking building and unit context.</li>
+            <li><strong>Maintain role accuracy:</strong> Use canonical roles such as <code>owner</code>,
+                <code>tenant</code>, <code>ec_member</code>, <code>admin_staff</code>,
+                <code>strata_manager</code>, and <code>strata_admin</code>. Do not create a
+                <code>chairman</code> user role.</li>
+            <li><strong>Handle EC positions:</strong> Chairperson, treasurer, secretary, and ordinary committee
+                responsibilities belong on EC membership/position records.</li>
+            <li><strong>Check permission flags:</strong> Access to finance, settings, user management, and audit
+                functions depends on explicit <code>can_*</code> flags as well as role.</li>
+        </ul>
+
+        <h2 id="portfolio">Portfolio And Building Operations</h2>
+        <ul>
+            <li><strong>Portfolio dashboard:</strong> Scan assigned buildings for arrears, compliance, open requests,
+                and workload indicators.</li>
+            <li><strong>Building context:</strong> Switch buildings only through the approved selector or
+                super-admin/strata-admin context path. Confirm the active building before exports or updates.</li>
+            <li><strong>Operational triage:</strong> Use maintenance and workflow views to spot overdue work, stuck
+                approvals, and SLA-breached requests.</li>
+            <li><strong>Escalation:</strong> Escalate policy decisions to the EC and platform-risk decisions to Super
+                Admins.</li>
+        </ul>
+
+        <h2 id="finance">Finance Oversight</h2>
+        <p>Strata Admin finance access is oversight-oriented and permission-controlled. The platform should show
+            consolidated labels and calculations consistently across finance screens, but ledger-changing actions still
+            require the correct building context and finance permissions.</p>
+        <ul>
+            <li><strong>Finance overview:</strong> Review collection, arrears, fund, budget, and levy surfaces for the
+                selected building.</li>
+            <li><strong>Levy management:</strong> Check annual levy setup, due dates, and unit-level levy status.</li>
+            <li><strong>Payment matching:</strong> Review matching queues where enabled; do not create live financial
+                records from test data.</li>
+            <li><strong>GST/BAS ledger:</strong> Use only where the feature flag and finance permission are enabled.</li>
+            <li><strong>Exports:</strong> Confirm building, financial year, and audience before exporting reports.</li>
+            <li><strong>Financial Onboarding / Historical Reconstruction:</strong> At <strong>Financial → Financial
+                Onboarding</strong>, add or reconstruct a building's financial history after it has already been
+                onboarded (e.g. a migration with incomplete records). You can prepare, review, approve, generate,
+                and sync a reconstruction batch — reversing a batch and applying a levy-item GST regeneration are
+                Super Admin only. See the <a href="historical-reconstruction.html">Historical Reconstruction
+                guide</a> for the full two-person approval workflow.
+            </li>
+        </ul>
+
+        <h2 id="compliance">Compliance, Documents, And Insurance</h2>
+        <ul>
+            <li><strong>Compliance calendar:</strong> Monitor due dates, overdue items, and evidence requirements.</li>
+            <li><strong>Documents:</strong> Keep records in the correct building and access level. Avoid using
+                chairperson-only wording for organisation-admin folders.</li>
+            <li><strong>Insurance:</strong> Review policy, claim, and renewal surfaces where enabled.</li>
+            <li><strong>Audit trail:</strong> Treat sensitive changes as auditable actions. Record why a change was made
+                when the UI provides notes or evidence fields.</li>
+        </ul>
+
+        <h2 id="api-docs">Developer And API Docs</h2>
+        <p>Super Admins and authorised Strata Admins can use the browser technical documentation for integration and
+            operational checks:</p>
+        <ul>
+            <li><a href="/tech-docs/swagger.html">Swagger API documentation</a> for browser-based API exploration.</li>
+            <li><a href="/tech-docs/strataos-openapi.json">OpenAPI JSON</a> for generated client or tool imports.</li>
+            <li><a href="/tech-docs/postman/strataos_demo_collection.json">Postman collection</a> and
+                <a href="/tech-docs/postman/strataos_demo_environment.json">demo environment</a> for local/demo testing.
+            </li>
+        </ul>
+        <div class="card callout warn">
+            <strong>Demo safety:</strong> The generated Postman environment defaults to <code>building_id=demo</code>.
+            Do not change it to a production building unless the test is intentional and approved.
+        </div>
+
+        <h2 id="permissions">Permission Model</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px">
+            <thead>
+            <tr style="background:rgba(255,255,255,.06)">
+                <th style="padding:6px 10px;text-align:left">Area</th>
+                <th style="padding:6px 10px;text-align:left">Typical control</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td style="padding:5px 10px">Users and roles</td>
+                <td style="padding:5px 10px"><code>can_manage_users</code></td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px">Settings</td>
+                <td style="padding:5px 10px"><code>can_manage_settings</code></td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px">Finance</td>
+                <td style="padding:5px 10px"><code>can_manage_finances</code> or finance-specific view/export flags</td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px">Audit</td>
+                <td style="padding:5px 10px"><code>can_view_audit</code></td>
+            </tr>
+            <tr>
+                <td style="padding:5px 10px">Feature visibility</td>
+                <td style="padding:5px 10px">feature toggles plus user/building overrides</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2 id="handover">Daily Checklist</h2>
+        <ul>
+            <li>Confirm selected building and role context.</li>
+            <li>Review pending users and permission changes.</li>
+            <li>Scan portfolio and building dashboards for overdue operational items.</li>
+            <li>Check compliance, maintenance, finance, and workflow exceptions.</li>
+            <li>Record evidence or notes for material administrative actions.</li>
+            <li>Escalate EC governance decisions to the EC chairperson or committee workflow.</li>
+        </ul>
+    </article>
+</main>
+
+<footer>
+    Generated 15 July 2026 • Support: noreply@ • A vision by: Silverfox Technologies, Australia
+    • Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

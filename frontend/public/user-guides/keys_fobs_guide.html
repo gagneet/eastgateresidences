@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Keys &amp; Fobs Management — User Guide | <span data-bldg="name">your building</span></title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-yellow {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-gray {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .step {
+            border-left: 4px solid #2F4F4F;
+            padding: 10px 16px;
+            margin: 12px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        th {
+            background: #2F4F4F;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 9px 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 16px 0;
+            color: #1e40af;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← Back to User Guides</a>
+        <h1>🔑 Keys &amp; Fobs Management</h1>
+        <p>Track building access keys, garage fobs, letterbox keys and common area fobs across all units.</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2>Overview</h2>
+        <p>The Keys &amp; Fobs Register is part of the <em>Asset Register</em> page
+            (<strong>Dashboard → Admin → Assets</strong>). It provides a complete audit trail for every physical
+            access device issued to residents, including garage fobs, entry keys, letterbox keys, common area
+            fobs, and master keys.</p>
+        <div class="info-box">
+            ℹ️ Only <strong>EC Members, EC Chairman, Strata Managers, and Admins</strong> can issue, update, or
+            delete fob records. Owners can view the fobs assigned to their unit.
+        </div>
+    </section>
+
+    <section>
+        <h2>Key &amp; Fob Types</h2>
+        <table>
+            <tr>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Typical Quantity</th>
+            </tr>
+            <tr>
+                <td>Entry Key</td>
+                <td>Physical key for main building entry doors</td>
+                <td>1–2 per unit</td>
+            </tr>
+            <tr>
+                <td>Garage Fob</td>
+                <td>Electronic fob for basement/garage roller door</td>
+                <td>1–2 per vehicle space</td>
+            </tr>
+            <tr>
+                <td>Letterbox Key</td>
+                <td>Key for individual letterbox in mail area</td>
+                <td>1 per unit</td>
+            </tr>
+            <tr>
+                <td>Common Area Fob</td>
+                <td>Fob for pool, gym, function room access</td>
+                <td>1–2 per unit</td>
+            </tr>
+            <tr>
+                <td>Master Key</td>
+                <td>Restricted management use only</td>
+                <td>EC/Admin only</td>
+            </tr>
+            <tr>
+                <td>Other</td>
+                <td>Any other access device</td>
+                <td>As required</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2>Status Values</h2>
+        <table>
+            <tr>
+                <th>Status</th>
+                <th>Meaning</th>
+            </tr>
+            <tr>
+                <td><span class="badge badge-green">Active</span></td>
+                <td>Fob/key is currently issued and in use</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-gray">Returned</span></td>
+                <td>Fob/key has been returned (e.g. on sale of unit)</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-red">Lost</span></td>
+                <td>Reported lost or missing — may require reprogramming</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-yellow">Replacement</span></td>
+                <td>Replacement issued; original assumed lost/damaged</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2>Issuing a Key or Fob</h2>
+        <div class="step"><strong>Step 1:</strong> Go to <em>Dashboard → Admin → Assets</em> and click the <strong>Keys
+            &amp; Fobs</strong> tab.
+        </div>
+        <div class="step"><strong>Step 2:</strong> Click <strong>Issue Key/Fob</strong>.</div>
+        <div class="step"><strong>Step 3:</strong> Fill in the form:
+            <ul>
+                <li><strong>Unit Number</strong> — the unit this device is being issued to</li>
+                <li><strong>Type</strong> — entry key, garage fob, letterbox key, etc.</li>
+                <li><strong>Serial/Fob Number</strong> — the unique identifier printed on the device</li>
+                <li><strong>Issued To</strong> — full name of the recipient</li>
+                <li><strong>Issue Date</strong> — defaults to today</li>
+                <li><strong>Notes</strong> — optional (e.g. "Replacement for lost FOB-042")</li>
+            </ul>
+        </div>
+        <div class="step"><strong>Step 4:</strong> Click <strong>Save</strong>. The fob appears in the register with
+            status <span class="badge badge-green">Active</span>.
+        </div>
+    </section>
+
+    <section>
+        <h2>Marking a Fob as Returned or Lost</h2>
+        <p>Use the action buttons in the fob register table:</p>
+        <ul>
+            <li><strong>Return</strong> — marks the fob <span class="badge badge-gray">Returned</span> and records the
+                return date. Use this when a unit is sold or a lease ends.
+            </li>
+            <li><strong>Lost</strong> — marks the fob <span class="badge badge-red">Lost</span>. You should then issue a
+                replacement and arrange reprogramming of the garage system if required.
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Searching and Filtering</h2>
+        <p>Use the search bar to find fobs by unit number, serial number, or the name they are issued to.
+            Use the <strong>Type</strong> and <strong>Status</strong> dropdown filters to narrow results.</p>
+    </section>
+
+    <section>
+        <h2>Garage Fob Management</h2>
+        <p>Garage fobs require coordination with the building's access control system (typically Paxton or similar).
+            When a fob is reported lost:</p>
+        <ol>
+            <li>Mark it as <span class="badge badge-red">Lost</span> in the register.</li>
+            <li>Contact the building manager to deactivate the lost fob in the access control panel.</li>
+            <li>Issue a replacement fob (type: <em>Garage Fob</em>) and record the new serial number.</li>
+            <li>Advise the resident of any replacement fee per the by-laws.</li>
+        </ol>
+        <div class="info-box">
+            ℹ️ A replacement fee may apply for lost fobs. Check the building's <em>By-Laws</em> and <em>Administrative
+            Fund</em> schedule for the current fee.
+        </div>
+    </section>
+
+    <section>
+        <h2>Owner View (Read-Only)</h2>
+        <p>Owners can see the fobs and keys assigned to their unit by visiting
+            <em>Dashboard → Admin → Assets → Keys &amp; Fobs</em>. The list is automatically filtered to their unit.
+            If you believe a fob is missing from your record, contact your strata manager.</p>
+    </section>
+
+    <section>
+        <h2>Role Permissions</h2>
+        <table>
+            <tr>
+                <th>Action</th>
+                <th>Owner / Tenant</th>
+                <th>EC Member / Chairman</th>
+                <th>Strata Manager / Admin</th>
+            </tr>
+            <tr>
+                <td>View own unit's fobs</td>
+                <td>✅</td>
+                <td>✅</td>
+                <td>✅</td>
+            </tr>
+            <tr>
+                <td>View all building fobs</td>
+                <td>❌</td>
+                <td>✅</td>
+                <td>✅</td>
+            </tr>
+            <tr>
+                <td>Issue a fob</td>
+                <td>❌</td>
+                <td>✅</td>
+                <td>✅</td>
+            </tr>
+            <tr>
+                <td>Mark returned / lost</td>
+                <td>❌</td>
+                <td>✅</td>
+                <td>✅</td>
+            </tr>
+            <tr>
+                <td>Delete a fob record</td>
+                <td>❌</td>
+                <td>✅</td>
+                <td>✅</td>
+            </tr>
+        </table>
+    </section>
+
+</main>
+
+<footer>
+    <p><span data-bldg="name">your building</span></p>
+    <p><a href="index.html">Back to User Guides</a></p>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

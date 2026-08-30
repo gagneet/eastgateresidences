@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Portfolio Dashboard — User Guide | <span data-bldg="name">your building</span></title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-yellow {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-gray {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .step {
+            border-left: 4px solid #2F4F4F;
+            padding: 10px 16px;
+            margin: 12px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        th {
+            background: #2F4F4F;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← Back to User Guides</a>
+        <h1>Portfolio Dashboard</h1>
+        <p>A cross-building overview for strata managers and administrators.</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2>Who Can See This?</h2>
+        <p>The Portfolio Dashboard is available to:</p>
+        <ul>
+            <li><span class="badge badge-blue">Super Admin</span> — full access, all buildings</li>
+            <li><span class="badge badge-blue">Strata Manager</span> — buildings they manage</li>
+            <li><span class="badge badge-blue">EC Chairman</span> — their building only (manager-level access)</li>
+        </ul>
+        <p>Owners and tenants cannot access this page.</p>
+    </section>
+
+    <section>
+        <h2>Overview</h2>
+        <p>The Portfolio Dashboard shows a summary of every building in your portfolio at a glance. You can monitor
+            financial health, maintenance activity, compliance deadlines, and arrears across all buildings without
+            switching between them.</p>
+        <p>Navigate to: <strong>Dashboard → Portfolio</strong></p>
+    </section>
+
+    <section>
+        <h2>Summary Cards</h2>
+        <p>At the top of the page, four summary cards provide portfolio-wide totals:</p>
+        <table>
+            <tr>
+                <th>Card</th>
+                <th>What it shows</th>
+            </tr>
+            <tr>
+                <td>Buildings</td>
+                <td>Total active buildings in your portfolio</td>
+            </tr>
+            <tr>
+                <td>Total Lots</td>
+                <td>Sum of all strata lots across every building</td>
+            </tr>
+            <tr>
+                <td>Avg Health</td>
+                <td>Average building health score (0–100) across all buildings</td>
+            </tr>
+            <tr>
+                <td>Alerts</td>
+                <td>Number of buildings with low health or critical issues</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2>Buildings Table</h2>
+        <p>Each row represents one building. The columns are:</p>
+        <table>
+            <tr>
+                <th>Column</th>
+                <th>Meaning</th>
+            </tr>
+            <tr>
+                <td>Building</td>
+                <td>Building name and ID</td>
+            </tr>
+            <tr>
+                <td>Lots</td>
+                <td>Total strata lots in this building</td>
+            </tr>
+            <tr>
+                <td>Health</td>
+                <td>Overall building health score 0–100 (A ≥ 85, B ≥ 70, C ≥ 55, D &lt; 55)</td>
+            </tr>
+            <tr>
+                <td>Arrears %</td>
+                <td>Percentage of lots with outstanding levy payments</td>
+            </tr>
+            <tr>
+                <td>Open WOs</td>
+                <td>Number of open maintenance work orders</td>
+            </tr>
+            <tr>
+                <td>Next Compliance</td>
+                <td>Nearest upcoming compliance deadline (e.g. fire safety inspection)</td>
+            </tr>
+            <tr>
+                <td>Actions</td>
+                <td>View button to open the building's detail page</td>
+            </tr>
+        </table>
+        <p>Click any row to navigate to the building detail page for a full breakdown.</p>
+        <div class="info-box">
+            <strong>Health score colour coding:</strong><br/>
+            <span class="badge badge-green">Green (≥ 75)</span> — Healthy &nbsp;
+            <span class="badge badge-yellow">Amber (≥ 50)</span> — Needs attention &nbsp;
+            <span class="badge badge-red">Red (&lt; 50)</span> — At risk
+        </div>
+    </section>
+
+    <section>
+        <h2>Portfolio Alerts</h2>
+        <p>If any building has a health score below 50, an alert card appears above the table with a summary of affected
+            buildings and the reason (e.g. "Low Health: 40"). Resolve alerts by addressing the underlying issues in that
+            building.</p>
+    </section>
+
+    <section>
+        <h2>Recompute Button</h2>
+        <p>Health scores and metrics are pre-computed nightly. If you need fresh data immediately:</p>
+        <div class="step"><strong>Step 1:</strong> Click <em>Recompute</em> in the top-right of the page.</div>
+        <div class="step"><strong>Step 2:</strong> Wait for the spinner to stop — the page will refresh with updated
+            figures.
+        </div>
+        <p>Recompute calls the <code>POST /community-dashboard/recompute</code> endpoint for the selected building. For
+            a full portfolio refresh, click Recompute on each building or use the admin seed script.</p>
+    </section>
+
+    <section>
+        <h2>Last Updated Banner</h2>
+        <p>A banner below the header shows when the portfolio data was last refreshed. Metrics are computed daily at
+            02:00 AEST by the automated workflow. If this timestamp is more than 24 hours old and Recompute has not been
+            triggered, check that the nightly cron is running.</p>
+    </section>
+
+    <section>
+        <h2>Column Tooltips</h2>
+        <p>Hover over any column header (the <strong>ⓘ</strong> icon) to see a plain-English explanation of what that
+            metric means and how it is calculated.</p>
+    </section>
+
+    <section>
+        <h2>Frequently Asked Questions</h2>
+        <h3>Why does a building show 0 lots?</h3>
+        <p>The building record may not have the <code>lot_count</code> field set. Run the buildings seed script or
+            contact your system administrator.</p>
+        <h3>Why is the health score missing?</h3>
+        <p>Health scores must be computed before they appear. Click <em>Recompute</em> or wait for the nightly run. If
+            the score is still missing after that, the <code>building_summaries</code> seed script may need to be
+            re-run.</p>
+        <h3>I can see my building but not others — is that correct?</h3>
+        <p>Yes. The portfolio is scoped to buildings your account has access to. Super Admins see all buildings; EC
+            Chairmen see only their own building.</p>
+    </section>
+
+</main>
+
+<footer>
+    <p><span data-bldg="name">your building</span> | Executive Committee | Strata Manager<br>
+        E: <a data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC
+            email</a><br>
+        P: <span data-bldg="contact_phone">(contact number)</span></p>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

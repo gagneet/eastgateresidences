@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Historical Reconstruction – Manager Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        table.status-flow {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        table.status-flow th, table.status-flow td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        table.status-flow th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em">Your Building</div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform</div>
+            </div>
+        </div>
+        <div class="badge">Manager Guide</div>
+    </div>
+</header>
+
+<main>
+    <nav>
+        <h3>Navigation</h3>
+        <a href="index.html">Home</a>
+        <a href="full_guide.html">Full Guide</a>
+        <a href="payment-matching.html">Payment Matching</a>
+        <a aria-current="page" href="historical-reconstruction.html">Historical Reconstruction</a>
+    </nav>
+
+    <article>
+        <h1>Historical Reconstruction</h1>
+        <p>Historical Reconstruction lets you rebuild levy and expense history for financial years where your
+            building does not have complete dated payment records — for example, years before your building moved
+            onto this platform. It never writes to your building's financial ledger directly. Every reconstruction
+            goes through a reviewed, human-approved batch before anything is generated, and generated data still has
+            to be synced through the same bank-feed pipeline as a real payment before it can affect any report.</p>
+
+        <div class="card callout info">
+            <strong>Who can access this?</strong> Strata Admins, Strata Managers, and Super Admins can prepare
+            batches. Approving, generating, syncing, and reversing a batch is restricted to Strata Admins and Super
+            Admins. Applying a levy regeneration and reversing a batch are Super Admin only. Owners, tenants, and EC
+            Members do not have access to this page.
+        </div>
+
+        <h2>Getting there</h2>
+        <p>Dashboard → <strong>Financial</strong> → <strong>Historical Reconstruction</strong>. The page is only
+            visible when the <em>Historical Financial Reconstruction</em> feature toggle is enabled for your
+            building. If it is enabled but the separate <em>Historical Reconstruction Posting</em> toggle is off, you
+            can still prepare and preview batches, but Approve/Generate/Sync/Reverse and levy-regeneration Apply stay
+            disabled until posting is turned on — the page tells you this explicitly rather than just hiding the
+            buttons.</p>
+
+        <h2>Preparation versus posting</h2>
+        <p>The workflow is split into two stages, gated by two separate feature toggles:</p>
+        <ul>
+            <li><strong>Preparation</strong> (create, extract, preview, submit for review, plan a levy regeneration)
+                never changes anything a resident or owner can see. It is safe to explore.
+            </li>
+            <li><strong>Posting</strong> (approve, generate, sync, reverse, apply a levy regeneration) writes real
+                data — generated transactions, synced bank rows, or regenerated levy items. These actions are locked
+                behind a separate toggle and tighter role requirements precisely because they are not reversible in
+                the same casual way preparation is.
+            </li>
+        </ul>
+
+        <h2>Before you start: check for existing financial history</h2>
+        <p>The Reconstruction Batches tab shows a status card as soon as the page loads, before you create
+            anything: <strong>"No financial history found — ready to generate"</strong> (blue) if the building has
+            no recorded levy payments yet for the last 3 financial years, or <strong>"Partial financial history
+            found (N of M lot/year/fund periods already paid) — generating from the proposed budget will skip
+            those periods"</strong> (amber) if some periods are already covered. Either way, you can proceed —
+            the generator (below) automatically skips any lot/year/fund combination that already has a real
+            recorded payment, so you never end up with duplicate levy payments for the same period.</p>
+
+        <h2>Import & Generate — starting from a source document</h2>
+        <p>Added 2026-07-27. If your building doesn't already have a proposed budget or fund closing balances
+            entered in the platform — for example, you're onboarding a building using figures from an AGM pack,
+            a spreadsheet handed over by the outgoing manager, or any other document your committee or manager has
+            on hand — use the <strong>Import & Generate</strong> tab before creating a batch. It accepts a CSV or
+            JSON file with any combination of these columns, and tolerates gaps in all of them:</p>
+        <ul>
+            <li>Proposed Admin fund amount for a year</li>
+            <li>Proposed Sinking fund amount for a year</li>
+            <li>Closing balance per fund for a year</li>
+            <li>Actual spend per expense category for a year</li>
+        </ul>
+        <div class="card callout warn">
+            <strong>These are declared figures, not verified transactions.</strong> Whatever you upload here is the
+            source of truth <em>you</em> are supplying — the platform does not check it against a bank statement.
+            Everything generated downstream from it is clearly labelled "Reconstructed / Estimated" (see the
+            Reconciliation page) until a real bank connection confirms it independently.
+        </div>
+        <p>After import, the wizard shows a coverage summary — which years and funds had data, and which were
+            missing — so you can see exactly what will and won't be reconstructed before you proceed to
+            <strong>Create Batch</strong> below. Missing data is skipped, not treated as zero.</p>
+
+        <h2>Choosing how a batch generates its data</h2>
+        <p>When you click <strong>Create Batch</strong>, choose a <strong>Generation source</strong>:</p>
+        <ul>
+            <li><strong>Generate from proposed budget (Admin/Sinking/GST)</strong> — the default, and the option
+                you should use for almost every building. Works for any building: it computes one combined
+                Admin+Sinking(+GST) payment per lot per quarter directly from your building's proposed levy
+                budget and unit entitlements, and automatically skips any period that already has a real
+                recorded payment (see the status card above). If you imported expense-category data via
+                Import & Generate, the same batch also produces one dated expense transaction per category per
+                year, merged into the same preview and manifest as the income side.
+            </li>
+            <li><strong>Link existing Demo Bank rows</strong> — an older option that only works if your building
+                already has matching Demo Bank transaction rows created some other way. It does not generate any
+                new data, only links what is already there. Most buildings should not need this option.
+            </li>
+        </ul>
+
+        <h2>The batch workflow</h2>
+        <p>Each reconstruction batch covers one financial-year range and moves through these stages in order:</p>
+
+        <table class="status-flow">
+            <thead>
+            <tr>
+                <th>Stage</th>
+                <th>What it does</th>
+                <th>Who</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Create</td>
+                <td>Starts a batch in "draft" status for a financial-year range and a reconstruction method. No data
+                    is written yet.
+                </td>
+                <td>Strata Admin / Manager / Super Admin</td>
+            </tr>
+            <tr>
+                <td>Extract</td>
+                <td>Marks the batch's source facts as gathered (existing bank data, evidence documents you've already
+                    uploaded separately).
+                </td>
+                <td>Strata Admin / Manager / Super Admin</td>
+            </tr>
+            <tr>
+                <td>Preview</td>
+                <td>Computes what the reconstruction would produce — expected transaction count, expected totals —
+                    without saving anything. Run this as many times as you like.
+                </td>
+                <td>Strata Admin / Manager / Super Admin</td>
+            </tr>
+            <tr>
+                <td>Submit for Review</td>
+                <td>Recomputes the same calculation one more time (never trusts an old preview) and saves it as the
+                    batch's official manifest. This is the point of no casual return — the batch now needs a formal
+                    approval before anything else can happen.
+                </td>
+                <td>Strata Admin / Manager / Super Admin</td>
+            </tr>
+            <tr>
+                <td>Review</td>
+                <td>A human check of the saved manifest, with optional notes. This does not approve anything by
+                    itself — see "Why approval may be unavailable" below.
+                </td>
+                <td>Strata Admin / Super Admin</td>
+            </tr>
+            <tr>
+                <td>Approve</td>
+                <td>A second, genuinely different admin's sign-off on the reviewed manifest. See "Why approval may
+                    be unavailable" below.
+                </td>
+                <td>Strata Admin / Super Admin</td>
+            </tr>
+            <tr>
+                <td>Reject <span style="font-weight:normal">(added 2026-07-27)</span></td>
+                <td>Sends a batch that's in "Needs Review" back to "Extracted" with a required reason, instead of
+                    approving it. Use this when the manifest looks wrong — a source figure needs correcting, or the
+                    reconstruction method chosen doesn't fit. The batch keeps its history; you re-run Preview and
+                    Submit for Review once the underlying data is fixed. Reject is only available from "Needs
+                    Review" — it cannot be used on a draft batch or one that's already been approved.
+                </td>
+                <td>Strata Admin / Super Admin</td>
+            </tr>
+            <tr>
+                <td>Generate</td>
+                <td>Turns the approved manifest into staged bank-feed rows. Still not visible in any resident-facing
+                    report at this point.
+                </td>
+                <td>Strata Admin / Super Admin</td>
+            </tr>
+            <tr>
+                <td>Sync</td>
+                <td>Runs the same bank-feed sync pipeline used for real bank statements, scoped to just this batch's
+                    rows. This is the step that actually makes the reconstructed data visible in matching, arrears,
+                    and levy reports.
+                </td>
+                <td>Strata Admin / Super Admin</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="card callout warn">
+            <strong>Sync tells you the truth about what happened.</strong> If nothing matched or any row failed, the
+            batch is marked "Failed", not "Synced" — you will never see a false "Synced" status for a sync that
+            didn't actually move any data.
+        </div>
+
+        <h2>Why approval may be unavailable</h2>
+        <p>Approval is a genuine two-person process, enforced by the platform, not just a confirmation dialog:</p>
+        <ol>
+            <li>Once a batch reaches "Needs Review," any Strata Admin or Super Admin sees a <strong>Review</strong>
+                button. Clicking it records that you reviewed the manifest, with optional notes for whoever approves
+                next.
+            </li>
+            <li>Once reviewed, a <strong>different</strong> Strata Admin or Super Admin sees an <strong>Approve</strong>
+                button. If you were the one who clicked Review, the Approve button stays disabled for you — the
+                platform will not let the same person both review and approve the same batch.
+            </li>
+        </ol>
+        <div class="card callout warn">
+            <strong>This means at least two people with the right role need to be involved.</strong> If your
+            building only has one Strata Admin/Super Admin, you will need a second qualified person (for example,
+            your managing agent's second admin, or a Super Admin) to complete the approval step.
+        </div>
+
+        <h2>What "Generated" and "Synced" mean</h2>
+        <ul>
+            <li><strong>Generated</strong> means the reconstructed transactions now exist as staged records, matching
+                the approved manifest exactly. Nothing outside this workflow can see them yet.
+            </li>
+            <li><strong>Synced</strong> means those staged records have been copied into your building's canonical
+                bank transaction table — the same table real bank statement imports land in. From this point, the
+                reconstructed data behaves exactly like a real payment for matching, arrears, and levy reporting
+                purposes.
+            </li>
+        </ul>
+        <div class="card callout warn">
+            <strong>Check the actual counts, not just the status.</strong> If this building has previously had a
+            batch generated and later archived/superseded (for example, an earlier rebuild), re-generating very
+            similar transactions later can silently produce fewer new records than the manifest promised — the
+            system correctly refuses to create an exact duplicate of something already on file, even if that
+            existing copy is archived, rather than reviving the old copy. If a batch you approved for a specific
+            gap doesn't seem to have closed that gap after Sync, ask your Super Admin to check the actual
+            transaction counts for the affected years rather than assuming Generated/Synced status alone means
+            every expected row landed.
+        </div>
+        <p>Once a batch reaches Synced (or a later stage), a <strong>"Go to Payment Matching Review"</strong>
+            button appears on the batch detail screen — it takes you straight to the same Payment Matching page
+            used for real bank feeds, scoped to review how the reconstructed transactions were matched.</p>
+
+        <h2>What Reverse does — and does not do</h2>
+        <p>Reverse marks a batch as reversed and keeps a full, permanent record of that decision — it is never
+            deleted. It requires a written reason (at least 10 characters) and typing the batch's ID to confirm, and
+            it is restricted to Super Admin only.</p>
+        <div class="card callout warn">
+            <strong>Reverse does not undo ledger postings by itself.</strong> If a batch's transactions have already
+            been posted to the ledger through the normal payment-matching pipeline, reversing the batch here only
+            changes the batch's own status. Undoing the ledger entries themselves is a separate finance action your
+            Super Admin needs to perform.
+        </div>
+
+        <h2>Levy Regeneration</h2>
+        <p>The second tab, Levy Regeneration, recalculates GST-aware levy items for a financial-year range against
+            an already-approved reconstruction batch. It follows the same preparation/posting split:</p>
+        <ol>
+            <li>Choose a <strong>From</strong> and <strong>To</strong> financial year and an <strong>approved</strong>
+                governing batch (only approved batches appear in the selector).
+            </li>
+            <li>Click <strong>Generate Plan</strong> — a dry run. Nothing is written. You'll see, per year and fund
+                (admin/sinking), the proposed budget total, the regenerated total, and the variance between them,
+                plus a line-by-line breakdown per unit.
+            </li>
+            <li>If the plan reconciles cleanly, click <strong>Apply Regeneration</strong> (Super Admin only).</li>
+            <li>If it does <strong>not</strong> reconcile, you must write a justification (at least 10 characters)
+                explaining why you are proceeding anyway before Apply becomes available. That justification is
+                permanently recorded alongside the change.
+            </li>
+        </ol>
+        <p>Rows the engine cannot confidently regenerate (for example, a unit that appears to have been overpaid
+            relative to the new calculation) are flagged for manual review rather than silently applied.</p>
+
+        <h2>Test / demo data</h2>
+        <p>Only Super Admins can mark a new batch as test/demo data. This flag is never an ordinary checkbox
+            available to every preparer — it exists so demo and test batches never get mixed into real production
+            reporting for your building, and never appear in another user's dashboard cards, notifications, or
+            reports. Test/demo batches, imports, and their generated data can be removed in one step through the
+            platform's test-data cleanup, scoped to your building and financial year — real data is never touched
+            by this cleanup regardless of the year you specify.</p>
+
+        <h2>Building isolation</h2>
+        <p>Every batch, manifest, and levy regeneration is strictly scoped to your building. Managers with access to
+            multiple buildings will only see batches for the building they are currently logged into. No data from
+            another building is ever visible here.</p>
+    </article>
+</main>
+</body>
+</html>

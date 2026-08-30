@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Smart Requests — User Guide | <span data-bldg="name">your building</span></title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-yellow {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-purple {
+            background: #ede9fe;
+            color: #5b21b6;
+        }
+
+        .badge-gray {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .badge-teal {
+            background: #ccfbf1;
+            color: #0f766e;
+        }
+
+        .step {
+            border-left: 4px solid #2F4F4F;
+            padding: 10px 16px;
+            margin: 12px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        th {
+            background: #2F4F4F;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0;
+        }
+
+        .warn-box {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0;
+        }
+
+        .success-box {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0;
+        }
+
+        .stage {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin: 12px 0;
+            background: #fafafa;
+        }
+
+        .stage-dot {
+            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: white;
+        }
+
+        .stage-content h4 {
+            margin: 0 0 4px;
+            font-size: 15px;
+        }
+
+        .stage-content p {
+            margin: 0;
+            color: #4b5563;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← Back to User Guides</a>
+        <h1>Smart Requests</h1>
+        <p>Submit queries and requests to management — with instant answers for common questions.</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2>What Are Smart Requests?</h2>
+        <p>Smart Requests is the formal channel for residents to submit questions, concerns, and requests to building
+            management. Instead of sending untracked emails, every request is logged, assigned, and tracked through a
+            structured workflow.</p>
+
+        <p>The system includes an <strong>auto-resolution layer</strong>: for common query types (such as a levy balance
+            inquiry or a by-law question), the platform can answer instantly without involving management — saving time
+            on both sides.</p>
+
+        <p>Navigate to: <strong>Dashboard → Requests</strong></p>
+
+        <div class="info-box">
+            <strong>Who can use Smart Requests?</strong> All residents — owners, tenants, and guests — can submit
+            requests. Management roles (EC members, governance chairs, strata managers, and strata admins) process and resolve
+            incoming requests.
+        </div>
+    </section>
+
+    <section>
+        <h2>Request Categories</h2>
+        <p>When submitting a request, choose the category that best matches your query. The category determines how the
+            request is routed and which auto-resolution rules apply.</p>
+
+        <table>
+            <tr>
+                <th>Category</th>
+                <th>Use it for</th>
+                <th>Auto-Resolution</th>
+            </tr>
+            <tr>
+                <td><span class="badge badge-red">Maintenance</span></td>
+                <td>Reporting a fault or repair need in common areas (e.g. broken light, lift issue, damaged fence).
+                    Unit-specific maintenance goes through the Maintenance module — this category is for general
+                    building concerns.
+                </td>
+                <td>No — routes directly to manager</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-yellow">Levy Query</span></td>
+                <td>Questions about your levy amount, payment due date, credit balance, or discrepancy on a levy
+                    notice.
+                </td>
+                <td>Yes — your current balance, next due date, and levy breakdown are shown instantly based on your
+                    unit's ledger
+                </td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-blue">By-Law Query</span></td>
+                <td>Asking about what is or is not permitted under the strata by-laws — e.g. keeping a pet, renovating,
+                    parking rules, noise hours.
+                </td>
+                <td>Yes — common by-law questions are answered from the by-laws knowledge base; unusual questions
+                    escalate to management
+                </td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-purple">Document Request</span></td>
+                <td>Requesting a copy of a building document — meeting minutes, insurance certificate, by-laws PDF, levy
+                    notice, or any other official document.
+                </td>
+                <td>Partial — documents already uploaded in the Documents module are linked automatically; unavailable
+                    documents escalate to management
+                </td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-red">Noise Complaint</span></td>
+                <td>Reporting persistent or unreasonable noise from another unit or common area. All noise complaints
+                    are handled confidentially.
+                </td>
+                <td>No — always reviewed by management; complainant identity is protected</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-gray">Other</span></td>
+                <td>Any query that does not fit the above categories. The manager will triage and categorise it on
+                    receipt.
+                </td>
+                <td>No — reviewed by manager</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2>Workflow Stages</h2>
+        <p>Every request moves through a defined pipeline from submission to resolution. You can track the current stage
+            at any time from the My Requests list.</p>
+
+        <div class="stage">
+            <div class="stage-dot" style="background:#6b7280;">1</div>
+            <div class="stage-content">
+                <h4>Open</h4>
+                <p>The request has been submitted and is waiting to be picked up by management. If auto-resolution is
+                    triggered, the request may skip directly to <em>Auto-Resolved</em> without entering the manual
+                    workflow.</p>
+            </div>
+        </div>
+
+        <div class="stage">
+            <div class="stage-dot" style="background:#f59e0b;">2</div>
+            <div class="stage-content">
+                <h4>In Review</h4>
+                <p>A manager or EC member has opened the request and is reviewing it. You may receive a clarifying
+                    question at this stage — respond via the request thread.</p>
+            </div>
+        </div>
+
+        <div class="stage">
+            <div class="stage-dot" style="background:#3b82f6;">3</div>
+            <div class="stage-content">
+                <h4>In Progress</h4>
+                <p>Action is being taken. This could mean a contractor has been contacted (for Maintenance), a document
+                    is being prepared (for Document Requests), or a formal by-law notice is being drafted (for Noise
+                    Complaints).</p>
+            </div>
+        </div>
+
+        <div class="stage">
+            <div class="stage-dot" style="background:#10b981;">4</div>
+            <div class="stage-content">
+                <h4>Resolved</h4>
+                <p>Management has addressed the request and provided a response or outcome. You will receive an in-app
+                    notification and email when your request is resolved. Review the resolution — if you are satisfied,
+                    no action is needed. If the issue persists, you can re-open the request.</p>
+            </div>
+        </div>
+
+        <div class="stage">
+            <div class="stage-dot" style="background:#9ca3af;">5</div>
+            <div class="stage-content">
+                <h4>Closed</h4>
+                <p>The request is complete and archived. Closed requests are visible in your request history for 12
+                    months. Closed requests cannot be re-opened — submit a new request if the issue recurs.</p>
+            </div>
+        </div>
+
+        <div class="stage">
+            <div class="stage-dot" style="background:#22c55e;">⚡</div>
+            <div class="stage-content">
+                <h4>Auto-Resolved</h4>
+                <p>The system answered your query instantly using building data or the by-laws knowledge base. The
+                    answer is shown immediately on screen. No management action is required. Auto-resolved requests are
+                    still recorded in your history.</p>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>Typical response times:</strong> Auto-Resolved requests are instant. Management aims to respond to
+            all other requests within 2 business days. Noise Complaints and urgent Maintenance requests are prioritised.
+        </div>
+    </section>
+
+    <section>
+        <h2>How to Submit a Request</h2>
+
+        <div class="step"><strong>Step 1 — Choose your category:</strong> Navigate to <strong>Dashboard →
+            Requests</strong> and click <strong>New Request</strong>. Select the category that best matches your query
+            from the dropdown. The form adapts to show fields relevant to that category.
+        </div>
+
+        <div class="step"><strong>Step 2 — Fill in the form:</strong> Enter a short subject line and a detailed
+            description. Be specific — include unit numbers, dates, or prior correspondence where relevant. For
+            Maintenance requests, describe the fault location and how long the issue has existed. For Noise Complaints,
+            include the approximate times the noise occurs.
+        </div>
+
+        <div class="step"><strong>Step 3 — Submit and track:</strong> Click <strong>Submit Request</strong>. If
+            auto-resolution is triggered, your answer appears immediately on screen. Otherwise, the request appears in
+            your <em>My Requests</em> list with status <em>Open</em> and you will receive updates by notification as it
+            progresses.
+        </div>
+
+        <div class="warn-box">
+            <strong>Emergencies:</strong> Smart Requests is not for emergencies. If there is a fire, flood, gas leak, or
+            immediate safety risk, call 000 immediately, then contact your building's emergency contact line. Emergency
+            contacts are listed under <strong>Dashboard → Emergency Services</strong>.
+        </div>
+    </section>
+
+    <section>
+        <h2>How to Track a Request</h2>
+        <p>All your submitted requests are listed under <strong>Dashboard → Requests → My Requests</strong>, sorted by
+            most recent activity.</p>
+
+        <h3>Reading the Request Timeline</h3>
+        <p>Click any request in your list to open the detail view. The <strong>Timeline</strong> tab shows the full
+            history of the request:</p>
+        <ul>
+            <li><strong>Submitted</strong> — when you created the request, with the original text</li>
+            <li><strong>Status changes</strong> — each transition (e.g. Open → In Review) timestamped with the manager's
+                name
+            </li>
+            <li><strong>Notes from management</strong> — any updates or questions posted to the request thread</li>
+            <li><strong>Your replies</strong> — any clarifications you provided</li>
+            <li><strong>Resolution note</strong> — the outcome recorded when the request was resolved</li>
+        </ul>
+
+        <h3>Replying to a Request</h3>
+        <p>If management asks a clarifying question, you will receive an in-app notification. Open the request and type
+            your reply in the <strong>Reply</strong> box at the bottom of the timeline. Click <strong>Send
+                Reply</strong>. The manager is notified of your response automatically.</p>
+
+        <h3>Re-Opening a Resolved Request</h3>
+        <p>If a resolved request is not actually fixed, click <strong>Re-open Request</strong> in the detail view. This
+            returns the request to <em>Open</em> status with a note that it was re-opened. Provide a reason so
+            management understands what was not adequately addressed.</p>
+    </section>
+
+    <section>
+        <h2>Auto-Resolution: How It Works</h2>
+        <p>Smart Requests can answer certain query types instantly without involving management. Auto-resolution is
+            triggered when the system determines it has enough data to provide a definitive answer.</p>
+
+        <h3>Levy Query Auto-Resolution</h3>
+        <p>When you submit a Levy Query, the system immediately checks your unit's levy ledger and returns:</p>
+        <ul>
+            <li>Your current outstanding balance (or credit)</li>
+            <li>Your next levy due date and the amount due</li>
+            <li>A breakdown of your levy by fund (Admin / Sinking)</li>
+            <li>A link to your full levy history</li>
+        </ul>
+
+        <h3>By-Law Query Auto-Resolution</h3>
+        <p>For common by-law topics (pets, noise, parking, renovations, short-term letting), the system searches the
+            by-laws knowledge base and returns the relevant clause with a plain-English summary. If the query matches no
+            known topic, it escalates to management for a manual answer.</p>
+
+        <div class="success-box">
+            <strong>Auto-resolution is read-only:</strong> The system provides information only. It does not make
+            decisions, grant approvals, or waive any obligation. For anything requiring a formal decision (e.g. approval
+            to renovate, permission to keep a pet), your request will proceed to a manager regardless of auto-resolution
+            status.
+        </div>
+    </section>
+
+    <section>
+        <h2>Manager Queue (EC / Chairman / Strata Manager / Admin)</h2>
+        <p>Management roles have a dedicated <strong>Manager Queue</strong> view accessible via the toggle button at the
+            top of the Smart Requests page. This queue shows <em>all</em> building requests, not just your own.</p>
+
+        <h3>Triage Stats Dashboard</h3>
+        <p>At the top of the manager queue, three live stat cards show:</p>
+        <ul>
+            <li><strong>Auto-Resolved Today</strong> — requests resolved by the AI assistant without human intervention.
+            </li>
+            <li><strong>Deflection Rate</strong> — percentage of requests resolved without escalation (target &gt; 60%).
+            </li>
+            <li><strong>Received This Week</strong> — total new requests in the current week across all categories.</li>
+        </ul>
+
+        <h3>Queue Filters</h3>
+        <table>
+            <tr>
+                <th>Filter</th>
+                <th>Shows</th>
+            </tr>
+            <tr>
+                <td>Open</td>
+                <td>All unresolved requests needing attention</td>
+            </tr>
+            <tr>
+                <td>In Progress</td>
+                <td>Requests actively being worked on</td>
+            </tr>
+            <tr>
+                <td>Resolved</td>
+                <td>Closed/completed requests (for audit)</td>
+            </tr>
+            <tr>
+                <td>All</td>
+                <td>Every request regardless of status</td>
+            </tr>
+        </table>
+
+        <h3>SLA Indicators</h3>
+        <p>Requests overdue their SLA show an <span
+                style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">Overdue</span>
+            badge.
+            SLA targets by category:</p>
+        <table>
+            <tr>
+                <th>Category</th>
+                <th>Target Response</th>
+                <th>Escalation To</th>
+            </tr>
+            <tr>
+                <td>Noise Complaint</td>
+                <td>24 hours</td>
+                <td>EC Chairman → Strata Manager</td>
+            </tr>
+            <tr>
+                <td>Maintenance Request</td>
+                <td>48 hours</td>
+                <td>Strata Manager → EC Committee</td>
+            </tr>
+            <tr>
+                <td>By-Law Query</td>
+                <td>72 hours</td>
+                <td>EC Chairman</td>
+            </tr>
+            <tr>
+                <td>Levy Query</td>
+                <td>48 hours</td>
+                <td>Strata Manager</td>
+            </tr>
+            <tr>
+                <td>Parking Issue</td>
+                <td>24 hours</td>
+                <td>EC Chairman</td>
+            </tr>
+            <tr>
+                <td>General Request</td>
+                <td>72 hours</td>
+                <td>Strata Manager</td>
+            </tr>
+        </table>
+
+        <h3>Updating Request Status (Inline)</h3>
+        <p>From the manager queue, use the dropdown on each request card to change status directly:
+            <strong>Open → In Progress → Resolved → Closed</strong>. All transitions are logged with a timestamp.</p>
+    </section>
+
+    <section>
+        <h2>Role Permissions Summary</h2>
+        <table>
+            <tr>
+                <th>Action</th>
+                <th>Owner</th>
+                <th>Tenant</th>
+                <th>Guest</th>
+                <th>EC / Chairman / Manager / Admin</th>
+            </tr>
+            <tr>
+                <td>Submit a request</td>
+                <td>Yes</td>
+                <td>Yes</td>
+                <td>Yes</td>
+                <td>Yes (own requests)</td>
+            </tr>
+            <tr>
+                <td>View own requests</td>
+                <td>Yes</td>
+                <td>Yes</td>
+                <td>Yes</td>
+                <td>Yes</td>
+            </tr>
+            <tr>
+                <td>Reply to a request thread</td>
+                <td>Own only</td>
+                <td>Own only</td>
+                <td>Own only</td>
+                <td>All requests</td>
+            </tr>
+            <tr>
+                <td>Change request status</td>
+                <td>Re-open only</td>
+                <td>Re-open only</td>
+                <td>No</td>
+                <td>Full control</td>
+            </tr>
+            <tr>
+                <td>View all building requests</td>
+                <td>No</td>
+                <td>No</td>
+                <td>No</td>
+                <td>Yes</td>
+            </tr>
+            <tr>
+                <td>Assign request to a manager</td>
+                <td>No</td>
+                <td>No</td>
+                <td>No</td>
+                <td>Yes</td>
+            </tr>
+            <tr>
+                <td>Delete a request</td>
+                <td>No</td>
+                <td>No</td>
+                <td>No</td>
+                <td>Admin / Super Admin only</td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2>Frequently Asked Questions</h2>
+
+        <h3>How do I know my request was received?</h3>
+        <p>After submitting, the request immediately appears in your <em>My Requests</em> list with status <em>Open</em>,
+            and you receive an in-app confirmation notification. You will also receive a confirmation email to your
+            registered address.</p>
+
+        <h3>Can I attach a photo or document?</h3>
+        <p>Yes. When filling in the request form, use the <strong>Attach File</strong> button to upload photos, PDFs, or
+            other supporting documents (max 10 MB per attachment). Attachments are especially useful for Maintenance
+            requests (photos of the fault) and Noise Complaints (if you have recorded evidence).</p>
+
+        <h3>How long before I get a response?</h3>
+        <p>Auto-resolved requests are instant. For all others, management aims to respond within 2 business days. You
+            can see the current status at any time in your request list. If your request has been in <em>Open</em>
+            status for more than 5 business days, you will receive an escalation notice.</p>
+
+        <h3>Will my noise complaint be kept confidential?</h3>
+        <p>Yes. Noise Complaints are visible only to management. Your name and unit are not disclosed to the subject of
+            the complaint. Any formal by-law notice issued as a result refers only to observed conduct, not the source
+            of the complaint.</p>
+
+        <h3>I submitted a Levy Query but the auto-answer looks wrong — what do I do?</h3>
+        <p>Add a reply to the request explaining what appears incorrect. This flags the request for manual review by
+            your strata manager, who will verify the ledger and respond with a corrected answer.</p>
+    </section>
+
+</main>
+
+<footer>
+    <p><span data-bldg="name">your building</span> | Executive Committee | Strata Manager<br>
+        E: <a data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC
+            email</a><br>
+        P: <span data-bldg="contact_phone">(contact number)</span></p>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

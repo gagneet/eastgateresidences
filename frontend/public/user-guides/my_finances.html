@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>My Finances Guide</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            color: #1f2937;
+            background: #f8fafc;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px 60px;
+        }
+
+        h1, h2 {
+            color: #0f172a;
+        }
+
+        section {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        code {
+            background: #eef2ff;
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+
+        ul, ol {
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>My Finances</h1>
+    <p>This guide explains how levy information is shown to residents in a multi-building setup.</p>
+
+    <section>
+        <h2>What you see on the page</h2>
+        <ul>
+            <li>current balance and levy progress</li>
+            <li>Administrative Fund and Sinking Fund contributions</li>
+            <li>payment schedule and due dates</li>
+            <li>historical levy trends for your building</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>How levy amounts are calculated</h2>
+        <p>The platform stores Administrative Fund and Sinking Fund source amounts ex-GST. Owner-facing payable amounts
+            are then calculated using the active building's Site Settings.</p>
+        <ul>
+            <li><code>gst_registered</code> controls whether GST applies</li>
+            <li><code>levy_gst_rate</code> controls the percentage used for levy billing</li>
+            <li>per-unit amounts are distributed using your unit entitlement (UOE)</li>
+        </ul>
+        <p>This keeps levy displays consistent across buildings while still allowing each building to use its own
+            finance settings.</p>
+    </section>
+
+    <section>
+        <h2>Why another building may show different totals</h2>
+        <p>Each building has separate budgets, entitlements, due dates, feature toggles, and branding. Even if two
+            buildings use the same screens, the underlying results can differ because all financial data is scoped by
+            <code>building_id</code>.</p>
+    </section>
+
+    <section>
+        <h2>Need help?</h2>
+        <ol>
+            <li>Check the payment schedule on the page.</li>
+            <li>Review your building's notices or finance summary.</li>
+            <li>Contact your building manager or committee contact shown in the app.</li>
+        </ol>
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Financial Data Sync — Admin Guide | Strata Management Platform</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: #1e293b;
+        }
+
+        h1 {
+            color: #1e293b;
+            border-bottom: 3px solid #6366f1;
+            padding-bottom: 0.5rem;
+        }
+
+        h2 {
+            color: #6366f1;
+            margin-top: 2rem;
+        }
+
+        h3 {
+            color: #334155;
+        }
+
+        .callout {
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .warning {
+            background: #fff7ed;
+            border-left: 4px solid #f59e0b;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .success {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .role-badge {
+            display: inline-block;
+            background: #ede9fe;
+            color: #5b21b6;
+            border-radius: 9999px;
+            padding: 0.2rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 0 0.15rem 0.3rem 0;
+        }
+
+        .step-badge {
+            display: inline-block;
+            background: #6366f1;
+            color: #ffffff;
+            border-radius: 9999px;
+            padding: 0.2rem 0.65rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-right: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th {
+            background: #f1f5f9;
+            text-align: left;
+            padding: 0.75rem;
+        }
+
+        td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        code {
+            background: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        ol.steps {
+            list-style: none;
+            padding: 0;
+            margin: 1rem 0;
+        }
+
+        ol.steps li {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+            line-height: 1.6;
+        }
+
+        ol.steps li .step-badge {
+            flex-shrink: 0;
+            margin-top: 0.1rem;
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Financial Data Sync — Admin Guide</h1>
+<p>This guide explains how to get financial data into the portal and keep it up to date. It covers both the automated
+    portal sync and the manual CSV upload path, and explains how each source feeds the finance pages visible to
+    committee members and owners.</p>
+
+<div class="callout">
+    <strong>Audience:</strong>
+    <span class="role-badge">Strata Manager</span>
+    <span class="role-badge">Chairman</span>
+    <span class="role-badge">Super Admin</span>
+    <br>
+    EC Members can view sync status but cannot trigger a sync or upload data.
+</div>
+
+<hr/>
+
+<h2>1. Overview</h2>
+
+<p>There are two ways to bring financial data into the portal:</p>
+
+<table>
+    <thead>
+    <tr>
+        <th>Method</th>
+        <th>When to use</th>
+        <th>Page</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td><strong>Sync from the strata management portal (Civium)</strong></td>
+        <td>Monthly, after the strata manager releases the committee report. Pulls live bank balances, levy
+            positions, and budget actuals automatically.
+        </td>
+        <td><code>/dashboard/admin/strata-sync</code></td>
+    </tr>
+    <tr>
+        <td><strong>Upload a CSV file manually</strong></td>
+        <td>When you have an AGM-ratified levy schedule, a corrected annual levy file, or data that the portal
+            does not expose via its sync interface.
+        </td>
+        <td><code>/dashboard/admin/financial-data</code></td>
+    </tr>
+    </tbody>
+</table>
+
+<p>Both methods update the same underlying financial collections used by the levy collection rate, fund health,
+    and owner balance pages. If both sources exist for the same financial year, the CSV/AGM-ratified data takes
+    precedence over portal sync data.</p>
+
+<hr/>
+
+<h2>2. Syncing from the Portal</h2>
+<p>Page: <code>/dashboard/admin/strata-sync</code></p>
+
+<p>The portal sync connects to your strata management software (Civium) and pulls the latest financial snapshot
+    into the portal database. No data is sent back — it is a read-only pull.</p>
+
+<h3>Step-by-step</h3>
+<ol class="steps">
+    <li><span class="step-badge">1</span> Navigate to <strong>Admin &rarr; Strata Sync</strong> in the dashboard
+        sidebar.
+    </li>
+    <li><span class="step-badge">2</span> Click <strong>Start Sync</strong>. A browser window will open prompting
+        you to log in to the Civium portal with your strata manager credentials.
+    </li>
+    <li><span class="step-badge">3</span> Complete the two-factor authentication when prompted — enter your 2FA
+        PIN or approve the push notification.
+    </li>
+    <li><span class="step-badge">4</span> The sync runs in the background. A progress indicator shows which
+        data categories are being fetched (bank accounts, levy positions, spending categories).
+    </li>
+    <li><span class="step-badge">5</span> When the sync completes, a preview panel shows a summary of what was
+        retrieved. Review the figures — spot-check the bank balances and total levy position against the
+        committee report you have on hand.
+    </li>
+    <li><span class="step-badge">6</span> Click <strong>Confirm</strong> to write the data into the portal
+        database. Click <strong>Discard</strong> if the figures look incorrect.
+    </li>
+</ol>
+
+<h3>What data is populated by a sync</h3>
+<table>
+    <thead>
+    <tr>
+        <th>Data Category</th>
+        <th>Where it appears in the portal</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>Admin fund and sinking fund bank account balances</td>
+        <td>Finance Overview &rarr; Bank Account Balances card</td>
+    </tr>
+    <tr>
+        <td>Budget vs actual spending by category</td>
+        <td>Finance &rarr; Charts tab &rarr; Spending Categories; Budget vs Actual pages</td>
+    </tr>
+    <tr>
+        <td>Owner levy positions (arrears, credits, current balance per unit)</td>
+        <td>Collection Rate page &rarr; Civium Portal Snapshot; Unit Finance Detail &rarr; Portal Cross-Check</td>
+    </tr>
+    <tr>
+        <td>Portal-reported collection rate and risk level</td>
+        <td>Collection Rate page &rarr; Civium Portal Snapshot</td>
+    </tr>
+    </tbody>
+</table>
+
+<h3>After the sync</h3>
+<p>Once confirmed, the following pages automatically reflect the updated portal data:</p>
+<ul>
+    <li><strong>Collection Rate</strong> — portal arrears total and collection rate percentage update immediately</li>
+    <li><strong>Fund Health</strong> — bank balances feed the health score calculation</li>
+    <li><strong>Arrears Board</strong> — unit-level portal balances update the cross-check column</li>
+    <li><strong>Budget vs Actual</strong> — the "Portal Actual" column updates with the latest spending figures</li>
+</ul>
+
+<div class="callout">
+    <strong>Finance cutover note.</strong> The same Civium snapshot can also be copied into a review-only staging record
+    for PostgreSQL validation. That background review does not change the live finance screens, levy notices, or payment
+    history; MongoDB remains the live finance source until the shadow-read checks are approved.
+</div>
+
+<h3>Recommended sync frequency</h3>
+<div class="callout">
+    Sync <strong>monthly</strong>, after your strata manager distributes the monthly committee report. The
+    report and the portal data will then be in agreement, and any discrepancies visible on the portal will be
+    genuine outstanding items rather than timing differences.
+</div>
+
+<hr/>
+
+<h2>3. Uploading CSV Financial Data</h2>
+<p>Page: <code>/dashboard/admin/financial-data</code></p>
+
+<p>The CSV upload path is designed for data that originates outside the portal — typically the annual levy
+    schedule ratified at the AGM, or a corrected ledger export from your accounting system.</p>
+
+<h3>Step-by-step</h3>
+<ol class="steps">
+    <li><span class="step-badge">1</span> Navigate to <strong>Admin &rarr; Financial Data</strong> in the
+        dashboard sidebar.
+    </li>
+    <li><span class="step-badge">2</span> Select the financial year the file covers from the year dropdown.</li>
+    <li><span class="step-badge">3</span> Click <strong>Choose File</strong> and select the CSV exported from
+        your accounting system. The file must match the required column format (see below).
+    </li>
+    <li><span class="step-badge">4</span> Click <strong>Upload</strong>. The system validates the file and
+        reports any column or format errors before writing any data.
+    </li>
+    <li><span class="step-badge">5</span> Review the validation summary — it shows total records found, any
+        units not matched to the building roll, and the total levy figures parsed.
+    </li>
+    <li><span class="step-badge">6</span> Click <strong>Confirm Import</strong> to write the data.</li>
+</ol>
+
+<h3>Required CSV columns</h3>
+<table>
+    <thead>
+    <tr>
+        <th>Column</th>
+        <th>Description</th>
+        <th>Example</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td><code>year</code></td>
+        <td>Financial year as a 4-digit number</td>
+        <td><code>2026</code></td>
+    </tr>
+    <tr>
+        <td><code>admin_fund_income</code></td>
+        <td>Total admin fund income budgeted for the year (ex-GST, dollars)</td>
+        <td><code>309882.00</code></td>
+    </tr>
+    <tr>
+        <td><code>admin_fund_expenses</code></td>
+        <td>Total admin fund expenses budgeted for the year (ex-GST, dollars)</td>
+        <td><code>301500.00</code></td>
+    </tr>
+    <tr>
+        <td><code>sinking_fund_income</code></td>
+        <td>Total sinking fund levy income budgeted (ex-GST, dollars)</td>
+        <td><code>90459.00</code></td>
+    </tr>
+    <tr>
+        <td><code>sinking_fund_expenses</code></td>
+        <td>Total sinking fund expenditure budgeted (ex-GST, dollars)</td>
+        <td><code>45000.00</code></td>
+    </tr>
+    <tr>
+        <td><code>unit_number</code></td>
+        <td>Unit identifier matching the building roll (one row per unit)</td>
+        <td><code>UA001</code>, <code>TH012</code></td>
+    </tr>
+    <tr>
+        <td><code>annual_levy</code></td>
+        <td>Annual levy amount for the unit (GST-inclusive, dollars)</td>
+        <td><code>6121.20</code></td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="warning">
+    <strong>Important:</strong> Uploaded data is marked as "authoritative" — it will not be overwritten by
+    future portal syncs. If you need to correct an uploaded figure, upload a new file for the same year;
+    the new upload replaces the previous one.
+</div>
+
+<hr/>
+
+<h2>4. How Data Flows to Finance Pages</h2>
+
+<p>Understanding which source feeds which page helps you diagnose missing or stale figures.</p>
+
+<table>
+    <thead>
+    <tr>
+        <th>Source</th>
+        <th>Database collection(s) written</th>
+        <th>Finance pages affected</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>Portal sync (Civium)</td>
+        <td><code>levy_categories</code></td>
+        <td>Fund Health, Budget vs Actual, Spending Categories chart</td>
+    </tr>
+    <tr>
+        <td>Portal sync (Civium)</td>
+        <td><code>unit_levy_ledger</code> (portal cross-check fields)</td>
+        <td>Collection Rate &rarr; Civium Portal Snapshot, Unit Finance Detail &rarr; Portal Cross-Check</td>
+    </tr>
+    <tr>
+        <td>Portal sync (Civium)</td>
+        <td><code>bank_accounts</code></td>
+        <td>Finance Overview &rarr; Bank Account Balances card</td>
+    </tr>
+    <tr>
+        <td>CSV upload</td>
+        <td><code>annual_levies</code></td>
+        <td>Levy Calculator, Owner Finance pages, Budget totals</td>
+    </tr>
+    <tr>
+        <td>CSV upload</td>
+        <td><code>unit_levy_ledger</code> (authoritative levy schedule)</td>
+        <td>Collection Rate, Owner Balances, Levy Status tab</td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="callout">
+    <strong>Precedence rule:</strong> If both a portal sync and a CSV upload exist for the same financial year,
+    the CSV/AGM-ratified levy schedule takes precedence for billing figures (total levied, unit levy amounts).
+    Portal data is still shown in its dedicated cross-check columns and is never deleted.
+</div>
+
+<hr/>
+
+<h2>5. First-Time Setup / Data Not Appearing After Sync</h2>
+
+<p>If the finance pages show no data even though the Strata Sync page reports a successful sync, it usually means
+    the one-time data migration has not yet been run for your building.</p>
+
+<h3>Why this happens</h3>
+<p>Syncs performed before the finance bridge was installed wrote data to the portal's raw sync tables but did not
+    copy it into the collections used by the finance dashboard. This is a one-off gap that only affects buildings
+    where syncs pre-date the bridge installation.</p>
+
+<h3>How to resolve it</h3>
+<ol>
+    <li>Contact your system administrator and ask them to run the <strong>one-time data migration</strong> for
+        your building.
+    </li>
+    <li>Once the migration is complete, all historical sync data will appear on the finance pages.</li>
+    <li>All subsequent syncs will automatically write to both places — no further migration is needed.</li>
+</ol>
+
+<div class="success">
+    <strong>After migration:</strong> Data from past syncs will back-fill into the finance pages. You do not
+    need to re-run those syncs.
+</div>
+
+<h3>Different cause: your building requires manual review before every sync (added 2026-08-19)</h3>
+<p>A small number of buildings (East Gate is currently the only one) are configured so that a portal sync
+    <strong>never</strong> automatically updates the category totals shown on finance pages, even for a brand-new
+    sync. This is deliberate, not a bug — for these buildings, a raw scrape is treated as evidence, not fact,
+    and must pass a human review step before it can change a number a dashboard displays.</p>
+<p>If your building is one of these, every successful sync still updates the Strata Sync page's own preview and
+    the raw owner-balance data, but the Finance page's category actuals will only change after your system
+    administrator has reviewed the sync's proposed changes and explicitly approved them. Ask your administrator
+    whether your building has this setting enabled if you're unsure why a sync's numbers aren't reflected on the
+    Finance page.</p>
+
+<hr/>
+
+<h2>6. Roles and Permissions</h2>
+
+<table>
+    <thead>
+    <tr>
+        <th>Role</th>
+        <th>Can trigger sync</th>
+        <th>Can upload CSV</th>
+        <th>Can view sync status</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td><strong>Super Admin</strong></td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+    </tr>
+    <tr>
+        <td><strong>Strata Manager</strong></td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+    </tr>
+    <tr>
+        <td><strong>Chairman</strong></td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+    </tr>
+    <tr>
+        <td><strong>EC Member</strong></td>
+        <td>No</td>
+        <td>No</td>
+        <td>Yes — read only</td>
+    </tr>
+    <tr>
+        <td><strong>Owner / Tenant</strong></td>
+        <td>No</td>
+        <td>No</td>
+        <td>No</td>
+    </tr>
+    </tbody>
+</table>
+
+<hr/>
+
+<h2>7. Troubleshooting</h2>
+
+<table>
+    <thead>
+    <tr>
+        <th>Symptom</th>
+        <th>Likely cause</th>
+        <th>Action</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>Collection Rate page shows no data after a successful sync</td>
+        <td>One-time data migration has not been run</td>
+        <td>Ask your system administrator to run the one-time data migration for your building (see Section 5)</td>
+    </tr>
+    <tr>
+        <td>Sync shows an authentication error or times out</td>
+        <td>Portal credentials have changed or the session expired mid-sync</td>
+        <td>Go to <strong>Settings &rarr; Portal Credentials</strong> and re-enter the Civium login details,
+            then retry the sync
+        </td>
+    </tr>
+    <tr>
+        <td>Sync completes but bank balances show as $0.00 or blank</td>
+        <td>The portal did not return bank account data — can occur when the strata manager has not yet posted
+            the monthly statement
+        </td>
+        <td>Wait until the monthly statement is posted in Civium (usually within 5 business days of month-end),
+            then re-run the sync
+        </td>
+    </tr>
+    <tr>
+        <td>Uploaded CSV not reflected on Levy Calculator or Owner Finance pages</td>
+        <td>The year in the CSV does not match the currently selected financial year, or the file failed
+            validation silently
+        </td>
+        <td>Check the year dropdown on the Financial Data page matches the year field in your CSV; re-upload
+            if needed
+        </td>
+    </tr>
+    <tr>
+        <td>Unit amounts in the CSV show as "unmatched"</td>
+        <td>The <code>unit_number</code> values in the CSV do not match the building roll</td>
+        <td>Check unit identifiers in the CSV against <strong>Admin &rarr; Units</strong> — ensure formatting
+            matches exactly (e.g. <code>UA001</code> not <code>U001</code>)
+        </td>
+    </tr>
+    <tr>
+        <td>Portal Snapshot figures disagree with the levy ledger</td>
+        <td>Portal data and levy ledger are separate sources; a small difference is expected (timing,
+            unprocessed payments)
+        </td>
+        <td>Large discrepancies (&gt;5%) should be investigated with your strata manager. Small differences
+            are normal and visible in the cross-check column for transparency.
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<hr/>
+
+<footer>
+    Strata Management Platform — Admin Guide | Financial Data Sync<br>
+    For system administrator support contact your platform administrator.<br>
+    Guide updated April 2026.
+</footer>
+
+</body>
+</html>

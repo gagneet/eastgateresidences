@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>API Reference - StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand"><div><div class="logo">StrataOS</div><div class="sub">Technical Documentation · API Reference</div></div></div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a class="active" data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group"><div class="nav-group-label">API Artifacts</div>
+            <a href="swagger.html"><span class="icon">📘</span> Swagger UI</a>
+            <a href="strataos-openapi.json"><span class="icon">{}</span> OpenAPI JSON</a>
+            <a href="postman/strataos_demo_collection.json"><span class="icon">📦</span> Postman Collection</a>
+            <a href="postman/strataos_demo_environment.json"><span class="icon">⚙️</span> Postman Environment</a>
+        </div>
+        <div class="nav-group"><div class="nav-group-label">External</div><a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a></div>
+    </nav>
+    <main class="content">
+        <h1>API Reference</h1>
+        <p>Generated from the live FastAPI application on <strong>2026-08-29</strong>. This page is the overview; the complete endpoint catalogue is in <a href="swagger.html">Swagger UI</a> and <a href="strataos-openapi.json">OpenAPI JSON</a>.</p>
+        <div class="callout warn"><strong>Demo data default:</strong> Postman artifacts use <code>building_id=demo</code>. Do not use the collection to mutate East Gate production data unless you intentionally change the environment and understand the endpoint.</div>
+        <div class="stat-grid" style="margin-top:24px">
+            <div class="stat-card"><div class="stat-num">1135</div><div class="stat-label">OpenAPI Paths</div></div>
+            <div class="stat-card"><div class="stat-num">1379</div><div class="stat-label">HTTP Operations</div></div>
+            <div class="stat-card"><div class="stat-num">118</div><div class="stat-label">Tags / Domains</div></div>
+            <div class="stat-card"><div class="stat-num">demo</div><div class="stat-label">Default Building</div></div>
+        </div>
+        <h2>Download and Use</h2>
+        <div class="toc-grid">
+            <a class="toc-item" href="swagger.html"><span class="toc-icon">📘</span><div><div class="toc-title">Swagger UI</div><div class="toc-sub">Browse and try all generated API operations in the browser.</div></div></a>
+            <a class="toc-item" href="strataos-openapi.json"><span class="toc-icon">{}</span><div><div class="toc-title">OpenAPI JSON</div><div class="toc-sub">Machine-readable schema exported from FastAPI.</div></div></a>
+            <a class="toc-item" href="postman/strataos_demo_collection.json"><span class="toc-icon">📦</span><div><div class="toc-title">Postman Collection</div><div class="toc-sub">Generated full collection with auth helper requests and all current endpoints.</div></div></a>
+            <a class="toc-item" href="postman/strataos_demo_environment.json"><span class="toc-icon">⚙️</span><div><div class="toc-title">Postman Demo Environment</div><div class="toc-sub">Environment variables for local/demo use; defaults to building_id=demo.</div></div></a>
+        </div>
+        <h2>Postman Quick Start</h2>
+        <ol>
+            <li>Import <code>frontend/public/tech-docs/postman/strataos_demo_collection.json</code> or download the browser copy above.</li>
+            <li>Import <code>frontend/public/tech-docs/postman/strataos_demo_environment.json</code>.</li>
+            <li>Set <code>base_url</code>, <code>demo_email</code>, and <code>demo_password</code>.</li>
+            <li>Run <strong>00 Auth and Demo Setup / POST /api/auth/login</strong> to populate <code>jwt_token</code>.</li>
+            <li>Run <strong>GET /api/buildings/me</strong> and switch to <code>building_id=demo</code> before testing building-scoped endpoints.</li>
+        </ol>
+        <h2>Auth and Tenant Context</h2>
+        <ul>
+            <li>Most endpoints require <code>Authorization: Bearer &lt;jwt_token&gt;</code>.</li>
+            <li>The JWT building claim is the normal tenant context. <code>X-Building-ID</code> is documented in Postman but disabled by default because it is only valid for super-admin context switching.</li>
+            <li>Every tenant-scoped request must resolve to a building. The demo environment intentionally uses <code>demo</code>.</li>
+        </ul>
+        <h2>Endpoint Domains</h2>
+        <div class="table-wrap"><table><thead><tr><th>Tag</th><th>Operations</th></tr></thead><tbody><tr><td>Untagged</td><td>186</td></tr>
+<tr><td>Finance</td><td>88</td></tr>
+<tr><td>BI Analytics</td><td>58</td></tr>
+<tr><td>Intelligence</td><td>47</td></tr>
+<tr><td>Powerhouse Foundation</td><td>34</td></tr>
+<tr><td>NSW Compliance</td><td>30</td></tr>
+<tr><td>External API v1</td><td>29</td></tr>
+<tr><td>Financial Onboarding</td><td>28</td></tr>
+<tr><td>Analytics</td><td>27</td></tr>
+<tr><td>Auth</td><td>27</td></tr>
+<tr><td>OwnerHub</td><td>26</td></tr>
+<tr><td>Communication</td><td>24</td></tr>
+<tr><td>Communications Campaigns</td><td>24</td></tr>
+<tr><td>Work Orders</td><td>24</td></tr>
+<tr><td>Trust Accounting Phase 1</td><td>21</td></tr>
+<tr><td>Portfolio</td><td>20</td></tr>
+<tr><td>Finance Intelligence</td><td>19</td></tr>
+<tr><td>Maintenance</td><td>19</td></tr>
+<tr><td>Trust Accounting</td><td>19</td></tr>
+<tr><td>Access Lifecycle</td><td>16</td></tr>
+<tr><td>Digital Twin</td><td>16</td></tr>
+<tr><td>Onboarding</td><td>13</td></tr>
+<tr><td>Trust Reconciliation</td><td>13</td></tr>
+<tr><td>Chat Groups</td><td>12</td></tr>
+<tr><td>Cutover Control Plane</td><td>12</td></tr>
+<tr><td>Feature Toggles</td><td>12</td></tr>
+<tr><td>Insurance Management</td><td>12</td></tr>
+<tr><td>Scheme Classes</td><td>12</td></tr>
+<tr><td>Engagement</td><td>11</td></tr>
+<tr><td>Notifications</td><td>11</td></tr>
+<tr><td>Ops Cases</td><td>11</td></tr>
+<tr><td>Ops Repairs</td><td>11</td></tr>
+<tr><td>RBAC</td><td>11</td></tr>
+<tr><td>Compliance</td><td>10</td></tr>
+<tr><td>Demo Bank</td><td>10</td></tr>
+<tr><td>Invoice OCR</td><td>10</td></tr>
+<tr><td>Privacy Compliance</td><td>10</td></tr>
+<tr><td>Rental Certificates</td><td>10</td></tr>
+<tr><td>AI Review</td><td>9</td></tr>
+<tr><td>Bank Feeds</td><td>9</td></tr>
+<tr><td>GST & BAS</td><td>9</td></tr>
+<tr><td>Levy Scenarios</td><td>9</td></tr>
+<tr><td>Management Hierarchy</td><td>9</td></tr>
+<tr><td>Security</td><td>9</td></tr>
+<tr><td>Strata Sync</td><td>9</td></tr>
+<tr><td>WHS Compliance</td><td>9</td></tr>
+<tr><td>Building Assets</td><td>8</td></tr>
+<tr><td>Buildings</td><td>8</td></tr>
+<tr><td>Communications Intake</td><td>8</td></tr>
+<tr><td>Community</td><td>8</td></tr>
+<tr><td>Defects Register</td><td>8</td></tr>
+<tr><td>Documents</td><td>8</td></tr>
+<tr><td>Financial Import</td><td>8</td></tr>
+<tr><td>Market Intelligence</td><td>8</td></tr>
+<tr><td>Outbound Message Queue</td><td>8</td></tr>
+<tr><td>PPM</td><td>8</td></tr>
+<tr><td>Utility Workflows</td><td>8</td></tr>
+<tr><td>Workflow Governance</td><td>8</td></tr>
+<tr><td>3-Way Matching</td><td>7</td></tr>
+<tr><td>AP Approval</td><td>7</td></tr>
+<tr><td>Compliance Registers</td><td>7</td></tr>
+<tr><td>Financial Matching</td><td>7</td></tr>
+<tr><td>Insurance Claims</td><td>7</td></tr>
+<tr><td>MRI Migration</td><td>7</td></tr>
+<tr><td>Proposals</td><td>7</td></tr>
+<tr><td>SM Organisations</td><td>7</td></tr>
+<tr><td>Tenant Maintenance</td><td>7</td></tr>
+<tr><td>Water Bills</td><td>7</td></tr>
+<tr><td>Workflow Requests</td><td>7</td></tr>
+<tr><td>Decision Register</td><td>6</td></tr>
+<tr><td>Financial Audit</td><td>6</td></tr>
+<tr><td>Voting</td><td>6</td></tr>
+<tr><td>Building Stress</td><td>5</td></tr>
+<tr><td>Council Rates</td><td>5</td></tr>
+<tr><td>Finance Reports</td><td>5</td></tr>
+<tr><td>Governance</td><td>5</td></tr>
+<tr><td>Manager Contracts</td><td>5</td></tr>
+<tr><td>Navigation</td><td>5</td></tr>
+<tr><td>OCR</td><td>5</td></tr>
+<tr><td>Ownership</td><td>5</td></tr>
+<tr><td>Public</td><td>5</td></tr>
+<tr><td>Staff Management</td><td>5</td></tr>
+<tr><td>TOTP</td><td>5</td></tr>
+<tr><td>Volunteer</td><td>5</td></tr>
+<tr><td>Document Annotations</td><td>4</td></tr>
+<tr><td>Document Converter</td><td>4</td></tr>
+<tr><td>Investor Intelligence</td><td>4</td></tr>
+<tr><td>Letters</td><td>4</td></tr>
+<tr><td>Levy Reminders</td><td>4</td></tr>
+<tr><td>Occupancy Intelligence</td><td>4</td></tr>
+<tr><td>Owner Finance</td><td>4</td></tr>
+<tr><td>Building Risk Index</td><td>3</td></tr>
+<tr><td>Community Dashboard</td><td>3</td></tr>
+<tr><td>Finance Reconciliation</td><td>3</td></tr>
+<tr><td>Group Buy</td><td>3</td></tr>
+<tr><td>Invitations</td><td>3</td></tr>
+<tr><td>Jurisdictional Rules</td><td>3</td></tr>
+<tr><td>Polls</td><td>3</td></tr>
+<tr><td>Residency</td><td>3</td></tr>
+<tr><td>Safety</td><td>3</td></tr>
+<tr><td>Savings</td><td>3</td></tr>
+<tr><td>Strata Web Portal</td><td>3</td></tr>
+<tr><td>Building Integrations</td><td>2</td></tr>
+<tr><td>Insurance & Lending Intelligence</td><td>2</td></tr>
+<tr><td>Mock Accounting</td><td>2</td></tr>
+<tr><td>Mock Bank Feed</td><td>2</td></tr>
+<tr><td>Outbox Admin</td><td>2</td></tr>
+<tr><td>Settlement Adjustment</td><td>2</td></tr>
+<tr><td>AP Supplier Upload</td><td>1</td></tr>
+<tr><td>Admin Diagnostics</td><td>1</td></tr>
+<tr><td>Capital Funding</td><td>1</td></tr>
+<tr><td>Email Ingestion</td><td>1</td></tr>
+<tr><td>Market</td><td>1</td></tr>
+<tr><td>Powerhouse Visibility</td><td>1</td></tr>
+<tr><td>Reconciliation</td><td>1</td></tr>
+<tr><td>Request Catalogue</td><td>1</td></tr>
+<tr><td>SSE</td><td>1</td></tr>
+<tr><td>Utilities</td><td>1</td></tr></tbody></table></div>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Smart Requests Workflow — Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        th {
+            background: #2F4F4F;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+
+        tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-get {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-post {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-put {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-delete {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0;
+        }
+
+        .warn-box {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Smart Requests Workflow — Tech Docs</h1>
+<p>Covers the full request lifecycle: intake classification, auto-resolution, staff triage, status management,
+    SLA tracking, and notification dispatch.</p>
+
+<h2>Architecture Overview</h2>
+
+<p>Two routers handle requests. Both share the same <code>workflow_requests</code> MongoDB collection:</p>
+
+<table>
+    <tr>
+        <th>Router</th>
+        <th>Prefix</th>
+        <th>Purpose</th>
+    </tr>
+    <tr>
+        <td><code>routers/workflow_requests.py</code></td>
+        <td><code>/api/workflow-requests</code></td>
+        <td>CRUD, status updates, structured create</td>
+    </tr>
+    <tr>
+        <td><code>routers/engagement.py</code></td>
+        <td><code>/api/engagement</code></td>
+        <td>Smart intake, triage queue, stats, morning card, building pulse</td>
+    </tr>
+</table>
+
+<p>Classification and auto-resolution logic lives in <code>backend/services/comms_intake_service.py</code>.
+    Data models are in <code>backend/models/community_os.py</code>.</p>
+
+<h2>Feature Toggle</h2>
+
+<p>Smart Requests require the <code>smart_requests</code> feature toggle to be enabled for the building.
+    Endpoints guarded by this toggle return <code>403</code> when disabled.</p>
+
+<h2>API Endpoints</h2>
+
+<h3>Workflow Requests Router</h3>
+
+<table>
+    <tr>
+        <th>Method</th>
+        <th>Path</th>
+        <th>Auth</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td><span class="badge badge-post">POST</span></td>
+        <td><code>/workflow-requests/smart</code></td>
+        <td>Any authenticated user</td>
+        <td>Submit a smart intake request. Triggers classification + optional auto-resolution.</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-post">POST</span></td>
+        <td><code>/workflow-requests/</code></td>
+        <td>Any authenticated user</td>
+        <td>Create a structured request (explicit <code>request_type</code> required).</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-get">GET</span></td>
+        <td><code>/workflow-requests/</code></td>
+        <td>Any authenticated user</td>
+        <td>List requests. Residents see only own requests; staff see all building requests.</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-get">GET</span></td>
+        <td><code>/workflow-requests/{request_id}</code></td>
+        <td>Owner or staff</td>
+        <td>Get full request document.</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-get">GET</span></td>
+        <td><code>/workflow-requests/{request_id}/status</code></td>
+        <td>Owner or staff</td>
+        <td>Get status + activity timeline (from <code>audit_logs</code>).</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-put">PUT</span></td>
+        <td><code>/workflow-requests/{request_id}/status</code></td>
+        <td>Staff only</td>
+        <td>Update status, assign to staff member, add resolution notes.</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-get">GET</span></td>
+        <td><code>/workflow-requests/stats/triage</code></td>
+        <td>Staff only</td>
+        <td>Triage ROI stats: auto-resolved today, deflection rate, weekly volume.</td>
+    </tr>
+</table>
+
+<h3>Engagement Router</h3>
+
+<table>
+    <tr>
+        <th>Method</th>
+        <th>Path</th>
+        <th>Auth</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td><span class="badge badge-post">POST</span></td>
+        <td><code>/engagement/requests/smart</code></td>
+        <td>Any authenticated user</td>
+        <td>Alternate smart intake endpoint (same service as above).</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-get">GET</span></td>
+        <td><code>/engagement/requests</code></td>
+        <td>Any authenticated user</td>
+        <td>List requests (role-scoped).</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-get">GET</span></td>
+        <td><code>/engagement/requests/{request_id}/status</code></td>
+        <td>Owner or staff</td>
+        <td>Status + timeline.</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-get">GET</span></td>
+        <td><code>/engagement/triage</code></td>
+        <td>Staff only</td>
+        <td>Triage queue: overdue, needs-review, due-soon buckets.</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-get">GET</span></td>
+        <td><code>/engagement/stats</code></td>
+        <td>Staff only</td>
+        <td>Deflection rate, SLA breach count, human-handled count (7-day window).</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-get">GET</span></td>
+        <td><code>/engagement/morning-card</code></td>
+        <td>Any authenticated user</td>
+        <td>Single most-relevant action card for the requesting user.</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-get">GET</span></td>
+        <td><code>/engagement/building-pulse</code></td>
+        <td>Any authenticated user</td>
+        <td>Recent building activity feed.</td>
+    </tr>
+</table>
+
+<h2>Request Body Schemas</h2>
+
+<h3>POST /workflow-requests/smart — <code>WorkflowRequestSmartCreate</code></h3>
+<pre>{
+  "request_type": "maintenance_request",   // optional — inferred from classification if omitted
+  "subject":      "Tap dripping in bathroom",
+  "body":         "The hot water tap in unit 12 bathroom has been dripping for 3 days ...",
+  "attachments":  []                        // optional — list of URLs
+}</pre>
+
+<h3>PUT /workflow-requests/{id}/status — <code>WorkflowRequestStatusUpdate</code></h3>
+<pre>{
+  "status":           "in_progress",        // required — see status enum below
+  "resolution_notes": "Plumber booked for 24 April.",  // optional
+  "assigned_to":      "user-abc-001"        // optional — user ID of assignee
+}</pre>
+
+<h2>Status Enum</h2>
+
+<table>
+    <tr>
+        <th>Value</th>
+        <th>Set by</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td><code>auto_resolved</code></td>
+        <td>System</td>
+        <td>Answered instantly by the classification engine. Terminal state.</td>
+    </tr>
+    <tr>
+        <td><code>awaiting_review</code></td>
+        <td>System (on creation)</td>
+        <td>Pending initial staff triage. SLA clock running.</td>
+    </tr>
+    <tr>
+        <td><code>in_progress</code></td>
+        <td>Staff</td>
+        <td>Assigned and being actively worked on.</td>
+    </tr>
+    <tr>
+        <td><code>awaiting_resident</code></td>
+        <td>Staff</td>
+        <td>Waiting for further information from the resident.</td>
+    </tr>
+    <tr>
+        <td><code>closed</code></td>
+        <td>Staff</td>
+        <td>Fully resolved and archived. Terminal state.</td>
+    </tr>
+</table>
+
+<div class="warn-box">
+    <strong>Overdue is not a stored status.</strong> <code>sla_breached: true</code> is a boolean flag set
+    when <code>sla_due_at &lt; now</code> and the request is not in a terminal state. The triage endpoint
+    computes it at query time; it is not written back to the document.
+</div>
+
+<h2>WorkflowRequestResponse — Full Schema</h2>
+
+<pre>{
+  "id":                          "string",
+  "building_id":                 "string",
+  "request_number":              "REQ-2026-0042",
+  "request_type":                "maintenance_request",
+  "subject":                     "string",
+  "body":                        "string",
+  "unit_number":                 "string",
+  "priority":                    "normal",
+  "status":                      "awaiting_review",
+  "submitted_by_user_id":        "string",
+  "submitted_by_email":          "string",
+  "assigned_to":                 "string | null",
+  "assigned_to_name":            "string | null",
+  "resolution_notes":            "string | null",
+  "auto_resolution_attempted":   false,
+  "auto_resolution_confidence":  0.0,
+  "auto_resolved":               false,
+  "auto_resolution_response":    "string | null",
+  "sla_hours":                   48,
+  "sla_due_at":                  "2026-04-23T10:00:00+00:00",
+  "sla_breached":                false,
+  "needs_human_review":          false,
+  "is_test_data":                false,
+  "created_at":                  "2026-04-21T10:00:00+00:00",
+  "updated_at":                  "2026-04-21T10:00:00+00:00",
+  "closed_at":                   "string | null"
+}</pre>
+
+<h2>GET /engagement/triage — Response Schema</h2>
+
+<pre>{
+  "overdue":              [ WorkflowRequestResponse, ... ],  // SLA breached, not terminal — up to 20, oldest first
+  "needs_review":         [ WorkflowRequestResponse, ... ],  // needs_human_review=true, not breached — up to 20, newest first
+  "due_soon":             [ WorkflowRequestResponse, ... ],  // SLA expires within 2 hours — up to 10, soonest first
+  "total_attention_needed": 5
+}</pre>
+
+<h2>GET /engagement/stats — Response Schema</h2>
+
+<pre>{
+  "period_days":          7,
+  "total_received":       42,
+  "auto_resolved":        18,
+  "auto_resolved_today":  3,
+  "deflection_rate_pct":  42.9,
+  "sla_breached":         2,
+  "human_handled":        24
+}</pre>
+
+<h2>Classification Engine</h2>
+
+<p>Implemented in <code>backend/services/comms_intake_service.py::process_inbound()</code>.</p>
+<p>Keyword patterns are evaluated in order; the first match with confidence ≥ threshold wins.
+    The raw subject + body text is lowercased and matched via <code>re.search()</code>.</p>
+
+<table>
+    <tr>
+        <th>Category</th>
+        <th>Trigger keywords (examples)</th>
+        <th>Confidence</th>
+        <th>SLA hours</th>
+        <th>Auto-resolvable</th>
+    </tr>
+    <tr>
+        <td><code>maintenance_request</code></td>
+        <td>leak, tap, drip, pipe, lift, elevator</td>
+        <td>0.85–0.90</td>
+        <td>72</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td><code>levy_query</code></td>
+        <td>levy, levies, arrears, pay, owing, balance, invoice</td>
+        <td>0.85</td>
+        <td>4</td>
+        <td><strong>Yes</strong></td>
+    </tr>
+    <tr>
+        <td><code>renovation_approval</code></td>
+        <td>renovate, alter, bathroom, kitchen, works</td>
+        <td>0.85</td>
+        <td>168</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td><code>insurance_enquiry</code></td>
+        <td>insurance, insur, claim, storm, fire</td>
+        <td>0.80</td>
+        <td>48</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td><code>bylaw_query</code></td>
+        <td>bylaw, by-law, by law</td>
+        <td>0.80</td>
+        <td>24</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td><code>noise_complaint</code></td>
+        <td>noise, loud, party, music, disturbance</td>
+        <td>0.80</td>
+        <td>24</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td><code>reimbursement</code></td>
+        <td>reimburse, expense, receipt, out of pocket</td>
+        <td>0.80</td>
+        <td>120</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td><code>payment_plan</code></td>
+        <td>hardship, payment plan, struggling, afford</td>
+        <td>0.85</td>
+        <td>48</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td><code>pet_request</code></td>
+        <td>pet, animal, dog, cat, bird, fish</td>
+        <td>0.70</td>
+        <td>120</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td><code>record_request</code></td>
+        <td>record, minutes, document, strata roll</td>
+        <td>0.75</td>
+        <td>72</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td><code>general_complaint</code></td>
+        <td>complain, complaint, dispute, unhappy</td>
+        <td>0.75</td>
+        <td>48</td>
+        <td>No</td>
+    </tr>
+    <tr>
+        <td><code>general_enquiry</code></td>
+        <td>how do i, what is, when is, can i</td>
+        <td>0.60</td>
+        <td>24</td>
+        <td><strong>Yes</strong></td>
+    </tr>
+</table>
+
+<p><strong>Confidence thresholds:</strong></p>
+<ul>
+    <li>≥ 0.80 + auto-resolvable category → auto-resolved immediately</li>
+    <li>≥ 0.70 → classified and queued</li>
+    <li>&lt; 0.70 → classified, queued, and flagged <code>needs_human_review=true</code></li>
+    <li>No match → <code>general_enquiry</code> fallback</li>
+</ul>
+
+<h2>Auto-Resolution Logic</h2>
+
+<p>When <code>levy_query</code> is auto-resolvable, the service calls
+    <code>db.units.find_one({unit_number, building_id})</code> and returns one of:</p>
+<ul>
+    <li><em>Credit:</em> "Your levy account for unit {N} is in credit by ${amount}."</li>
+    <li><em>Owing:</em> "Your account has an outstanding balance of ${amount}. You can pay at /financials/levy-payments."
+    </li>
+    <li><em>Zero:</em> "Your levy account is up to date. No amount owing."</li>
+</ul>
+
+<h2>Activity Timeline (Audit Logs)</h2>
+
+<p>Every status change writes an entry to <code>db.audit_logs</code>:</p>
+<pre>{
+  "resource_type": "workflow_request",
+  "resource_id":   "{request_id}",
+  "action":        "status_changed",
+  "actor":         "{user_display_name}",
+  "building_id":   "{building_id}",
+  "details": {
+    "new_status":  "in_progress",
+    "note":        "Plumber booked for 24 April."
+  },
+  "created_at":    "2026-04-21T11:30:00+00:00"
+}</pre>
+
+<p>The <code>details</code> dict is formatted by <code>comms_intake_service._format_timeline_note()</code>
+    into human-readable text (confidence shown as %, booleans as Yes/No, empty lists omitted, no Python dict repr).</p>
+
+<h2>Notifications</h2>
+
+<p>Dispatched as bell notifications + email at:</p>
+<ul>
+    <li>Request created (auto-resolved): resident receives the answer immediately</li>
+    <li>Request created (queued): resident receives acknowledgement + SLA estimate</li>
+    <li>Status → <code>in_progress</code>: resident notified with assigned staff name</li>
+    <li>Status → <code>awaiting_resident</code>: resident prompted to respond</li>
+    <li>Status → <code>closed</code>: resident receives resolution notes</li>
+</ul>
+
+<p>Notifications with <code>is_test_data: true</code> are excluded from bell counts and history
+    via the <code>{"is_test_data": {"$ne": true}}</code> filter in <code>routers/notifications.py</code>.</p>
+
+<h2>Multi-Tenant Notes</h2>
+
+<ul>
+    <li>All <code>workflow_requests</code> documents are scoped by <code>building_id</code>.</li>
+    <li><code>TenantScopedDatabase</code> auto-injects <code>building_id</code> into every query.</li>
+    <li>Staff can only see requests for their own building; Super Admins can override via <code>X-Building-ID</code>
+        header.
+    </li>
+    <li>Auto-resolution reads <code>db.units</code> (also scoped to the building).</li>
+</ul>
+
+<h2>Performance / Test Data</h2>
+
+<p>Any record created by k6 or automated tests <strong>must</strong> include <code>"is_test_data": true</code>.
+    Use the workflow runner helper:</p>
+<pre>await run_workflow(building_id, payload, is_test_data=True)</pre>
+<p>The triage queue, morning card, and notification endpoints all filter out test data records.</p>
+
+<h2>Frontend API Client</h2>
+
+<p>Both API groups are wrapped in <code>frontend/src/lib/api/community-os/index.ts</code>:</p>
+<pre>// Workflow requests
+workflowRequestsApi.list(params?)          // GET /workflow-requests/
+workflowRequestsApi.get(id)                // GET /workflow-requests/{id}
+workflowRequestsApi.getStatus(id)          // GET /workflow-requests/{id}/status
+workflowRequestsApi.create(data)           // POST /workflow-requests/
+workflowRequestsApi.createSmart(data)      // POST /workflow-requests/smart
+workflowRequestsApi.updateStatus(id, data) // PUT /workflow-requests/{id}/status
+
+// Engagement
+engagementApi.createSmartRequest(data)     // POST /engagement/requests/smart
+engagementApi.listRequests(params?)        // GET /engagement/requests
+engagementApi.getRequestStatus(id)         // GET /engagement/requests/{id}/status
+engagementApi.getTriageQueue()             // GET /engagement/triage
+engagementApi.getStats(days?)              // GET /engagement/stats</pre>
+
+<div class="warn-box">
+    <strong>Never double-prefix with <code>/api/</code>.</strong>
+    The <code>api</code> axios instance from <code>useAuth()</code> has
+    <code>baseURL = NEXT_PUBLIC_BACKEND_URL/api</code>. Call <code>api.get('/workflow-requests/smart')</code>,
+    not <code>api.get('/api/workflow-requests/smart')</code>.
+</div>
+
+<footer style="margin-top: 3rem; border-top: 1px solid #e5e7eb; padding-top: 1rem; color: #9ca3af; font-size: 0.8rem;">
+    Smart Requests Workflow Tech Doc — updated 2026-04
+</footer>
+
+</body>
+</html>

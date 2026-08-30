@@ -1,0 +1,75 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "plugins": [],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "noEmit": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/__tests__/*": [
+        "../tests/frontend/unit/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ],
+      "react": [
+        "./node_modules/@types/react"
+      ],
+      "react/jsx-runtime": [
+        "./node_modules/@types/react/jsx-runtime"
+      ],
+      "react-dom": [
+        "./node_modules/@types/react-dom"
+      ],
+      "@testing-library/react": [
+        "./node_modules/@testing-library/react"
+      ],
+      "@testing-library/jest-dom": [
+        "./node_modules/@testing-library/jest-dom"
+      ],
+      "react-router-dom": [
+        "./node_modules/react-router-dom"
+      ],
+      "next-auth/react": [
+        "./node_modules/next-auth/react"
+      ],
+      "sonner": [
+        "./node_modules/sonner"
+      ],
+      "util": [
+        "./node_modules/@types/node/util"
+      ],
+      "fs": [
+        "./node_modules/@types/node/fs"
+      ],
+      "path": [
+        "./node_modules/@types/node/path"
+      ],
+      "@testing-library/user-event": [
+        "./node_modules/@testing-library/user-event"
+      ]
+    },
+    "types": [
+      "jest",
+      "node",
+      "@testing-library/jest-dom"
+    ]
+  },
+  "exclude": [
+    "node_modules",
+    ".next"
+  ],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    "**/*.jsx",
+    "../tests/frontend/unit/**/*.ts",
+    "../tests/frontend/unit/**/*.tsx",
+    "../tests/frontend/unit/**/*.js",
+    "../tests/frontend/unit/**/*.jsx"
+  ]
+}

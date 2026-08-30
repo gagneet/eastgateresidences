@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Requests &amp; Applications Catalogue — Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<h1>Requests &amp; Applications Catalogue — Tech Docs</h1>
+<p>The catalogue is the authenticated discovery layer for existing request workflows. It does not create a new request
+    store; each mapped domain endpoint keeps ownership of validation and persistence.</p>
+
+<h2>Data Flow</h2>
+<ol>
+    <li><code>RequestsPage.jsx</code> calls <code>GET /api/request-catalogue</code>.</li>
+    <li><code>routers/request_catalogue.py</code> resolves the authenticated user and active building.</li>
+    <li><code>request_catalogue_service.py</code> evaluates role, feature, lot and permission policy.</li>
+    <li>The frontend joins public metadata to local icons and lazy form adapters.</li>
+    <li>Existing forms submit to their existing domain APIs.</li>
+</ol>
+
+<h2>API Contract</h2>
+<table>
+    <tr><th>Method</th><th>Path</th><th>Auth</th><th>Purpose</th></tr>
+    <tr>
+        <td>GET</td>
+        <td><code>/api/request-catalogue</code></td>
+        <td>Bearer JWT and active building context</td>
+        <td>Return only public definitions eligible for the current building and effective role.</td>
+    </tr>
+</table>
+
+<pre><code>[
+  {
+    "key": "pet",
+    "version": 1,
+    "title": "Pet application",
+    "description": "Apply for approval to keep a pet at your unit.",
+    "category": "Pets &amp; Residents",
+    "search_terms": ["pet", "dog", "cat", "animal", "approval"],
+    "expected_response": "Decision timeframe depends on building rules",
+    "documents": "Pet photo and supporting records may be required",
+    "fee": null,
+    "legacy_tab_aliases": ["pet"],
+    "recommended": true
+  }
+]</code></pre>
+
+<h2>Error Responses</h2>
+<ul>
+    <li><code>401</code> — no authenticated user.</li>
+    <li><code>403</code> — building context, role, feature, lot relationship or workflow permission denies access.</li>
+    <li><code>404</code> — definition key is unknown.</li>
+    <li><code>409</code> — definition version is stale.</li>
+    <li><code>422</code> — request payload or parameters fail validation.</li>
+</ul>
+
+<h2>Shared Policy</h2>
+<p>The shared policy supports discovery, form access, submission, review and fulfilment. It evaluates the authenticated
+    user, effective canonical role, building context, definition key/version, required feature, feature overrides,
+    lot relationship and workflow permission. Frontend hiding is not authorisation.</p>
+
+<h2>Frontend Adapter Responsibilities</h2>
+<p>The frontend adapter owns icons, search synonyms and lazy imports only. It must not hardcode role authority. Unknown
+    server keys are ignored to prevent arbitrary client imports. Forms remain lazily loaded so the initial catalogue
+    bundle does not ship every form.</p>
+
+<h2>Mapped Workflows</h2>
+<table>
+    <tr><th>Definition</th><th>Existing API</th><th>Persistence</th><th>Attachments</th></tr>
+    <tr><td><code>maintenance</code></td><td><code>POST /api/maintenance</code></td><td><code>maintenance_requests</code></td><td>Dedicated Maintenance page flow</td></tr>
+    <tr><td><code>insurance-claim</code></td><td><code>POST /api/requests/insurance-claims</code></td><td><code>insurance_claims</code></td><td>Base64 JSON evidence</td></tr>
+    <tr><td><code>insurance-enquiry</code></td><td><code>POST /api/requests/insurance-enquiries</code></td><td><code>insurance_enquiries</code></td><td>None</td></tr>
+    <tr><td><code>pet</code></td><td><code>POST /api/requests/pets</code></td><td><code>pet_requests</code></td><td>Model supports docs/photo; current UI does not upload them</td></tr>
+    <tr><td><code>access-control</code></td><td><code>POST /api/requests/access-control</code></td><td><code>access_control_requests</code></td><td>None</td></tr>
+    <tr><td><code>alterations</code></td><td><code>POST /api/requests/alterations</code></td><td><code>alteration_requests</code></td><td>Base64 JSON plans/images/PDFs</td></tr>
+    <tr><td><code>reimbursement</code></td><td><code>POST /api/requests/reimbursements</code></td><td><code>reimbursement_requests</code></td><td>Base64 JSON receipts</td></tr>
+    <tr><td><code>work-order</code></td><td><code>POST /api/work-orders</code></td><td><code>work_orders</code></td><td>Varies by work-order API</td></tr>
+</table>
+
+<h2>No Migration Required</h2>
+<p>No PostgreSQL migration is required for Phase 1B. Definitions are code-versioned and existing feature-toggle tables
+    provide building and user availability. A migration should wait until editable per-building catalogue presentation,
+    pricing/document requirements, or a shared request-case record is approved as durable product data.</p>
+
+<h2>Safe Workflow Addition Checklist</h2>
+<ol>
+    <li>Add the backend definition with a stable key, version, feature, roles, lot requirement and permissions.</li>
+    <li>Reuse or add a domain endpoint that enforces building context and owns persistence.</li>
+    <li>Call <code>enforce_request_policy()</code> before submission writes and before any review or fulfilment action that changes catalogue-owned state.</li>
+    <li>Add a lazy frontend adapter and keep authority on the backend.</li>
+    <li>Add backend, frontend, OpenAPI and Playwright coverage.</li>
+    <li>Update architecture docs, this tech doc and role guides.</li>
+</ol>
+
+<h2>Deferred Phase 2 Work</h2>
+<ul>
+    <li>Tenant Information Update workflow.</li>
+    <li>Owner Information Update workflow.</li>
+    <li>Durable per-building catalogue presentation, pricing and document rules.</li>
+    <li>Separate attachment storage instead of base64 JSON payloads.</li>
+    <li>Backend-owned access-device pricing and fulfilment workflow.</li>
+    <li>Persisted alteration by-law acknowledgement/signature.</li>
+</ul>
+</body>
+</html>

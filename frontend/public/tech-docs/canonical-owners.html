@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Canonical Owner Registry — StrataOS</title>
+<style>
+ :root{--ink:#2F4F4F;--accent:#E07A5F;--sand:#F2CC8F;--bg:#fbfaf8;--line:#e6e1d8}
+ body{margin:0;padding:2.5rem 1.5rem;background:var(--bg);color:#23302f;
+   font:16px/1.65 Inter,system-ui,sans-serif;max-width:66rem;margin-inline:auto}
+ h1{font-family:Manrope,sans-serif;color:var(--ink);margin:0 0 .3rem;font-size:1.9rem}
+ .sub{color:#6b7876;margin:0 0 2rem}
+ .lede{border-left:3px solid var(--accent);padding:.2rem 0 .2rem 1rem;margin:0 0 2rem;color:#41514f}
+ .concept{background:#fff;border:1px solid var(--line);border-radius:12px;
+   padding:1.1rem 1.3rem;margin:0 0 1rem;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+ .concept h3{margin:0 0 .4rem;font-family:Manrope,sans-serif;color:var(--ink);font-size:1.1rem}
+ .concept h3 span{display:inline-block;margin-left:.35rem;padding:.05rem .35rem;border-radius:4px;
+   background:#edf2f1;color:#4c5b59;font:700 .68rem/1.3 Inter,system-ui,sans-serif;text-transform:uppercase}
+ .concept.clean{border-left:4px solid #4d8b6f} .concept.debt{border-left:4px solid var(--sand)}
+ .concept.fail{border-left:4px solid var(--accent)}
+ .rule{margin:.2rem 0 .8rem;color:#41514f}
+ dl{display:grid;grid-template-columns:8rem 1fr;gap:.25rem .8rem;margin:.6rem 0;font-size:.92rem}
+ dt{color:#6b7876} dd{margin:0}
+ code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.86em;
+   background:#f3f1ec;padding:.1rem .35rem;border-radius:4px}
+ details{margin-top:.5rem;font-size:.92rem} summary{cursor:pointer;color:var(--ink)}
+ details p,details ul{margin:.5rem 0 0;color:#41514f} .ok{color:#4d8b6f;font-size:.9rem;margin:.5rem 0 0}
+ footer{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--line);
+   color:#8a9694;font-size:.85rem}
+ @media(max-width:620px){dl{grid-template-columns:1fr}}
+</style></head><body>
+<h1>Canonical Owner Registry</h1>
+<p class="sub">One concept, one owner — 16 concepts, 28 recorded violations.</p>
+<p class="lede">A call graph answers <em>what calls what</em>. It cannot answer
+<em>does this concept already have an owner?</em> — a re-implementation creates no edge
+to the original, so every map renders it as healthy new code. This consolidated
+index closes that gap across backend Python and frontend TypeScript/JavaScript:
+a second implementation fails the build.</p>
+<section class="lede">
+  <strong>How to add an entry:</strong> name the concept, pick one owner module,
+  list the symbols callers use, write a reviewer-applicable rule, cite the
+  incident/risk, add a precise detector, and record exact existing debt only.
+</section>
+
+    <article class="concept clean" data-language="python">
+      <h3>unit-identity <span>python</span></h3>
+      <p class="rule">A plan LOT number ("71") becomes an addressable UNIT number ("TH071") only through the building's own unit_display rules. Never by gluing a prefix on in code.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>backend/utils/unit_number.py</code></dd>
+        <dt>Symbols</dt><dd><code>normalise_unit_token</code>, <code>extract_lot_int</code>, <code>format_unit_display</code>, <code>unit_number_candidates</code>, <code>resolve_canonical_unit_number</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/backend/test_unit_identity_single_source.py</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>Rebuilt at least five times. Most recently 2026-08-28 in strata_web_balance_inference_service, whose local map read units.lot_number — which stores "LOT71", not "71" — so every lookup missed, the balance-delta inference emitted bare lot numbers, and the matching engine scored 32 of 39 real payments 0.0 comparing "3" against "UA003". A local map is wrong even when its lookups succeed, because it cannot know a different building's prefixes.</p></details>
+      <p class="ok">No second implementation.</p>
+    </article>
+    <article class="concept debt" data-language="python">
+      <h3>money-dollars-to-cents <span>python</span></h3>
+      <p class="rule">An external dollar amount becomes integer cents exactly once, at the ingestion boundary, through utils.money. Never with float arithmetic and never re-derived at a call site.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>backend/utils/money.py</code></dd>
+        <dt>Symbols</dt><dd><code>dollars_to_cents</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/backend/test_canonical_owners.py</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>Two functions with the IDENTICAL name dollars_to_cents existed in finance_postgres_write_service and finance_metrics/mongo_adapter. They agreed on the happy path and diverged on every edge case — verified live 2026-08-28: dollars_to_cents("10.005") rejects as a fractional cent in one and silently returns 1001 in the other; 0, -5 and None likewise raise in one and return 0/-500/0 in the other. A caller who imported the wrong one got different money. Separately, five private _cents() helpers exist and bi_service._cents does the INVERSE (cents -&gt; dollars, returning float) under a name that everywhere else means dollars -&gt; cents.</p></details>
+      <details><summary>Recorded debt (8)</summary><ul><li><code>backend/integrations/demo_bank/ingestion.py:_cents_from_str</code></li><li><code>backend/integrations/mocks/csv_upload_bank_feed.py:_cents</code></li><li><code>backend/routers/financial_import.py:_cents</code></li><li><code>backend/scripts/east_gate_annual_carryforward.py:_cents</code></li><li><code>backend/scripts/east_gate_payment_import.py:_cents</code></li><li><code>backend/services/bi_service.py:_cents</code></li><li><code>backend/services/finance_metrics/mongo_adapter.py:dollars_to_cents</code></li><li><code>backend/services/finance_postgres_write_service.py:dollars_to_cents</code></li></ul></details>
+    </article>
+    <article class="concept debt" data-language="python">
+      <h3>effective-role <span>python</span></h3>
+      <p class="rule">A user's role for any guard comes from utils.auth.effective_role. Never from raw user["role"], and never from a locally defined _effective_role.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>backend/utils/auth.py</code></dd>
+        <dt>Symbols</dt><dd><code>effective_role</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/backend/test_elevated_role_guards.py</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>Elevation sets user["effective_role"] while leaving user["role"] as "owner", so a raw read silently 403s an elevated EC member. Six private copies exist. Verified live 2026-08-28 they diverge on the missing-role default — tenancy_service returns "" where the canonical helper returns "guest" — and none of them call normalize_user_role, so they are pinned to today's behaviour of a helper they do not use.</p></details>
+      <details><summary>Recorded debt (5)</summary><ul><li><code>backend/routers/capital_funding.py:_effective_role</code></li><li><code>backend/routers/document_annotations.py:_effective_role</code></li><li><code>backend/routers/gst_bas.py:_effective_role</code></li><li><code>backend/routers/powerhouse_status.py:_effective_role</code></li><li><code>backend/services/tenancy_service.py:_effective_role</code></li></ul></details>
+    </article>
+    <article class="concept clean" data-language="python">
+      <h3>per-unit-arrears <span>python</span></h3>
+      <p class="rule">Arrears is a per-unit obligation computed by unit_arrears_and_credit and aggregated only through finance_helpers.get_arrears_metrics. Never netted across units, never reconstructed from opening_balance + periods x levy.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>backend/domain/finance/formulas/arrears.py</code></dd>
+        <dt>Symbols</dt><dd><code>unit_arrears_and_credit</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/backend/test_domain_finance_arrears.py</code>, <code>tests/backend/test_arrears_logic.py</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>The reconstruct-from-opening pattern produced East Gate's live "31 units / $1,469.49" against a true 14 / $11,359.73 (2026-08-03), and independently inflated UA042 from $963.31 to $2,768. One owner's overpayment can never reduce another owner's arrears.</p></details>
+      <p class="ok">No second implementation.</p>
+    </article>
+    <article class="concept clean" data-language="python">
+      <h3>collection-rate <span>python</span></h3>
+      <p class="rule">Only due_date_collection_rate may produce a number labelled "Collection Rate". current_year_collection_rate is Fund Health and must never carry that label. Never re-derive as levied - sum(net_balance).</p>
+      <dl>
+        <dt>Owner</dt><dd><code>backend/domain/finance/formulas/collection.py</code></dd>
+        <dt>Symbols</dt><dd><code>due_date_collection_rate</code>, <code>current_year_collection_rate</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/backend/test_collection_rate.py</code>, <code>tests/backend/test_collection_rate_label_contract.py</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>The levied - sum(signed net_balance) shortcut collapses to an unclamped sum of payments the instant one unit pays ahead, so a single owner paying their year in January inflates the building's rate for quarters not yet due. Found live in three endpoints on 2026-08-03.</p></details>
+      <p class="ok">No second implementation.</p>
+    </article>
+    <article class="concept clean" data-language="python">
+      <h3>lot-true-balance <span>python</span></h3>
+      <p class="rule">A lot's true owing/credit position comes from compute_lot_true_balances. Never from a locally written GREATEST(0, received - levied) query.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>backend/services/finance_metrics/lot_true_balance.py</code></dd>
+        <dt>Symbols</dt><dd><code>compute_lot_true_balances</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/backend/test_lot_true_balance.py</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>Two versions of portal_vs_ledger_reconciliation computed their own. The second copied the canonical shape but not its filters — no reversal-parity join, no retired_at check — so it counted reversed and retired receipts and reported phantom credits of $19,000-$30,000 on lots holding none (2026-08-28). The filters, not the formula, are the hard part.</p></details>
+      <p class="ok">No second implementation.</p>
+    </article>
+    <article class="concept debt" data-language="python">
+      <h3>person-name-key <span>python</span></h3>
+      <p class="rule">Deciding whether two owner names are the same person uses _name_key from the detection service. Never a locally written normaliser.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>backend/services/ownership_transfer_detection_service.py</code></dd>
+        <dt>Symbols</dt><dd><code>_name_key</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/backend/test_purge_non_transfer_requests_r4.py</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>A live scrape raised 29 transfer requests for East Gate; 28 were the portal rendering the same owner as "jason carter" one run and "mr jason carter" the next. If a cleanup script normalises differently from the detector that created the rows, the two disagree about who is the same person and the cleanup deletes the wrong ones.</p></details>
+      <details><summary>Recorded debt (2)</summary><ul><li><code>backend/scripts/data_repair/fix_co_owner_addition_transfer_requests_20260820.py:_name_key</code></li><li><code>backend/scripts/data_repair/reconcile_strata_owners_combined_name_20260820.py:_name_key</code></li></ul></details>
+    </article>
+    <article class="concept clean" data-language="python">
+      <h3>financial-year-label <span>python</span></h3>
+      <p class="rule">A financial year label is normalised through normalise_financial_year before it is compared or used as a key.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>backend/utils/finance_helpers.py</code></dd>
+        <dt>Symbols</dt><dd><code>normalise_financial_year</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/backend/test_canonical_owners.py</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>The snapshot collection stores whatever label the caller passed — East Gate holds "2025", "2026" AND "2026-2027" for overlapping periods. A balance delta needs two snapshots of the same NORMALISED year; comparing raw labels silently pairs nothing and yields zero candidates with nothing raising.</p></details>
+      <p class="ok">No second implementation.</p>
+    </article>
+    <article class="concept clean" data-language="python">
+      <h3>building-request-context <span>python</span></h3>
+      <p class="rule">The current building comes from request_context. Never a module-level default, never DEFAULT_BUILDING_ID as a working value in new logic.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>backend/request_context.py</code></dd>
+        <dt>Symbols</dt><dd><code>get_ctx_building_id</code>, <code>set_ctx_building_id</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/backend/test_canonical_owners.py</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>TenantScopedDatabase injects building_id from this contextvar on every scoped query. A second source of building context means a query scoped to the wrong tenant, which returns rows rather than an error.</p></details>
+      <p class="ok">No second implementation.</p>
+    </article>
+    <article class="concept clean" data-language="python">
+      <h3>postgres-tenant-resolution <span>python</span></h3>
+      <p class="rule">A tenant_id is RESOLVED from core.schemes. It is never derived from a building_id by uuid5 or any other formula.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>backend/db_postgres/repos/config_repo.py</code></dd>
+        <dt>Symbols</dt><dd><em>n/a</em></dd>
+        <dt>Enforced by</dt><dd><code>tests/backend/test_canonical_owners.py</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>Registration derived it as uuid5(NAMESPACE_DNS, f"building-{building_id}"), which is not the real tenant, so users_tenant_id_fkey rejected every insert and a try/except swallowed it — no registration ever created a core.users row (footgun #16).</p></details>
+      <p class="ok">No second implementation.</p>
+    </article>
+    <article class="concept debt" data-language="javascript">
+      <h3>api-error-detail <span>javascript</span></h3>
+      <p class="rule">UI code reads backend error envelopes through lib/api-error. Never branch on response.data.detail.code/message/metadata, validation-array fields or other locally decoded detail-object shapes at a call site.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>frontend/src/lib/api-error.ts</code></dd>
+        <dt>Symbols</dt><dd><code>classifyApiError</code>, <code>getApiErrorDetail</code>, <code>isClassifiedApiError</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/frontend/unit/api-error-validation.test.ts</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>backend/utils/error_response.py can wrap a FastAPI detail dict into {error: {code, message, metadata}}, while older frontend code expected data.detail.code. That made registration conflict branches and reset password banners unreachable even though the backend returned the domain error correctly. Later, FastAPI 422 validation arrays repeated the same failure mode: local detail parsing hid the useful validation message behind generic page text. One parser must own these shapes.</p></details>
+      <details><summary>Recorded debt (13)</summary><ul><li><code>frontend/src/auth.ts:&lt;module&gt;</code></li><li><code>frontend/src/pages/dashboard/RequestsPage.jsx:&lt;module&gt;</code></li><li><code>frontend/src/pages/dashboard/SettingsPage.jsx:&lt;module&gt;</code></li><li><code>frontend/src/pages/dashboard/TrustBankAccountsPage.tsx:TrustBankAccountsPage</code></li><li><code>frontend/src/pages/dashboard/admin/BuildingOnboardingForm.jsx:extractErrorDetail</code></li><li><code>frontend/src/pages/dashboard/admin/NewSelfManagedSchemePage.jsx:&lt;module&gt;</code></li><li><code>frontend/src/pages/dashboard/admin/NewSmOrganisationPage.jsx:&lt;module&gt;</code></li><li><code>frontend/src/pages/dashboard/admin/OnboardingWizard.jsx:extractOnboardingErrorDetail</code></li><li><code>frontend/src/pages/dashboard/admin/UnitChangeRequestsPage.jsx:&lt;module&gt;</code></li><li><code>frontend/src/pages/dashboard/financial/HistoricalReconstructionPage.tsx:HistoricalReconstructionPage</code></li><li><code>frontend/src/pages/dashboard/requests/AccessControlTab.jsx:&lt;module&gt;</code></li><li><code>frontend/src/pages/dashboard/settings/AccessDeviceSettings.jsx:&lt;module&gt;</code></li><li><code>frontend/src/pages/supplier/InvoiceUploadPage.tsx:InvoiceUploadPage</code></li></ul></details>
+    </article>
+    <article class="concept clean" data-language="javascript">
+      <h3>currency-format <span>javascript</span></h3>
+      <p class="rule">Format money through lib/currency, choosing the function that names the UNIT you hold: formatMoneyFromCents for stored minor units, formatMoneyFromDollars for dollar-denominated fields. Never define a local currency formatter, never hardcode a "$", and never render a missing amount as 0.00.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>frontend/src/lib/currency.ts</code></dd>
+        <dt>Symbols</dt><dd><code>formatMoneyFromCents</code>, <code>formatMoneyFromDollars</code>, <code>formatMoneyCompact</code>, <code>currencySymbol</code>, <code>setActiveCurrency</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/frontend/unit/lib/currency.test.ts</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>Ten fmtAUD implementations disagreed about the unit of their own argument. lib/utils.ts took DOLLARS and emitted no symbol; LevyScenariosPage, GSTBASLedgerPage and FinancialDataManagementPage took dollars WITH a symbol; MatchingReviewPage, ReconciliationPage, APApprovalQueuePage, InvoiceUploadPage, TrustBankAccountsPage and DemoBankTransactionsPage took CENTS. The same call rendered money 100x apart depending on which file it sat in, with nothing at the call site disclosing which had been imported. Three call sites also rendered a bare number because the caller forgot the manual "$" the decimal-style owner required. A hardcoded "$" is separately wrong: it is ambiguous across AUD, NZD, USD, SGD and HKD, so the currency code and locale now come from the building's own settings.</p></details>
+      <p class="ok">No second implementation.</p>
+    </article>
+    <article class="concept clean" data-language="python">
+      <h3>route-auth-guard <span>python</span></h3>
+      <p class="rule">A router role guard names its roles with UserRole constants and enforces them through utils.route_guards (assert_roles for the imperative _require_x(user) shape, require_roles for a FastAPI dependency). Never compare a raw current_user["role"], and never write a bare role string in an allowed-set.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>backend/utils/route_guards.py</code></dd>
+        <dt>Symbols</dt><dd><code>assert_roles</code>, <code>require_roles</code>, <code>VALID_ROLES</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/backend/test_route_guards.py</code>, <code>tests/backend/test_elevated_role_guards.py</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>116 private _require_* guards across 70 router files; _require_manager alone had 19 copies with 9 different role sets. Twelve tested for "admin", "treasurer" or "maintenance" - none is a UserRole, so those conditions could never match and the guards were silently NARROWER than intended; routers/defects_register.py even carries a comment diagnosing that exact mistake, fixed in that one file and never propagated to the other eighteen. routers/matching.py::_require_finance additionally read the raw role while admitting ec_member, so it 403'd every temporarily elevated committee member. Divergence in an authorisation layer is a security defect, not a style one.</p></details>
+      <p class="ok">No second implementation.</p>
+    </article>
+    <article class="concept clean" data-language="python">
+      <h3>manager-appointment-type <span>python</span></h3>
+      <p class="rule">The set of core.scheme_manager_appointments.appointment_type values is declared once, in management_hierarchy_service. Routers, validators and services import VALID_APPOINTMENT_TYPES; only an alembic migration may restate the literals, and only because it has to render them into the CHECK constraint.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>backend/services/management_hierarchy_service.py</code></dd>
+        <dt>Symbols</dt><dd><code>VALID_APPOINTMENT_TYPES</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/backend/test_manager_function_access_model.py</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>Three copies existed until 2026-08-28 - the service, routers/management_hierarchy.py and migration 0057 - and the router's copy had no way to learn about a new value. A stale copy here does not fail loudly: the CHECK constraint still accepts the new appointment type, but the router's field_validator rejects it with "must be one of ...", so the value is legal in the database and unreachable through the API. That is the same silent-narrowing shape as the dead role strings in route-auth-guard, one layer up.</p></details>
+      <p class="ok">No second implementation.</p>
+    </article>
+    <article class="concept clean" data-language="javascript">
+      <h3>function-scope-denial-ui <span>javascript</span></h3>
+      <p class="rule">A refusal caused by the manager's APPOINTMENT is recognised through lib/api-error - classifyApiError gives it the function_scope_denied category, and isFunctionScopeDenied/deniedSurface answer "was it this?" and "which surface?". Never compare the "MANAGER_FUNCTION_SCOPE" literal in a page, and never hand-write the refusal wording: the backend already names the surface it refused.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>frontend/src/lib/api-error.ts</code></dd>
+        <dt>Symbols</dt><dd><code>MANAGER_FUNCTION_SCOPE_CODE</code>, <code>isFunctionScopeDenied</code>, <code>deniedSurface</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/frontend/unit/manager-function-scope-denial.test.ts</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>The same reason role checks go through AuthContext helpers rather than user.role === "ec_member". This refusal arrives as an ordinary HTTP 403, so any page classifying on status alone shows "you do not have access" and throws away the one useful fact - WHICH part of the job is missing. Nine routers are gated by it and, until 2026-08-29, not one of their pages rendered a classified error, so the reason reached the browser and died there. A page that re-derives this re-creates that silence one screen at a time.</p></details>
+      <p class="ok">No second implementation.</p>
+    </article>
+    <article class="concept clean" data-language="python">
+      <h3>manager-function-scope <span>python</span></h3>
+      <p class="rule">Whether a manager's function covers a part of the product is answered once, by manager_function_service. A route declares its SURFACE via route_guards.require_manager_surface and never inspects appointment_type, management_entities.function_scoping_enabled, or a local surface list itself.</p>
+      <dl>
+        <dt>Owner</dt><dd><code>backend/services/manager_function_service.py</code></dd>
+        <dt>Symbols</dt><dd><code>ALL_SURFACES</code>, <code>FUNCTION_SURFACES</code>, <code>ManagerScope</code>, <code>resolve_manager_scope</code>, <code>validate_surface</code></dd>
+        <dt>Enforced by</dt><dd><code>tests/backend/test_manager_function_scoping.py</code></dd>
+      </dl>
+      <details><summary>Why one owner</summary><p>This layer only ever REMOVES access, so a second implementation does not fail loudly the way a duplicated role check does - it silently narrows differently, or forgets to narrow at all, and looks identical to an agency that has not opted in. The four rules that make it safe (off by default, no appointment means full scope, engagement beats function, fail open with a logged reason) are decisions, not arithmetic: a re-derivation gets one of them wrong. The engagement-type list already had to be pulled back to its owner once, on the day this shipped, because restating four literals here would have let a fifth engagement type narrow a manager the rest of the system considers unrestricted.</p></details>
+      <p class="ok">No second implementation.</p>
+    </article>
+<footer>Generated 2026-08-29T08:30:57+00:00 from <code>docs/architecture/canonical_owners.yaml</code>
+ by <code>scripts/validation/generate_canonical_owner_registry.py</code>. Do not edit by hand.</footer>
+</body></html>

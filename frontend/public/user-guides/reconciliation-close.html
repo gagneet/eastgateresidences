@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Closing a Reconciliation Period — User Guide</title>
+    <link href="../styles.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="guide-container">
+    <h1>Closing a Reconciliation Period</h1>
+    <p class="intro">
+        This guide explains how to close a financial reconciliation period for your building.
+        When the bank statement and journal entries match, the period closes automatically.
+        If there is a discrepancy, a reviewer must approve before the period is locked.
+    </p>
+
+    <h2>Who can close a period?</h2>
+    <p>
+        Strata managers, the building chairperson, and super admins can initiate a
+        reconciliation close. EC members can approve a discrepancy but cannot initiate the close.
+    </p>
+
+    <h2>Step 1 — Initiate the close</h2>
+    <ol>
+        <li>Navigate to <strong>Finances → Reconciliation</strong> in the main menu.</li>
+        <li>Select the period you wish to close (e.g. "April 2026").</li>
+        <li>Click <strong>Close Period</strong> and enter the bank statement total.</li>
+        <li>The system will run a reconciliation check automatically.</li>
+    </ol>
+
+    <h2>Step 2a — Balanced: automatic close</h2>
+    <p>
+        If the journal entry total equals the bank statement total, the period transitions
+        immediately to <strong>Closed</strong> status. No further action is required.
+        You will receive a confirmation notification with the closing timestamp.
+    </p>
+
+    <h2>Step 2b — Discrepancy detected: reviewer approval required</h2>
+    <p>
+        If the totals do not match, the system will:
+    </p>
+    <ol>
+        <li>Display the discrepancy amount (journal total vs bank statement total).</li>
+        <li>Email the nominated reviewer (usually the strata manager) with the discrepancy details.</li>
+        <li>Hold the period in <strong>Pending Review</strong> status until a reviewer approves.</li>
+    </ol>
+    <p>
+        The reviewer will receive an email with a link to the reconciliation summary.
+        Once they have investigated and are satisfied with the explanation, they click
+        <strong>Approve and Close</strong> in the portal, optionally adding review notes.
+    </p>
+
+    <div class="note">
+        <strong>Note:</strong> The period will not close until the reviewer explicitly approves,
+        regardless of how much time passes. There is no automatic timeout — this is by design
+        to protect the financial record.
+    </div>
+
+    <h2>What happens after close?</h2>
+    <ul>
+        <li>The period status changes to <strong>Closed</strong> and no further transactions
+            can be posted to it.
+        </li>
+        <li>A Merkle seal is computed for the period's ledger, providing tamper-evident
+            proof of the closing balance.
+        </li>
+        <li>The closing balance becomes the opening balance for the next period.</li>
+        <li>A confirmation email is sent to the strata manager and chairperson.</li>
+    </ul>
+
+    <h2>Common questions</h2>
+
+    <h3>What if I entered the wrong bank statement total?</h3>
+    <p>
+        Contact your strata manager to void the reconciliation request and start a new one.
+        Closed periods cannot be re-opened, but an open-period reconciliation that is pending
+        review can be cancelled.
+    </p>
+
+    <h3>How long does the reviewer have to respond?</h3>
+    <p>
+        There is no automatic expiry. The period stays in Pending Review status until the
+        reviewer approves or the reconciliation request is cancelled.
+    </p>
+
+    <h3>Can I see the discrepancy details?</h3>
+    <p>
+        Yes. The reconciliation summary page shows the journal entry total, the bank statement
+        total, and the discrepancy amount. Strata managers and the chairperson can view this
+        at any time while the period is in Pending Review.
+    </p>
+
+    <h3>Is reconciliation available for all buildings?</h3>
+    <p>
+        The automated reconciliation close workflow is available for buildings where the
+        <em>Financial Integration Layer v2</em> feature is enabled. Contact your strata
+        manager if you are unsure whether this is active for your building.
+    </p>
+</div>
+</body>
+</html>

@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Architecture – Eastgate Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad: true, theme: 'dark', securityLevel: 'strict'});</script>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">East Gate Residences</div>
+            <div class="sub">Technical Documentation · Architecture</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a class="active" data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span>
+                Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#multitenant">Multi-tenant</a>
+            <a href="#overview">System Overview</a>
+            <a href="#stack">Technology Stack</a>
+            <a href="#system-diagram">System Diagram</a>
+            <a href="#directories">Directory Structure</a>
+            <a href="#data-flow">Data Flow</a>
+            <a href="#design-principles">Design Principles</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <div style="background:#3a2418;border:1px solid #c2410c;color:#fed7aa;padding:12px 16px;border-radius:8px;margin-bottom:20px;">
+            <strong>⚠ Doc refresh in progress (2026-04-30):</strong>
+            Parts of this page predate the Next.js App Router migration and the current 176-collection
+            schema. See the <a href="AUDIT_ADDENDUM_2026-04-30.html" style="color:#fed7aa;text-decoration:underline;">2026-04-30
+            audit addendum</a>
+            for the live architecture state.
+        </div>
+        <h1>System Architecture</h1>
+        <p>High-level design of the East Gate Residences Strata Management Platform — a full-stack web application for
+            managing an 87-unit residential community.</p>
+
+        <div class="callout">
+            <strong>Current data architecture — verified live 2026-08-19.</strong> PostgreSQL is the system of
+            record, but which store <em>serves</em> a read is decided <strong>per-domain AND per-building</strong> —
+            never by a single global switch. <code>core.domain_cutover_status</code> is the runtime authority: a
+            global feature toggle only says a PostgreSQL path is <em>available</em>; the cutover table is what makes
+            it <em>canonical</em> for a building.
+            <br><br>
+            <strong>East Gate (13195) is promoted to PostgreSQL across all eight domains</strong> —
+            <code>finance_ledger</code>, <code>identity_core</code>, <code>governance</code>, <code>occupancy</code>,
+            <code>settings</code>, <code>trust_ledger</code>, <code>trust_reconciliation</code> and
+            <code>powerhouse_conversations</code> all read <em>and</em> write PostgreSQL, with MongoDB as the DR
+            mirror. <strong>Every other building is still served by MongoDB</strong>, because all protected toggles
+            remain <code>FALSE</code> globally.
+            <br><br>
+            PostgreSQL is at Alembic <code>0104_manager_fn_scoping</code> with 230 tables across 15
+            non-system schemas — but only <strong>53 hold rows and 177 are empty</strong>, which is what a phased
+            cutover looks like mid-flight. MongoDB holds 226 collections, 153 non-empty, and <strong>128 of those
+            have no PostgreSQL target at all</strong>. A domain being promoted does <em>not</em> mean its router
+            reads PostgreSQL: only 10 of 133 routers consult the control plane and 103 call
+            <code>db.&lt;collection&gt;</code> directly, so new code goes through the one dispatch seam,
+            <code>services/store_router.py::resolve_store</code>. Verified live 2026-08-29.
+            Do not restate this from memory:
+            re-run <code>backend/scripts/audits/cutover_readiness_snapshot.py</code> (read-only). See
+            <a href="postgresql-live-data-inventory-2026-07-24.md">the live PostgreSQL inventory</a>.
+        </div>
+
+        <section id="overview">
+            <h2>System Overview</h2>
+            <div class="two-col">
+                <div class="card">
+                    <h3>What it is</h3>
+                    <p>A multi-tenant SaaS platform managing an 87-unit strata property (apartments + townhouses).
+                        Handles financial management, maintenance requests, communications, compliance, and community
+                        features for residents, owners, executives, and administrators.</p>
+                </div>
+                <div class="card">
+                    <h3>Hosting</h3>
+                    <ul>
+                        <li>Backend runs as a <strong>systemd service</strong> on a Linux host</li>
+                        <li>Frontend is a <strong>static React build</strong> served via Nginx/Next.js</li>
+                        <li>PostgreSQL 16 is the system of record; it serves all eight domains for East Gate today
+                            (reads and writes), and backs the financial core, identity, RLS and audit data</li>
+                        <li>MongoDB serves every not-yet-promoted building, and is the DR mirror for promoted ones</li>
+                        <li>Email via Migadu SMTP (port 465 SSL)</li>
+                        <li>Payments via Stripe (test mode)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-num">FastAPI</div>
+                    <div class="stat-label">Backend Framework</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num">React 19</div>
+                    <div class="stat-label">Frontend Framework</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num">MongoDB + PG</div>
+                    <div class="stat-label">Operational + Cutover Stores</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num">JWT</div>
+                    <div class="stat-label">Authentication</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="stack">
+            <h2>Technology Stack</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Layer</th>
+                        <th>Technology</th>
+                        <th>Version</th>
+                        <th>Purpose</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><span class="badge badge-blue">Backend</span></td>
+                        <td>FastAPI</td>
+                        <td>0.128.4</td>
+                        <td>REST API framework with async support</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">Backend</span></td>
+                        <td>Uvicorn</td>
+                        <td>0.32.1</td>
+                        <td>ASGI server for FastAPI</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">Backend</span></td>
+                        <td>Motor</td>
+                        <td>3.3.1</td>
+                        <td>Async MongoDB driver</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">Backend</span></td>
+                        <td>PyMongo</td>
+                        <td>4.6.3</td>
+                        <td>MongoDB operations</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">Backend</span></td>
+                        <td>Pydantic</td>
+                        <td>2.12.5</td>
+                        <td>Data validation and serialisation</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">Backend</span></td>
+                        <td>PyJWT + bcrypt</td>
+                        <td>2.11.0 / 4.1.3</td>
+                        <td>JWT auth + password hashing</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">Backend</span></td>
+                        <td>ReportLab</td>
+                        <td>4.4.9</td>
+                        <td>PDF generation (invoices, reports)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">Backend</span></td>
+                        <td>Resend + SMTP</td>
+                        <td>2.21.0</td>
+                        <td>Transactional email</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">Backend</span></td>
+                        <td>Stripe</td>
+                        <td>14.3.0</td>
+                        <td>Levy payments (test mode)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">Backend</span></td>
+                        <td>SlowAPI</td>
+                        <td>0.1.9</td>
+                        <td>Rate limiting</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">Backend</span></td>
+                        <td>Pandas + OpenPyXL</td>
+                        <td>3.0.0 / 3.1.2</td>
+                        <td>Excel import for financial data</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-green">Frontend</span></td>
+                        <td>React</td>
+                        <td>19.2.3</td>
+                        <td>UI component framework</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-green">Frontend</span></td>
+                        <td>React Router</td>
+                        <td>7.5.1</td>
+                        <td>Client-side routing</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-green">Frontend</span></td>
+                        <td>Next.js</td>
+                        <td>16.1.6</td>
+                        <td>Build tooling (migrated from CRA)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-green">Frontend</span></td>
+                        <td>Tailwind CSS</td>
+                        <td>v4</td>
+                        <td>Utility-first CSS</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-green">Frontend</span></td>
+                        <td>shadcn/ui + Radix UI</td>
+                        <td>latest</td>
+                        <td>Accessible UI components</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-green">Frontend</span></td>
+                        <td>Axios</td>
+                        <td>latest</td>
+                        <td>HTTP client with JWT interceptor</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-green">Frontend</span></td>
+                        <td>Recharts / Tremor</td>
+                        <td>3.7.0 / 3.18.7</td>
+                        <td>Data visualisation</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-green">Frontend</span></td>
+                        <td>Stripe React</td>
+                        <td>5.6.0</td>
+                        <td>Payment form components</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-purple">Database</span></td>
+                        <td>MongoDB</td>
+                        <td>6+</td>
+                        <td>Document store (154 collections, all building_id scoped)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-yellow">Infra</span></td>
+                        <td>systemd</td>
+                        <td>-</td>
+                        <td>Backend process management</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-yellow">Infra</span></td>
+                        <td>Migadu SMTP</td>
+                        <td>-</td>
+                        <td>Hosted email (port 465 SSL)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-yellow">Infra</span></td>
+                        <td>Stripe</td>
+                        <td>-</td>
+                        <td>Payment processing</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="system-diagram">
+            <h2>System Architecture Diagram</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    graph TB
+                    subgraph Client["Browser / Client"]
+                    UI["React 19 SPA<br/>Tailwind + shadcn/ui"]
+                    AC["AuthContext.tsx<br/>JWT + Permissions + Building Context"]
+                    end
+
+                    subgraph EdgeLayer["Edge / Proxy"]
+                    NGX["Nginx / Next.js<br/>Static file serving<br/>+ Reverse proxy"]
+                    end
+
+                    subgraph Backend["FastAPI Backend (Python)"]
+                    SRV["server.py<br/>FastAPI App + CORS + Rate Limiting<br/>+ inline auth/settings routes"]
+                    subgraph Routers["73 API Routers (routers/)"]
+                    AUTH["auth.py"]
+                    FIN["finance.py"]
+                    MAINT["maintenance.py"]
+                    COMM["communication.py"]
+                    CHAT["chat.py"]
+                    NOTIF["notifications.py"]
+                    FT["feature_toggles.py"]
+                    USR["users.py (inline)"]
+                    OTHER["trust_accounting.py<br/>work_orders.py<br/>bank_feeds.py<br/>intelligence.py<br/>...35+
+                    more"]
+                    end
+                    subgraph Services["Business Logic (services/)"]
+                    FSVC["financial_service.py"]
+                    FSVC2["forecast_service.py"]
+                    ASVC["anomaly_service.py"]
+                    RSVC["risk_index_service.py"]
+                    end
+                    subgraph Utils["Utilities (utils/)"]
+                    UAUTH["auth.py (JWT/bcrypt)"]
+                    UPERM["permissions.py"]
+                    UEMAIL["email.py"]
+                    UPDF["pdf_generator.py"]
+                    end
+                    end
+
+                    subgraph Data["Data Layer"]
+                    MONGO["MongoDB<br/>154 Collections<br/>Motor async<br/>building_id scoped (all tenants)"]
+                    end
+
+                    subgraph External["External Services"]
+                    STRIPE["Stripe API<br/>Payments"]
+                    MIGADU["Migadu SMTP<br/>Email (port 465 SSL)"]
+                    ABN["ABN Lookup<br/>Australia"]
+                    end
+
+                    AC -->|"Axios + Bearer JWT"| NGX
+                    UI --> AC
+                    NGX -->|"Proxy /api/*"| SRV
+                    SRV --> Routers
+                    Routers --> Services
+                    Routers --> Utils
+                    Routers -->|"Motor async"| MONGO
+                    Services -->|"Motor async"| MONGO
+                    Utils --> MIGADU
+                    Routers --> STRIPE
+                    Routers --> ABN
+                </div>
+                <div class="diagram-caption">High-level system architecture showing component relationships</div>
+            </div>
+        </section>
+
+        <section id="directories">
+            <h2>Directory Structure</h2>
+            <pre><code>strata-management/
+├── backend/
+│   ├── server.py              # FastAPI app — imports all routers (8,700+ lines)
+│   ├── config.py              # JWT, email, Stripe config
+│   ├── database.py            # Motor async MongoDB client
+│   ├── requirements.txt       # 130 Python dependencies
+│   ├── .env.example           # Environment variable template
+│   │
+│   ├── routers/               # 73 feature-specific API routers
+│   │   ├── auth.py            # Register, login, JWT, password reset
+│   │   ├── users.py           # User CRUD, approvals, archiving
+│   │   ├── finance.py         # Annual levies, budgets, payments (largest router)
+│   │   ├── finance_intelligence.py  # Forecasting, anomaly detection
+│   │   ├── maintenance.py     # Requests, contractors, POs, invoices
+│   │   ├── communication.py   # Announcements, notices, messages
+│   │   ├── chat.py            # Community group chat
+│   │   ├── notifications.py   # User notifications, audit logs
+│   │   ├── feature_toggles.py # Feature flag CRUD
+│   │   ├── documents.py       # Document upload/download
+│   │   ├── listings.py        # Marketplace listings
+│   │   ├── meetings.py        # Committee meetings, AGM, voting
+│   │   ├── analytics.py       # Dashboard stats, insights
+│   │   ├── community.py       # Blog, events, EC members, directory
+│   │   ├── bookings.py        # Amenity bookings, parcels, defects
+│   │   ├── council_rates.py   # Council rate tracking
+│   │   ├── water_bills.py     # Water utility billing
+│   │   ├── utilities.py       # General utilities endpoint
+│   │   ├── settings.py        # Site settings, email config
+│   │   ├── market.py          # Market pulse data
+│   │   └── integrations.py    # ABN validation
+│   │
+│   ├── models/                # 16 Pydantic model files
+│   │   ├── user.py            # User, roles, permissions
+│   │   ├── finance.py         # Levy, budget, payment models
+│   │   ├── maintenance.py     # Request, contractor, PO, invoice
+│   │   ├── communication.py   # Messages, announcements, notices
+│   │   ├── community.py       # Meetings, todos, events, blog
+│   │   ├── booking.py         # Amenity, parcel, defect, move
+│   │   ├── document.py        # Document models
+│   │   ├── listing.py         # Marketplace listings
+│   │   ├── financial_models.py # Transactions, reconciliation
+│   │   └── __init__.py        # Model exports
+│   │
+│   ├── utils/                 # 9 utility modules
+│   │   ├── auth.py            # bcrypt, JWT create/decode
+│   │   ├── permissions.py     # Role &amp; permission validation
+│   │   ├── email.py           # Multi-provider email sending
+│   │   ├── helpers.py         # Notifications, audit log helpers
+│   │   ├── pdf_generator.py   # ReportLab PDF generation
+│   │   ├── finance_helpers.py # Levy calculation logic
+│   │   ├── finance_logger.py  # Finance audit trail
+│   │   └── activity_helper.py # Activity audit logging
+│   │
+│   ├── services/              # 7 business logic services
+│   │   ├── financial_service.py
+│   │   ├── forecast_service.py
+│   │   ├── anomaly_service.py
+│   │   └── report_service.py
+│   │
+│   ├── repositories/          # Data access layer
+│   │   └── financial_repository.py
+│   │
+│   ├── seeds/                 # 19 database initialisation scripts
+│   │   ├── users.py           # Test user accounts
+│   │   ├── units.py           # 87 physical units
+│   │   ├── finance.py         # Financial data
+│   │   ├── feature_toggles.py # 32 feature flag definitions
+│   │   ├── document_folders.py
+│   │   ├── chat_groups.py
+│   │   └── initialize_defaults.py
+│   │
+│   ├── cron/                  # Scheduled background tasks
+│   └── tests/                 # Backend test suite
+│
+├── frontend/
+│   ├── src/
+│   │   ├── App.js             # All React routes (40+ routes)
+│   │   ├── contexts/
+│   │   │   └── AuthContext.js # Global auth state, JWT, permissions
+│   │   ├── pages/
+│   │   │   ├── public/        # 7 public marketing pages
+│   │   │   ├── auth/          # Login, Register
+│   │   │   └── dashboard/     # 40+ authenticated pages
+│   │   │       └── admin/     # 11 super admin pages
+│   │   ├── components/
+│   │   │   ├── layout/        # Header, Footer, DashboardLayout
+│   │   │   ├── ui/            # shadcn/ui components
+│   │   │   ├── finance/       # Finance-specific components
+│   │   │   ├── documents/     # Document management components
+│   │   │   ├── payments/      # Stripe payment modal
+│   │   │   └── widgets/       # Reusable widgets
+│   │   ├── hooks/             # Custom React hooks
+│   │   └── lib/               # Utilities, date helpers
+│   │
+│   └── public/
+│       ├── index.html
+│       ├── user-guides/       # Role-based HTML user guides
+│       └── tech-docs/         # This documentation (you are here)
+│
+├── docs/                      # Markdown project documentation
+│   ├── deployment/            # Deployment guides
+│   ├── features/              # Feature documentation
+│   ├── fixes/                 # Bug fix records
+│   ├── sessions/              # Session work logs
+│   ├── architecture/          # Architecture notes
+│   └── testing/               # Test documentation
+│
+├── scripts/                   # DB scripts, finance import tools
+├── tests/                     # Playwright E2E test suite
+├── CLAUDE.md                  # AI assistant project instructions
+└── README.md                  # Project README</code></pre>
+        </section>
+
+        <section id="data-flow">
+            <h2>Request Data Flow</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    sequenceDiagram
+                    participant B as Browser
+                    participant AX as Axios (AuthContext)
+                    participant NGX as Nginx/Next.js
+                    participant FA as FastAPI Server
+                    participant R as Router (e.g. finance.py)
+                    participant U as Utils (permissions.py)
+                    participant MDB as MongoDB (Motor)
+
+                    B->>AX: User action (e.g. Load Finance Page)
+                    AX->>NGX: GET /api/finance/summary\nAuthorization: Bearer &lt;jwt&gt;
+                    NGX->>FA: Proxy request
+                    FA->>FA: CORS check + rate limit
+                    FA->>R: Route matched → handler fn
+                    R->>U: get_current_user(token)
+                    U->>MDB: users.find_one({id})
+                    MDB-->>U: User document
+                    U-->>R: Validated user + permissions
+                    R->>U: check_permission(user, "can_view_finances")
+                    U-->>R: Allowed ✓
+                    R->>MDB: annual_levies.find({year:2026})
+                    MDB-->>R: Documents
+                    R-->>FA: JSONResponse(data)
+                    FA-->>NGX: 200 OK + JSON
+                    NGX-->>AX: Response
+                    AX-->>B: React state updated → UI re-renders
+                </div>
+                <div class="diagram-caption">Typical authenticated API request lifecycle</div>
+            </div>
+        </section>
+
+        <section id="design-principles">
+            <h2>Design Principles</h2>
+            <div class="two-col">
+                <div class="card">
+                    <h3>Backend Patterns</h3>
+                    <ul>
+                        <li><strong>Modular routers</strong> — one file per domain (finance, maintenance, etc.)</li>
+                        <li><strong>Dependency injection</strong> — FastAPI <code>Depends()</code> for auth and DB</li>
+                        <li><strong>Async everywhere</strong> — all DB calls use Motor + <code>await</code></li>
+                        <li><strong>Pydantic validation</strong> — models validate at runtime (no migrations)</li>
+                        <li><strong>Soft deletes</strong> — archive instead of delete for audit trail</li>
+                        <li><strong>Permission guards</strong> — every protected route calls
+                            <code>check_permission()</code></li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Frontend Patterns</h3>
+                    <ul>
+                        <li><strong>React Context</strong> — global auth state via <code>AuthContext</code></li>
+                        <li><strong>ProtectedRoute</strong> — wraps all dashboard routes with auth check</li>
+                        <li><strong>Feature toggle gating</strong> — <code>hasFeatureAccess()</code> before rendering
+                        </li>
+                        <li><strong>Axios interceptors</strong> — auto-attach JWT, handle 401 logout</li>
+                        <li><strong>shadcn/ui</strong> — accessible Radix primitives for all UI components</li>
+                        <li><strong>Tailwind CSS v4</strong> — utility-first responsive styling</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Security</h3>
+                    <ul>
+                        <li>JWT tokens — 24-hour expiry, HS256 algorithm</li>
+                        <li>bcrypt password hashing with salt</li>
+                        <li>CORS configured per environment</li>
+                        <li>Rate limiting via SlowAPI (optional)</li>
+                        <li>Role-based access: 9 roles × 15 permission flags (added <code>real_estate_agent</code> role
+                            and <code>can_manage_tenancy</code> permission)
+                        </li>
+                        <li>No sensitive data in JWT payload</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Database Philosophy</h3>
+                    <ul>
+                        <li>MongoDB document model — JSON-native, schema-flexible</li>
+                        <li>No ORM — direct Motor async queries</li>
+                        <li>No migration files — Pydantic runtime validation</li>
+                        <li>UUIDs as string IDs alongside MongoDB ObjectIds</li>
+                        <li>ISO 8601 strings for all datetime fields</li>
+                        <li>Collections initialised via seed scripts</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="multitenant">
+            <h2>Multi-tenant Architecture</h2>
+            <div class="card-grid">
+                <div class="card">
+                    <h3>Buildings Model</h3>
+                    <p>The platform supports multiple strata buildings. Each building uses its <strong>Unit Plan
+                        number</strong> as the canonical <code>id</code> stored in the <code>buildings</code>
+                        collection.</p>
+                    <ul>
+                        <li><strong>East Gate Residences</strong> — <code>13195</code> (Unit Plan 13195), 14 Hoolihan
+                            Street, Denman Prospect ACT 2611
+                        </li>
+                        <li><strong>Harbourview Residences</strong> — <code>18932</code>, 12 Marina Drive, Pyrmont NSW
+                            2009 (demo)
+                        </li>
+                        <li><strong>Sierra, Gungahlin</strong> — <code>16244</code> (Unit Plan 16244), 70 Efkarpidis
+                            Street, Gungahlin ACT 2912
+                        </li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Tenant Isolation</h3>
+                    <p><code>TenantCollection</code> wraps every MongoDB collection and injects <code>{"building_id":
+                        ctx_building_id}</code> into all queries automatically. The context variable <code>ctx_building_id</code>
+                        is set by <code>get_current_building()</code> on every request.</p>
+                    <ul>
+                        <li>All collections backfilled with <code>building_id</code> field</li>
+                        <li><code>memberships</code> collection links users to buildings</li>
+                        <li>Super admin sees all buildings; other roles see their own</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Multi-tenant Auth Flow</h3>
+                    <ol>
+                        <li>Login → JWT is issued with <code>building_id</code> (auto-resolved from user's memberships)
+                        </li>
+                        <li><code>GET /buildings/me</code> → returns user's accessible buildings</li>
+                        <li><code>POST /auth/switch-building</code> → returns new scoped JWT with requested <code>building_id</code>
+                        </li>
+                        <li>All endpoints using <code>get_current_building</code> extract <code>building_id</code> from
+                            JWT
+                        </li>
+                    </ol>
+                    <p><strong>Fallback chain</strong> in <code>get_current_building()</code>:</p>
+                    <ol>
+                        <li>JWT <code>building_id</code> claim</li>
+                        <li>User document's <code>building_id</code> field</li>
+                        <li>Single-membership auto-resolve</li>
+                        <li>→ 403 if none found</li>
+                    </ol>
+                </div>
+                <div class="card">
+                    <h3>Frontend Building Selection</h3>
+                    <p><code>AuthContext.tsx</code> handles building selection transparently:</p>
+                    <ul>
+                        <li>On login, fetches <code>GET /buildings/me</code></li>
+                        <li>If user has exactly one building, calls <code>POST /auth/switch-building</code> inline (no
+                            page reload)
+                        </li>
+                        <li>Updates <code>tokenRef.current</code> and <code>localStorage</code> with scoped JWT</li>
+                        <li>Multi-building users see a building selector UI</li>
+                    </ul>
+
+                    <h3>Building Switcher Component</h3>
+                    <p><code>BuildingSwitcher.tsx</code> is embedded in the sidebar below the logo:</p>
+                    <ul>
+                        <li>Fetches <code>GET /api/buildings/me</code> on mount to get accessible buildings.</li>
+                        <li>If only one building: shows building name and address as a static badge (no dropdown).</li>
+                        <li>If multiple buildings: renders a dropdown. On selection, calls <code>AuthContext.switchBuilding(buildingId)</code>
+                            which calls <code>POST /api/auth/switch-building</code>, stores the new JWT in <code>localStorage</code>,
+                            and triggers a page reload.
+                        </li>
+                        <li>Switching sets the <code>building_id</code> JWT claim — all subsequent API requests are
+                            automatically scoped to the new building via <code>get_current_building()</code> dependency.
+                        </li>
+                    </ul>
+
+                    <h3>JWT Building ID Guarantee</h3>
+                    <p>After login, the JWT <em>always</em> contains a <code>building_id</code> claim:</p>
+                    <ul>
+                        <li>If <code>user.building_id</code> is set → use that.</li>
+                        <li>Else if user has exactly one active membership → use that <code>building_id</code>.</li>
+                        <li>Else → fall back to <code>DEFAULT_BUILDING_ID</code> (<code>"13195"</code> — East Gate
+                            Residences Unit Plan).
+                        </li>
+                    </ul>
+                    <p>This guarantees that finance-card endpoints (<code>GET /stats/building-kpis</code>) never receive
+                        a <code>None</code> building scope and always return data.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+<footer>East Gate Residences · Technical Documentation · Architecture · Super Admin Only · 2026 · A vision by: Silverfox
+    Technologies, Australia · Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+</body>
+</html>

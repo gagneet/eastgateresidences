@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Rental Certificate Types — User Guide | <span data-bldg="name">your building</span></title>
+    <link href="styles.css" rel="stylesheet"/>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        th {
+            background: #2F4F4F;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .fee {
+            font-weight: 600;
+            color: #2F4F4F;
+        }
+
+        .note {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <a href="index.html">← Back to User Guides</a>
+        <h1>📋 Rental Certificate Types</h1>
+        <p>ACT Section 119A Certificate — Rental vs Sale Types (July 2024 Amendment)</p>
+    </div>
+</header>
+
+<main class="content">
+
+    <section>
+        <h2>Overview</h2>
+        <p>Under the <strong>Unit Titles (Management) Act 2011 (ACT) — Section 119A</strong>, owners must provide a
+            certificate to incoming tenants <em>before</em> lease signing. This has been mandatory since 9 January 2025.
+        </p>
+        <p>The July 2024 <em>Housing and Consumer Affairs Legislation Amendment Act</em> introduced a separate <strong>rental-type</strong>
+            certificate with additional fields specific to tenancy arrangements. The portal now supports both
+            certificate types.</p>
+    </section>
+
+    <section>
+        <h2>Certificate Types</h2>
+        <table>
+            <tr>
+                <th>Type</th>
+                <th>When to Use</th>
+                <th>Fee (2025–26)</th>
+                <th>Extra Fields</th>
+            </tr>
+            <tr>
+                <td><strong>Sale</strong></td>
+                <td>Unit being sold (original type)</td>
+                <td class="fee">$332.00</td>
+                <td>Standard fields only</td>
+            </tr>
+            <tr>
+                <td><strong>Rental</strong></td>
+                <td>New tenancy beginning (July 2024 amendment)</td>
+                <td class="fee">$332.00</td>
+                <td>Tenancy start date, weekly rent</td>
+            </tr>
+            <tr>
+                <td><strong>Update</strong></td>
+                <td>Correcting or refreshing an existing cert within 5 years</td>
+                <td class="fee">$165.00</td>
+                <td>Same as original type</td>
+            </tr>
+        </table>
+
+        <div class="note">
+            <strong>Note:</strong> Fees are set by ACT Government determination and subject to annual revision. Current
+            fees are based on the July 2025 determination.
+        </div>
+    </section>
+
+    <section>
+        <h2>Requesting a Rental-Type Certificate (Owners)</h2>
+        <ol>
+            <li>Navigate to <em>Dashboard → Rental Certificates</em>.</li>
+            <li>Click <em>Request Certificate</em>.</li>
+            <li>Select <strong>Certificate Type: Rental</strong> from the dropdown.</li>
+            <li>Fill in the tenant name, lease start date, tenancy start date, and weekly rent.</li>
+            <li>Click <em>Submit Request</em>. EC/admin will issue the certificate.</li>
+        </ol>
+    </section>
+
+    <section>
+        <h2>Requesting a Sale-Type Certificate</h2>
+        <p>To request a sale certificate (original type), select <strong>Certificate Type: Sale</strong> in the form.
+            The tenant-specific fields (tenancy start date, weekly rent) are not required for sale certificates.</p>
+    </section>
+
+    <section>
+        <h2>Issuing a Certificate (EC / Admin / Strata Manager)</h2>
+        <ol>
+            <li>Go to <em>Dashboard → Rental Certificates → Manage</em>.</li>
+            <li>Find the pending request and click <em>Issue Certificate</em>.</li>
+            <li>Review the auto-populated financial data (levies, arrears, EC members).</li>
+            <li>Enter insurance details and any known defects.</li>
+            <li>Click <em>Issue</em>. The certificate is generated and available for PDF download.</li>
+        </ol>
+        <p>The applicable fee is recorded on the certificate and displayed to both the requesting owner and the issuing
+            admin.</p>
+    </section>
+
+    <section>
+        <h2>Validity and Supersession</h2>
+        <ul>
+            <li>Certificates are valid for <strong>5 years</strong> from the issue date.</li>
+            <li>Issuing a new certificate for the same unit automatically supersedes the previous one.</li>
+            <li>The PDF header shows the correct certificate type (Sale / Rental / Update).</li>
+        </ul>
+    </section>
+
+</main>
+
+<footer>
+    <p><span data-bldg="name">your building</span></p>
+    <p><a href="index.html">Back to User Guides</a></p>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

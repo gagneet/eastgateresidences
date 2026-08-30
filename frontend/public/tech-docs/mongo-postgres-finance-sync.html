@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Mongo → Postgres Finance Sync — StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script defer src="auth-guard.js"></script>
+</head>
+<body>
+<header class="page-header">
+    <h1>Mongo → Postgres Finance Sync</h1>
+    <p class="subtitle">The missing half of the dual-storage pattern. Shipped 2026-08-28.</p>
+</header>
+
+<main class="content">
+<section>
+    <h2 class="section-title">The gap</h2>
+    <p><code>workers/outbox_relay.py</code> moves events <strong>Postgres → MongoDB</strong> — its own
+        header says so. It is an audit log, not a ledger sync. <strong>Nothing ever ran the other
+        way.</strong></p>
+    <p>Meanwhile MongoDB is what actually <em>serves</em> finance for East Gate:
+        <code>core.domain_cutover_status</code> had no <code>finance_ledger</code> row, so
+        <code>require_domain_source</code> failed closed to Mongo. Every live finance write landed in
+        Mongo and nothing carried it back — Postgres drifted by exactly the volume of live activity,
+        silently. Measured 2026-08-28: <strong>42 of 87 lots disagreed</strong> with the operator's
+        portal scrape.</p>
+    <p class="callout"><strong>Updated 2026-08-29.</strong> The <code>finance_ledger</code> row is
+        back — all eight East Gate domains are now <code>postgres_write</code> /
+        <code>promoted</code>. And the drift is closed: the nightly check reports
+        <strong>87/87 lots matching, $0.00 net gap, 0 payments missing from Postgres</strong>, with
+        the FY2026 unit ledger agreeing to the cent on both sides ($220,187.56 levied /
+        $212,146.26 paid).</p>
+    <p class="callout"><strong>This module had never actually run.</strong> It shipped complete and
+        unit-tested, but until 2026-08-29 its only caller was a manual
+        <code>scripts/data_repair/</code> CLI — nothing in <code>workers/</code>,
+        <code>cron/</code>, <code>routers/</code> or <code>server.py</code> referenced it, so the DR
+        position it protects was never measured. It now runs daily at 03:30 as
+        <code>workers/scheduler.py::finance_dr_drift_check</code>: read-only, drift reported rather
+        than raised, and emitting Demo Bank intake candidates left a deliberate human action via
+        <code>--apply</code>. A unit test on a pure function cannot detect &ldquo;nothing calls
+        this&rdquo;; <code>tests/backend/test_finance_dr_sync_wiring.py</code> asserts the wiring.</p>
+    <p class="callout"><strong>A feature toggle does not decide the serving source.</strong> It only
+        means a PostgreSQL path exists. <code>core.domain_cutover_status</code> is the runtime
+        authority.</p>
+</section>
+
+<section>
+    <h2 class="section-title">What it deliberately does not do</h2>
+    <p>The obvious implementation — copy <code>levy_payments</code> into
+        <code>finance.receipts</code> — is the one thing that must not be built.</p>
+    <p><strong>Demo Bank is the only door into finance.</strong> A direct mirror would manufacture
+        financial facts in Postgres that never passed intake. That failure is already on record twice:
+        East Gate's two disconnected 2021-2025 expense totals ($415,031.21 staged vs $1,502,451.24
+        GL-posted) diverged 3.6× because two pipelines wrote the same facts and neither checked the
+        other.</p>
+    <p>So the sync <strong>diffs</strong>, and emits what is missing as Demo Bank candidates
+        (<code>requires_review=True</code>). Those travel the normal intake → matching → approval → GL
+        route. It never posts a journal entry and never writes <code>finance.*</code>.</p>
+</section>
+
+<section>
+    <h2 class="section-title">Matching rule</h2>
+    <p>Key is <code>(unit_number, amount_cents, payment_date)</code>.</p>
+    <table>
+        <tr><th>Property</th><th>Why</th></tr>
+        <tr><td>Not <code>id</code></td>
+            <td>Mongo and Postgres carry different identifiers for the same fact, and reconstructed
+                history was posted by different scripts — no shared surrogate key exists.</td></tr>
+        <tr><td>Multiset, not set</td>
+            <td>Two genuine payments of the same amount on the same day are two facts. Set semantics
+                would under-report exactly the duplicate-shaped drift this exists to find.</td></tr>
+        <tr><td>Confirmed only</td>
+            <td>A pending or rejected Mongo row is not a financial fact yet; emitting it as intake
+                would <em>create</em> one.</td></tr>
+        <tr><td>Cents at the boundary, once</td>
+            <td><code>levy_payments.amount</code> is a dollar float — a documented, still-live
+                violation of the cents-only rule. Converted at the adapter edge, never re-derived.</td></tr>
+    </table>
+</section>
+
+<section>
+    <h2 class="section-title"><code>finance.owner_credit_balances</code></h2>
+    <p>Created by migration <code>0004</code>, given RLS by <code>0008</code>, and left
+        <strong>with no writer for its entire life</strong>. PR #736 added one, but it fires on
+        allocation — so it records credit from that moment forward and could never see over-payments
+        already held.</p>
+    <p>The consequence: Postgres derives a lot's position from <code>levy_items</code> as
+        <code>charged − paid</code>, and <code>paid_cents</code> never exceeds the charge, so
+        <strong>Postgres could not represent a negative balance at all</strong>. The portal showed 34
+        lots holding $35,675.42 of credit; Postgres showed zero, because there was nowhere for it to
+        live.</p>
+    <p>The backfill reads from <code>compute_lot_true_balances</code> — the canonical owner of that
+        concept. Calling the owner matters: the formula is easy and the <em>filters</em> are the hard
+        part. A hand-written copy that omitted the reversal-parity join and the
+        <code>retired_at</code> check reported $19,000–$30,000 of phantom credit on lots holding
+        none.</p>
+</section>
+
+<section>
+    <h2 class="section-title">Live result — East Gate, 2026-08-28</h2>
+    <table>
+        <tr><th>Source</th><th>Lots owing</th><th>Owing</th><th>Lots in credit</th><th>Credit</th></tr>
+        <tr><td>Portal (truth)</td><td>11</td><td>$4,195.40</td><td>34</td><td>$35,675.42</td></tr>
+        <tr><td>MongoDB</td><td>13</td><td>$7,851.30</td><td>16</td><td>$13,478.55</td></tr>
+        <tr><td>PostgreSQL</td><td>13</td><td>$7,851.30</td><td>16</td><td>$13,478.55</td></tr>
+    </table>
+    <p><strong>Mongo ↔ Postgres: 0 of 87 lots differ</strong> (42 differed before the backfill).</p>
+    <p class="callout">The remaining 32-lot / $26,042.77 gap is <strong>both stores vs the
+        portal</strong> — missing payments, not a schema or sync defect.</p>
+</section>
+
+<section>
+    <h2 class="section-title">Running it</h2>
+    <p>Both scripts are dry-run by default and building-agnostic.</p>
+    <pre>python3 backend/scripts/data_repair/sync_mongo_payments_to_postgres.py --building-id 13195
+python3 backend/scripts/data_repair/sync_mongo_payments_to_postgres.py --building-id 13195 --apply
+
+python3 backend/scripts/data_repair/backfill_owner_credit_balances.py \
+    --building-id 13195 --financial-year 2026 --apply</pre>
+</section>
+</main>
+</body>
+</html>

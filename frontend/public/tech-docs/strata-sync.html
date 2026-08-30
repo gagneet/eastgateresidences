@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Strata Portal Sync — Technical Reference</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #0f172a;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px 60px;
+        }
+
+        section {
+            background: #111827;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        h1, h2, h3 {
+            color: #f8fafc;
+        }
+
+        code, pre {
+            background: #020617;
+            border-radius: 8px;
+        }
+
+        code {
+            padding: 2px 6px;
+        }
+
+        pre {
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            border-bottom: 1px solid #334155;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 6px;
+        }
+
+        .badge-post {
+            background: #1e3a5f;
+            color: #60a5fa;
+        }
+
+        .badge-get {
+            background: #14532d;
+            color: #4ade80;
+        }
+
+        .note {
+            background: #1c2233;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-top: 12px;
+        }
+
+        .warning {
+            background: #1c1010;
+            border-left: 4px solid #ef4444;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Strata Portal Sync — Technical Reference</h1>
+    <p>Last updated: 2026-06-29. Covers the Civium portal sync bridge: how data flows from portal scrape into review snapshots, levy
+        accounting collections, API endpoints, data precedence rules, and multi-tenant constraints.</p>
+
+    <section>
+        <h2>1. Overview</h2>
+        <p>The sync feature bridges Civium portal data into the levy accounting collections. Two sync paths exist:</p>
+        <ul>
+            <li><strong>Browser scrape</strong> — initiated from <code>/admin/strata-sync</code>. Launches a
+                headless browser subprocess that logs in to the Civium portal, navigates financial pages, and writes
+                snapshot data.
+            </li>
+            <li><strong>Push ingest</strong> — <code>POST /api/strata/sync/push</code>. Accepts a structured JSON
+                payload for programmatic or Postman-driven ingests without a browser session.
+            </li>
+        </ul>
+        <p>Both paths write to the same snapshot collections and trigger the same bridge logic to populate levy
+            accounting collections. For PostgreSQL finance cutover review, the separate ingestion script
+            <code>backend/scripts/ingest/civium_portal_ingest.py</code> upserts clean dated review documents into
+            <code>staging_civium_snapshots</code>; that staging path never writes directly to
+            <code>annual_levies</code>, <code>levy_payments</code>, or <code>unit_levy_ledger</code>.</p>
+    </section>
+
+    <section>
+        <h2>2. Data Flow</h2>
+        <p>A two-layer write model applies after every sync:</p>
+
+        <h3>Layer 1 — Snapshot collections (always written)</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Collection</th>
+                <th>Contents</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>strata_financials</code></td>
+                <td>Budget vs actual per category from the portal</td>
+            </tr>
+            <tr>
+                <td><code>strata_owners</code></td>
+                <td>Per-unit balance, levy status, and owner name</td>
+            </tr>
+            <tr>
+                <td><code>bank_accounts</code></td>
+                <td>Admin fund and sinking fund bank balances</td>
+            </tr>
+            <tr>
+                <td><code>building_summaries</code></td>
+                <td>Arrears total, collection rate, lot count, risk level</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>PostgreSQL cutover review snapshot</h3>
+        <p>
+            The finance cutover pipeline also derives a dated MongoDB staging document in <code>staging_civium_snapshots</code>
+            for strata-manager review and super-admin approval. Approval marks the snapshot only; promotion to PostgreSQL
+            happens later through explicit dry-run/apply scripts and never through the finance router's read endpoints.
+        </p>
+
+        <h3>Layer 2 — Levy accounting collections (written by bridge after every sync)</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Collection</th>
+                <th>Write behaviour</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><code>levy_categories</code></td>
+                <td>Always upserted from portal budget line items</td>
+            </tr>
+            <tr>
+                <td><code>annual_levies</code></td>
+                <td>Created as <code>is_synthetic=True</code> if no record exists; income fields only updated for
+                    synthetic records
+                </td>
+            </tr>
+            <tr>
+                <td><code>unit_levy_ledger</code></td>
+                <td>Created with <code>data_source="scraper"</code> if missing; <code>net_balance</code> always
+                    refreshed; levied/paid recalculated only for scraper records
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="note">Finance pages read exclusively from the Layer 2 accounting collections. The Layer 1 snapshot
+            collections are the source-of-truth for portal actuals but are not the primary read path for levy
+            calculations.
+        </div>
+    </section>
+
+    <section>
+        <h2>3. API Endpoints</h2>
+
+        <h3><span class="badge badge-post">POST</span> /api/strata/sync/start</h3>
+        <p>Launches the browser scraper subprocess. Returns a job ID. Role required: <code>admin</code>,
+            <code>chairman</code>, or <code>strata_manager</code>.</p>
+        <pre>{
+  "job_id": "sync_20260417_143022",
+  "status": "started",
+  "building_id": "13195"
+}</pre>
+
+        <h3><span class="badge badge-post">POST</span> /api/strata/sync/pin</h3>
+        <p>Submits the 2FA PIN to the running scraper process during the Civium login flow. Must be called while a
+            scrape job is in the <code>awaiting_pin</code> state.</p>
+        <pre>{
+  "job_id": "sync_20260417_143022",
+  "pin": "123456"
+}</pre>
+
+        <h3><span class="badge badge-post">POST</span> /api/strata/sync/confirm</h3>
+        <p>Confirms or discards a scraped data preview. Set <code>"action": "confirm"</code> to commit the snapshot to
+            all collections, or <code>"action": "discard"</code> to abort without writing.</p>
+        <pre>{
+  "job_id": "sync_20260417_143022",
+  "action": "confirm"
+}</pre>
+
+        <h3><span class="badge badge-post">POST</span> /api/strata/sync/push</h3>
+        <p>Direct data push for programmatic ingest (Postman, CI scripts). Accepts the full snapshot payload and
+            bypasses the browser session entirely. Same bridge logic runs as after a browser scrape.</p>
+        <pre>{
+  "building_id": "13195",
+  "financials": [...],
+  "owners": [...],
+  "bank_accounts": [...],
+  "building_summary": {...}
+}</pre>
+
+        <h3><span class="badge badge-get">GET</span> /api/strata/sync/status</h3>
+        <p>Returns metadata for the last sync job for the authenticated building.</p>
+        <pre>{
+  "job_id": "sync_20260417_143022",
+  "status": "complete",
+  "synced_at": "2026-04-17T14:31:05Z",
+  "building_id": "13195",
+  "records_written": {
+    "strata_financials": 42,
+    "strata_owners": 87,
+    "bank_accounts": 2,
+    "levy_categories": 42,
+    "unit_levy_ledger": 87
+  }
+}</pre>
+
+        <h3><span class="badge badge-get">GET</span> /api/strata/financials</h3>
+        <p>Returns all synced budget line items for the authenticated building from the <code>strata_financials</code>
+            snapshot collection.</p>
+        <pre>{
+  "building_id": "13195",
+  "synced_at": "2026-04-17T14:31:05Z",
+  "categories": [
+    {
+      "category": "Insurance",
+      "fund": "admin",
+      "planned": 42000.00,
+      "actual": 41500.00,
+      "variance": 500.00
+    }
+  ]
+}</pre>
+
+        <h3><span class="badge badge-get">GET</span> /api/strata/owners</h3>
+        <p>Returns all synced owner levy positions for the authenticated building from the <code>strata_owners</code>
+            snapshot collection.</p>
+        <pre>{
+  "building_id": "13195",
+  "synced_at": "2026-04-17T14:31:05Z",
+  "owners": [
+    {
+      "unit_number": "101",
+      "owner_name": "Jane Smith",
+      "net_balance": -250.00,
+      "status": "arrears"
+    }
+  ]
+}</pre>
+    </section>
+
+    <section>
+        <h2>4. Bridge Logic</h2>
+        <p>After every successful sync (browser or push), the bridge runs the following upserts in order:</p>
+
+        <h3>levy_categories</h3>
+        <ul>
+            <li>Always upserted from portal budget line items <strong>unless</strong> the building has the
+                <code>disable_strata_sync_direct_write</code> feature toggle enabled — see below.</li>
+            <li>Fields written: <code>building_id</code>, <code>plan_id</code>, <code>category</code>, <code>fund</code>,
+                <code>planned_amount</code>, <code>data_source="scraper"</code>.
+            </li>
+            <li>Portal budget lines are always authoritative — categories are never protected from sync overwrites.</li>
+        </ul>
+
+        <h3 id="disable-direct-write">Exception: <code>disable_strata_sync_direct_write</code> (East Gate, added 2026-08-19)</h3>
+        <p>For any building with this toggle enabled (East Gate, <code>13195</code>, is the only one today),
+            <code>run_scraper.py</code> writes <strong>only</strong> Layer 1 (<code>strata_financials</code>,
+            <code>strata_owners</code>, <code>bank_accounts</code>, <code>building_summaries</code>) — the
+            <code>levy_categories</code>/<code>annual_levies</code>/<code>unit_levy_ledger</code> bridge above is
+            skipped entirely. Per the Financial Evidence Gateway policy, a raw scrape must pass a human review step
+            before it can change a category "actual" figure a dashboard displays.</p>
+        <p><code>backend/scripts/reconcile_scraped_financials_to_categories.py</code> is that review step's
+            tooling — it never runs automatically:</p>
+        <ul>
+            <li><code>--preview</code> (default, read-only): diffs <code>strata_financials</code>' scraped
+                <code>actual</code> against <code>levy_categories</code>' stored <code>actual_amount</code>,
+                classifying each category as <code>NEW</code> / <code>UPDATE</code> / <code>UNCHANGED</code> /
+                <code>SKIPPED</code>, plus two review-only classifications never eligible for
+                <code>--apply</code>: <code>ARCHIVED_CONFLICT</code> (the scraped name matches only an archived,
+                already-consolidated category — comparing against its stale figure, or re-inserting under the
+                archived name, would silently undo the consolidation) and
+                <code>DUPLICATE_LIVE_CATEGORY</code> (more than one live, same-fund doc shares the name — no
+                single record to safely target).</li>
+            <li><code>--apply --authorised-by &lt;uuid&gt; --executed-by &lt;uuid&gt;</code>: re-diffs (never
+                trusts a stale preview) and feeds only the <code>NEW</code>/<code>UPDATE</code> rows through the
+                same reviewed <code>import_gap_tolerant_financial_data()</code> used for the canonical AGM-PDF
+                rebuild. Both identities must be distinct (dual control) and resolve to a real, active,
+                eligible-role (<code>super_admin</code>/<code>strata_admin</code>/<code>strata_manager</code>)
+                <code>users</code> doc.</li>
+        </ul>
+        <p>Never posts to the GL directly — that remains the separate reconstruction-batch pipeline's job via
+            <code>/financials/historical-reconstruction</code>.</p>
+
+        <h3>annual_levies</h3>
+        <ul>
+            <li>If no record exists for the year+building combination, a new record is created with <code>is_synthetic=True</code>.
+            </li>
+            <li>For <code>is_synthetic=True</code> records, income fields (<code>proposed_admin_expenses</code>, <code>proposed_sinking_expenses</code>)
+                are updated on every sync.
+            </li>
+            <li>For <code>is_synthetic=False</code> records (CSV upload / AGM-ratified), income fields are
+                <strong>never</strong> overwritten by the bridge. Only non-income metadata may be updated.
+            </li>
+        </ul>
+
+        <h3>unit_levy_ledger</h3>
+        <ul>
+            <li>If no ledger record exists for a unit+year+building, one is created with
+                <code>data_source="scraper"</code>.
+            </li>
+            <li><code>net_balance</code> is always refreshed from the portal value regardless of
+                <code>data_source</code>.
+            </li>
+            <li><code>total_levied</code> and <code>total_paid</code> are recalculated only for records where <code>data_source="scraper"</code>.
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>5. Data Precedence</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Source</th>
+                <th>is_synthetic / data_source</th>
+                <th>Bridge behaviour</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>CSV upload / AGM-ratified data</td>
+                <td><code>is_synthetic=False</code></td>
+                <td>Income fields protected — bridge never overwrites</td>
+            </tr>
+            <tr>
+                <td>Portal scraper / push ingest</td>
+                <td><code>is_synthetic=True</code> / <code>data_source="scraper"</code></td>
+                <td>All fields refreshed on every sync</td>
+            </tr>
+            <tr>
+                <td>levy_categories (all sources)</td>
+                <td>Always <code>data_source="scraper"</code></td>
+                <td>Portal is always authoritative; always upserted</td>
+            </tr>
+            </tbody>
+        </table>
+        <div class="warning">Never set <code>is_synthetic=False</code> on a record unless it has been verified against
+            AGM minutes or a signed CSV import. Doing so permanently shields that record from portal sync updates.
+        </div>
+    </section>
+
+    <section>
+        <h2>6. Multi-Tenant Rules</h2>
+        <ul>
+            <li>All sync operations are scoped to <code>building_id</code> derived from the authenticated user's
+                session. Never accept a raw <code>building_id</code> parameter from the request body without server-side
+                validation against the user's context.
+            </li>
+            <li><code>plan_id</code> is written alongside <code>building_id</code> in all synced records for legacy
+                compatibility. See <code>backend/database.py</code> for the <code>$or</code> query alias.
+            </li>
+            <li>Roles required for sync endpoints: <code>admin</code>, <code>chairman</code>, or
+                <code>strata_manager</code>. Read endpoints (<code>/api/strata/financials</code>, <code>/api/strata/owners</code>)
+                require <code>can_view_finances</code> permission.
+            </li>
+            <li>Sync jobs are isolated per building — a job started for building <code>13195</code> cannot write to
+                building <code>16244</code>.
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>7. One-time Migration</h2>
+        <p>For deployments that already have snapshot data in the Layer 1 collections but have not yet run the bridge,
+            execute the backfill migration to populate the levy accounting collections:</p>
+        <pre>cd backend && venv/bin/python3 seeds/migrate_strata_sync_to_financial.py</pre>
+        <p>The script uses idempotent upserts and is safe to re-run. It will not overwrite
+            <code>is_synthetic=False</code> records in <code>annual_levies</code>.</p>
+    </section>
+
+    <section>
+        <h2>8. Financial Import Precision Note</h2>
+        <p>In <code>financial_import_service.py</code>, the fields <code>proposed_admin_expenses</code> and <code>proposed_sinking_expenses</code>
+            represent the <strong>levy income targets</strong> — the total amount owners are expected to pay into each
+            fund for the year. They are <strong>not</strong> the fund expenditures (i.e. what the OC spends from the
+            fund).</p>
+        <p>This distinction matters when calculating per-UOE levy rates:</p>
+        <pre>per_uoe_admin = proposed_admin_expenses / total_unit_entitlements
+per_uoe_sinking = proposed_sinking_expenses / total_unit_entitlements</pre>
+        <p>Using expenditure figures instead of income targets will produce incorrect levy rates, particularly when the
+            budget includes carry-over from the prior year or interest income offsets.</p>
+    </section>
+</main>
+</body>
+</html>

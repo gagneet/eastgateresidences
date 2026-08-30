@@ -1,0 +1,1601 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Compliance – Eastgate Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad: true, theme: 'dark', securityLevel: 'strict'});</script>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">East Gate Residences</div>
+            <div class="sub">Technical Documentation · Compliance</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Feature Domains</div>
+            <a data-page="trust-accounting.md" href="trust-accounting.md"><span class="icon">🏦</span> Trust
+                Accounting</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔁</span> Feature Toggles</a>
+            <a class="active" data-page="compliance.html" href="compliance.html"><span class="icon">📋</span> Compliance</a>
+            <a data-page="seed-reference.html" href="seed-reference.html"><span class="icon">🌱</span> Seed Reference</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#rental-certs">Rental Certificates</a>
+            <a href="#whs">WHS Compliance</a>
+            <a href="#nsw-compliance">NSW/ACT Compliance</a>
+            <a href="#nsw-commission-disclosure">↳ Commission Disclosures</a>
+            <a href="#nsw-strata-hub-returns">↳ Strata Hub Returns</a>
+            <a href="#nsw-initial-maintenance-schedule">↳ Initial Maintenance Schedule</a>
+            <a href="#building-manager-duties">↳ Building Manager Duties</a>
+            <a href="#defects-register">Defects Register</a>
+            <a href="#compliance-registers">Compliance Registers</a>
+            <a href="#decisions">Decisions Register</a>
+            <a href="#privacy">Privacy Compliance</a>
+            <a href="#manager-contracts">Manager Contracts</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <h1>Compliance Modules</h1>
+        <p>The compliance suite covers seven statutory obligation areas for strata management in the ACT and NSW. Each
+            module is a separate FastAPI router in <code>backend/routers/</code> with its own MongoDB collections,
+            permission guards, and audit trail. All endpoints are building-scoped via <code>building_id</code>.</p>
+
+        <div class="callout">
+            <strong>Legislative scope.</strong> This platform operates primarily under the <em>ACT Unit Titles
+            (Management) Act 2011</em> (UTMA 2011) for East Gate Residences (building 13195, Denman Prospect, ACT). NSW
+            legislation (<em>Strata Schemes Management Act 2015</em>) applies to Sierra (16244) and Harbourview demo
+            buildings. The WHS Act 2011 (Cth) applies nationally.
+        </div>
+
+        <!-- ─── Rental Certificates ─────────────────────────────────────────── -->
+        <section id="rental-certs">
+            <h2>1. Rental Certificates — ACT s.119A</h2>
+            <p>
+                ACT Unit Titles (Management) Act 2011 s.119A requires that an owners corporation issue a certificate of
+                title information before any lot can be leased or rented. The certificate discloses levy amounts,
+                arrears, EC membership, and outstanding by-law issues to the prospective tenant or their agent.
+            </p>
+            <p><strong>Router:</strong> <code>backend/routers/rental_certificates.py</code> &nbsp;|&nbsp; <strong>Collection:</strong>
+                <code>rental_certificates</code></p>
+            <p><strong>Feature toggle key:</strong> <code>rental_certificates</code></p>
+
+            <h3>Workflow</h3>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    sequenceDiagram
+                    participant O as Owner
+                    participant API as API
+                    participant EC as EC/Admin
+                    participant DB as MongoDB
+
+                    O->>API: POST /rental-certificates
+                    API->>DB: Insert {status: "requested"}
+                    API->>EC: Email notification (all manage roles)
+                    EC->>API: PUT /rental-certificates/{id}/issue
+                    API->>DB: Read units, annual_levies, unit_levy_ledger, ec_members
+                    API->>DB: Auto-populate financial snapshot
+                    API->>DB: Supersede previous ISSUED certs for same unit
+                    API->>DB: Update {status: "issued", expiry_date: +5yr}
+                    API->>O: Email "certificate ready"
+                    O->>API: GET /rental-certificates/{id}/pdf
+                    API-->>O: StreamingResponse (PDF bytes)
+                </div>
+                <div class="diagram-caption">Rental certificate lifecycle — request → issue → download</div>
+            </div>
+
+            <h3>API Endpoints</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Description</th>
+                        <th>Roles</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/rental-certificates</code></td>
+                        <td>Request a new certificate</td>
+                        <td>owner (own unit), ec_member, building_admin, strata_manager, super_admin</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/rental-certificates/rental-type</code></td>
+                        <td>Convenience endpoint — forces <code>certificate_type=rental</code></td>
+                        <td>Same as above</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/rental-certificates</code></td>
+                        <td>List certificates. Managers see all; owners see own unit only</td>
+                        <td>owner (filtered), managers</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/rental-certificates/unit/{unit_number}/current</code></td>
+                        <td>Most recent ISSUED cert for a unit</td>
+                        <td>owner (own unit), managers</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/rental-certificates/{cert_id}</code></td>
+                        <td>Single certificate by ID</td>
+                        <td>owner (own unit), managers</td>
+                    </tr>
+                    <tr>
+                        <td><code>PUT</code></td>
+                        <td><code>/rental-certificates/{cert_id}/issue</code></td>
+                        <td>Issue a requested certificate (auto-populates financial data)</td>
+                        <td>ec_member, building_admin, strata_manager, super_admin</td>
+                    </tr>
+                    <tr>
+                        <td><code>PUT</code></td>
+                        <td><code>/rental-certificates/{cert_id}/update</code></td>
+                        <td>Update fields on an issued certificate</td>
+                        <td>ec_member, building_admin, strata_manager, super_admin</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/rental-certificates/{cert_id}/pdf</code></td>
+                        <td>Download PDF (StreamingResponse). Only available for ISSUED status</td>
+                        <td>requesting owner, managers</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Data Model — <code>rental_certificates</code> collection</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>id</code></td>
+                        <td>string (UUID)</td>
+                        <td>Primary key</td>
+                    </tr>
+                    <tr>
+                        <td><code>cert_number</code></td>
+                        <td>string</td>
+                        <td>Auto-generated sequential number: <code>RC-YYYY-NNNN</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>unit_number</code></td>
+                        <td>string</td>
+                        <td>Lot identifier (UA001, TH017, etc.)</td>
+                    </tr>
+                    <tr>
+                        <td><code>building_id</code></td>
+                        <td>string</td>
+                        <td>Tenant partition key</td>
+                    </tr>
+                    <tr>
+                        <td><code>certificate_type</code></td>
+                        <td>string</td>
+                        <td><code>sale</code> | <code>rental</code> | <code>update</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>status</code></td>
+                        <td>string</td>
+                        <td><code>requested</code> | <code>issued</code> | <code>superseded</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>tenant_name</code></td>
+                        <td>string</td>
+                        <td>Prospective tenant full name</td>
+                    </tr>
+                    <tr>
+                        <td><code>lease_start_date</code></td>
+                        <td>ISO-8601 date</td>
+                        <td>Commencement of tenancy</td>
+                    </tr>
+                    <tr>
+                        <td><code>lease_end_date</code></td>
+                        <td>ISO-8601 date</td>
+                        <td>End of fixed term (optional)</td>
+                    </tr>
+                    <tr>
+                        <td><code>weekly_rent</code></td>
+                        <td>float</td>
+                        <td>Weekly rental amount (optional)</td>
+                    </tr>
+                    <tr>
+                        <td><code>requested_by</code></td>
+                        <td>string (user ID)</td>
+                        <td>User who requested</td>
+                    </tr>
+                    <tr>
+                        <td><code>requested_at</code></td>
+                        <td>ISO-8601 datetime</td>
+                        <td>Request timestamp</td>
+                    </tr>
+                    <tr>
+                        <td><code>issued_by</code></td>
+                        <td>string (user ID)</td>
+                        <td>EC/admin who issued</td>
+                    </tr>
+                    <tr>
+                        <td><code>issued_at</code></td>
+                        <td>ISO-8601 datetime</td>
+                        <td>Issue timestamp</td>
+                    </tr>
+                    <tr>
+                        <td><code>expiry_date</code></td>
+                        <td>ISO-8601 datetime</td>
+                        <td>Valid for 5 years from issue date</td>
+                    </tr>
+                    <tr>
+                        <td><code>arrears_amount</code></td>
+                        <td>float</td>
+                        <td>Outstanding levy debt at time of issue (auto-populated)</td>
+                    </tr>
+                    <tr>
+                        <td><code>levy_annual</code></td>
+                        <td>float</td>
+                        <td>Annual levy for the lot (auto-populated)</td>
+                    </tr>
+                    <tr>
+                        <td><code>levy_quarterly</code></td>
+                        <td>float</td>
+                        <td>Quarterly levy (auto-populated)</td>
+                    </tr>
+                    <tr>
+                        <td><code>owner_name</code></td>
+                        <td>string</td>
+                        <td>Owner name from units collection (auto-populated)</td>
+                    </tr>
+                    <tr>
+                        <td><code>owner_name_b</code></td>
+                        <td>string</td>
+                        <td>Second owner name if joint ownership (auto-populated)</td>
+                    </tr>
+                    <tr>
+                        <td><code>ec_members_snapshot</code></td>
+                        <td>array</td>
+                        <td>EC member names/roles at time of issue (auto-populated)</td>
+                    </tr>
+                    <tr>
+                        <td><code>fee_aud</code></td>
+                        <td>float</td>
+                        <td>Fee schedule amount for this certificate type</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Auto-Population on Issue</h3>
+            <p>When <code>PUT /rental-certificates/{id}/issue</code> is called,
+                <code>_auto_populate_financial_data()</code> queries four collections in parallel to build the financial
+                snapshot embedded in the certificate:</p>
+            <pre><code># _auto_populate_financial_data() sources
+db.units              → owner_name, lot_number, unit_entitlement, property_type
+db.annual_levies      → levy_annual, levy_quarterly, admin_budget_current, sinking_fund_balance
+db.unit_levy_ledger   → arrears_amount (net_balance, most recent year)
+db.ec_members         → ec_members_snapshot (name + role, up to 20 members)</code></pre>
+
+            <h3>Auto-Supersede Behaviour</h3>
+            <p>When a new certificate is issued for a unit, all previous <code>issued</code> certificates for that unit
+                are atomically set to <code>superseded</code>. This ensures only one active certificate exists per unit
+                at any time.</p>
+            <pre><code>await db.rental_certificates.update_many(
+    {"unit_number": unit_number, "status": "issued", "id": {"$ne": cert_id}},
+    {"$set": {"status": "superseded", "updated_at": now_str}},
+)</code></pre>
+
+            <h3>PII Masking (Impersonation)</h3>
+            <p>When a super_admin accesses a certificate while impersonating another user (<code>impersonator_id</code>
+                is present in the JWT), <code>_cert_doc_to_response(is_impersonated=True)</code> masks
+                <code>tenant_name</code>, <code>owner_name</code>, <code>requested_by_name</code>,
+                <code>issued_by_name</code>, and all <code>ec_members_snapshot</code> names with <code>REDACTED</code>.
+            </p>
+
+            <h3>PDF Generation</h3>
+            <p>Called via <code>utils.pdf_generator.generate_rental_certificate_pdf(doc, building_name)</code>. Returns
+                a <code>bytes</code> object that is streamed to the client as <code>application/pdf</code> with filename
+                <code>{cert_number}.pdf</code>. Relies on ReportLab. Only available when <code>status == "issued"</code>.
+            </p>
+        </section>
+
+        <!-- ─── WHS ────────────────────────────────────────────────────────────── -->
+        <section id="whs">
+            <h2>2. Work Health &amp; Safety (WHS) Compliance</h2>
+            <p>
+                Implements obligations under the <em>Work Health and Safety Act 2011 (Cth)</em> and <em>WHS Regulation
+                2017</em> for contractor management and safety incident reporting within the strata scheme.
+            </p>
+            <p><strong>Router:</strong> <code>backend/routers/whs.py</code> &nbsp;|&nbsp; <strong>Prefix:</strong>
+                <code>/whs</code></p>
+            <p><strong>Collections:</strong> <code>whs_inductions</code>, <code>whs_swms</code>,
+                <code>whs_incidents</code></p>
+
+            <h3>Permission Guard</h3>
+            <pre><code>_ALLOWED_ROLES = {
+    "super_admin", "strata_manager", "building_admin",
+    "ec_member", "admin", "maintenance"
+}</code></pre>
+            <p>All WHS endpoints require one of these roles. Standard owners/tenants cannot access WHS records.</p>
+
+            <h3>2.1 Contractor Inductions</h3>
+            <p>Tracks site inductions for every contractor working on the property. Inductions expire after 365 days by
+                default and must be renewed before work resumes.</p>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/whs/inductions</code></td>
+                        <td>Record a contractor site induction</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/whs/inductions</code></td>
+                        <td>List inductions (paginated, filterable by status / induction_type)</td>
+                    </tr>
+                    <tr>
+                        <td><code>PUT</code></td>
+                        <td><code>/whs/inductions/{id}</code></td>
+                        <td>Update or renew an induction</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Induction Fields</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>building_id</code></td>
+                        <td>string</td>
+                        <td>Tenant partition key (injected from JWT, not from body)</td>
+                    </tr>
+                    <tr>
+                        <td><code>contractor_name</code></td>
+                        <td>string</td>
+                        <td>Full name of individual contractor</td>
+                    </tr>
+                    <tr>
+                        <td><code>company_name</code></td>
+                        <td>string</td>
+                        <td>Trading name of company</td>
+                    </tr>
+                    <tr>
+                        <td><code>abn</code></td>
+                        <td>string</td>
+                        <td>Australian Business Number (11 digits)</td>
+                    </tr>
+                    <tr>
+                        <td><code>induction_date</code></td>
+                        <td>ISO-8601 date</td>
+                        <td>Date induction was completed</td>
+                    </tr>
+                    <tr>
+                        <td><code>expiry_date</code></td>
+                        <td>ISO-8601 date</td>
+                        <td>Defaults to induction_date + 365 days</td>
+                    </tr>
+                    <tr>
+                        <td><code>induction_type</code></td>
+                        <td>string</td>
+                        <td>general_site | hot_works | confined_space | working_at_height | electrical |
+                            asbestos_awareness | manual_handling
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>trained_by</code></td>
+                        <td>string</td>
+                        <td>Name of person who delivered induction</td>
+                    </tr>
+                    <tr>
+                        <td><code>ppe_requirements</code></td>
+                        <td>string[]</td>
+                        <td>PPE required on site (e.g. hard hat, hi-vis)</td>
+                    </tr>
+                    <tr>
+                        <td><code>licence_number</code></td>
+                        <td>string</td>
+                        <td>Contractor licence number</td>
+                    </tr>
+                    <tr>
+                        <td><code>licence_expiry</code></td>
+                        <td>ISO-8601 date</td>
+                        <td>Licence expiry date</td>
+                    </tr>
+                    <tr>
+                        <td><code>insurance_confirmed</code></td>
+                        <td>boolean</td>
+                        <td>Public liability insurance sight-checked</td>
+                    </tr>
+                    <tr>
+                        <td><code>status</code></td>
+                        <td>string</td>
+                        <td>Computed: <code>current</code> | <code>pending</code> (≤30 days) | <code>expired</code></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>2.2 Safe Work Method Statements (SWMS)</h3>
+            <p>Under <em>WHS Regulation 2017 r.291</em>, a SWMS must be prepared before any high-risk construction work
+                commences. This module stores and tracks SWMS records for each job.</p>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/whs/swms</code></td>
+                        <td>Create a SWMS record</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/whs/swms</code></td>
+                        <td>List SWMS records (paginated). Filter: <code>?status=approved&amp;high_risk_only=true</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>PUT</code></td>
+                        <td><code>/whs/swms/{id}</code></td>
+                        <td>Update SWMS (e.g. approve, mark superseded)</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout callout-warn">
+                <strong>High-risk SWMS flag.</strong> When <code>high_risk_work=true</code>, the system adds a mandatory
+                note to the record: <em>"HIGH-RISK CONSTRUCTION WORK — A SWMS must be prepared before work commences
+                (WHS Regulation 2017 r.291)."</em> The dashboard tracks unapproved high-risk SWMS as a critical
+                compliance issue.
+            </div>
+
+            <h3>SWMS Status Values</h3>
+            <p><code>draft</code> → <code>reviewed</code> → <code>approved</code> / <code>expired</code> / <code>superseded</code>
+            </p>
+
+            <h3>2.3 Safety Incidents</h3>
+            <p>Logs workplace incidents, near-misses, and dangerous incidents in compliance with <em>WHS Act 2011
+                ss.35–38</em> (notifiable incidents).</p>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/whs/incidents</code></td>
+                        <td>Log an incident or near-miss</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/whs/incidents</code></td>
+                        <td>List incidents. Filter: <code>?incident_type=near_miss&amp;investigation_status=open</code>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Incident Types &amp; Notification Rules</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Auto-flag</th>
+                        <th>Legislation</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>near_miss</code></td>
+                        <td>No</td>
+                        <td>Internal record only</td>
+                    </tr>
+                    <tr>
+                        <td><code>injury</code></td>
+                        <td>No (unless notified_authority=false)</td>
+                        <td>WHS Act s.35</td>
+                    </tr>
+                    <tr>
+                        <td><code>property_damage</code></td>
+                        <td>No</td>
+                        <td>Internal record only</td>
+                    </tr>
+                    <tr>
+                        <td><code>environmental</code></td>
+                        <td>No</td>
+                        <td>Internal record only</td>
+                    </tr>
+                    <tr>
+                        <td><code>dangerous_incident</code></td>
+                        <td><strong>Yes</strong> — sets <code>authority_notification_required=true</code></td>
+                        <td>WHS Act s.38 — must report to regulator immediately</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p>When <code>incident_type == "dangerous_incident"</code> and <code>notified_authority == false</code>, the
+                system adds a notification flag and the dashboard surfaces it as a critical issue requiring immediate
+                action.</p>
+
+            <h3>2.4 WHS Dashboard</h3>
+            <p><code>GET /whs/dashboard</code> — Returns a consolidated compliance summary. Implemented with three
+                parallel MongoDB <code>$facet</code> aggregations for minimal latency:</p>
+            <pre><code># Response shape
+{
+  "building_id": "13195",
+  "as_at": "2026-04-02T...",
+  "compliant": true,           // false if any critical issues
+  "inductions": {
+    "total": 12, "current": 9, "expired": 2, "pending_renewal": 1,
+    "expiring_in_30_days": [{"contractor_name": "...", "days_until_expiry": 14}]
+  },
+  "swms": { "total": 5, "draft": 1, "approved": 4, "high_risk_unapproved": 0 },
+  "incidents": { "total": 3, "open": 1, "authority_notification_pending": 0 },
+  "issues": [{"severity": "warning", "message": "2 inductions have expired."}]
+}</code></pre>
+
+            <p>The <code>compliant</code> flag is <code>false</code> only when there are <strong>critical</strong>
+                severity issues (unapproved high-risk SWMS or pending authority notification). Warnings (expired
+                inductions, open investigations) do not affect compliance status.</p>
+        </section>
+
+        <!-- ─── NSW Compliance ────────────────────────────────────────────────── -->
+        <section id="nsw-compliance">
+            <h2>3. NSW / ACT Strata Compliance</h2>
+            <p>
+                6-monthly strata manager reporting under <em>Strata Schemes Management Act 2015 (NSW) s.58</em> and
+                annual Strata Hub reporting under <em>SSMA 2015 s.182</em>. Also applicable to ACT buildings via the
+                equivalent UTMA 2011 strata manager disclosure obligations.
+            </p>
+            <p><strong>Router:</strong> <code>backend/routers/nsw_compliance.py</code> &nbsp;|&nbsp;
+                <strong>Prefix:</strong> <code>/nsw</code></p>
+            <p><strong>Collection:</strong> <code>nsw_reports</code></p>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Description</th>
+                        <th>Legislation</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/nsw/reports</code></td>
+                        <td>Create a 6-monthly strata manager report</td>
+                        <td>SSMA 2015 s.58</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/nsw/reports</code></td>
+                        <td>List reports (building-scoped, paginated)</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/nsw/reports/{id}</code></td>
+                        <td>Get a single report</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/nsw/strata-hub-export</code></td>
+                        <td>Generate Strata Hub annual export data</td>
+                        <td>SSMA 2015 s.182</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/nsw/levy-notice-hardship</code></td>
+                        <td>Mandatory hardship statement for levy notices</td>
+                        <td>NSW Fair Trading</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Report Fields (NSWReportCreate)</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>report_period_from</code></td>
+                        <td>ISO-8601 date</td>
+                        <td>Start of reporting period</td>
+                    </tr>
+                    <tr>
+                        <td><code>report_period_to</code></td>
+                        <td>ISO-8601 date</td>
+                        <td>End of reporting period</td>
+                    </tr>
+                    <tr>
+                        <td><code>report_type</code></td>
+                        <td>string</td>
+                        <td><code>6_monthly</code> | <code>annual</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>functions_performed</code></td>
+                        <td>string[]</td>
+                        <td>Strata manager functions performed (SSMA 2015 s.50 disclosure)</td>
+                    </tr>
+                    <tr>
+                        <td><code>financial_summary</code></td>
+                        <td>object</td>
+                        <td>opening_balance, levies_collected, expenditure, closing_balance, outstanding_levies</td>
+                    </tr>
+                    <tr>
+                        <td><code>maintenance_completed</code></td>
+                        <td>object[]</td>
+                        <td>Maintenance works completed in period</td>
+                    </tr>
+                    <tr>
+                        <td><code>meetings_held</code></td>
+                        <td>object[]</td>
+                        <td>Type, date, quorum status, number of resolutions</td>
+                    </tr>
+                    <tr>
+                        <td><code>strata_hub_submitted</code></td>
+                        <td>boolean</td>
+                        <td>Whether submitted to Strata Hub portal</td>
+                    </tr>
+                    <tr>
+                        <td><code>status</code></td>
+                        <td>string</td>
+                        <td><code>draft</code> | <code>submitted</code></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ─── GAP-JUR-NSW-007: Insurance Commission Disclosure ──────────────── -->
+        <section id="nsw-commission-disclosure">
+            <h2>3a. Insurance Commission Disclosure (GAP-JUR-NSW-007)</h2>
+            <p>
+                <em>Strata Schemes Management Act 2015 (NSW) s.264</em> — a strata managing agent
+                <strong>must disclose</strong> any commission, gift or rebate received from an insurer or broker for
+                placing or renewing building insurance. <strong>Penalty for non-disclosure: up to $110,000.</strong>
+            </p>
+            <p><strong>Router:</strong> <code>backend/routers/nsw_compliance.py</code> &nbsp;|&nbsp;
+               <strong>Prefix:</strong> <code>/nsw/commission-disclosures</code> &nbsp;|&nbsp;
+               <strong>Collection:</strong> <code>nsw_commission_disclosures</code></p>
+            <p><strong>Auth:</strong> strata_manager / ec_member / admin_staff / strata_admin / super_admin. Owner and
+               guest roles receive HTTP 403.</p>
+
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+                    <tbody>
+                    <tr><td><code>POST 201</code></td><td><code>/nsw/commission-disclosures</code></td><td>Record a new commission/gift/rebate disclosure</td></tr>
+                    <tr><td><code>GET</code></td><td><code>/nsw/commission-disclosures</code></td><td>List disclosures (paginated; <code>include_cancelled=true</code> to include soft-deleted)</td></tr>
+                    <tr><td><code>GET</code></td><td><code>/nsw/commission-disclosures/{id}</code></td><td>Get a single disclosure</td></tr>
+                    <tr><td><code>PUT</code></td><td><code>/nsw/commission-disclosures/{id}</code></td><td>Update disclosure details</td></tr>
+                    <tr><td><code>DELETE 204</code></td><td><code>/nsw/commission-disclosures/{id}</code></td><td>Soft-cancel (<code>cancelled_at</code> set; hard-delete never used — 7-year retention)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Key Fields (CommissionDisclosureCreate)</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+                    <tbody>
+                    <tr><td><code>disclosure_type</code></td><td>string</td><td><code>commission</code> | <code>gift</code> | <code>rebate</code> | <code>other</code></td></tr>
+                    <tr><td><code>insurer_name</code></td><td>string</td><td>Required. Name of insurer.</td></tr>
+                    <tr><td><code>broker_name</code></td><td>string?</td><td>Optional. Name of broker if applicable.</td></tr>
+                    <tr><td><code>premium_cents</code></td><td>int?</td><td>Total premium in cents.</td></tr>
+                    <tr><td><code>commission_amount_cents</code></td><td>int?</td><td>Commission/gift amount in cents.</td></tr>
+                    <tr><td><code>commission_rate_pct</code></td><td>float?</td><td>Commission as percentage (0–100).</td></tr>
+                    <tr><td><code>recipient_name</code></td><td>string</td><td>Required. Name of the recipient agent.</td></tr>
+                    <tr><td><code>disclosed_to</code></td><td>string</td><td><code>owners_corporation</code> | <code>ec</code> | <code>agm</code></td></tr>
+                    <tr><td><code>disclosed_at</code></td><td>ISO-8601?</td><td>Date/time of disclosure. Defaults to now if omitted.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mermaid">
+sequenceDiagram
+    participant SM as Strata Manager
+    participant API as POST /nsw/commission-disclosures
+    participant DB as nsw_commission_disclosures
+    participant AL as audit_logs
+
+    SM->>API: disclosure_type, insurer_name, commission_rate_pct, recipient_name
+    API->>DB: insert disclosure doc
+    API->>AL: action=nsw_commission_disclosure_created
+    API-->>SM: 201 {id, building_id, disclosed_at, cancelled_at: null}
+            </div>
+
+            <div class="callout callout-warn">
+                <strong>Retention:</strong> Disclosures are soft-cancelled only (7-year retention obligation under
+                ACT UTMA 2011 ss.115–116 and NSW SSMA 2015). Hard-delete endpoints do not exist for this collection.
+            </div>
+        </section>
+
+        <!-- ─── GAP-JUR-NSW-008: Strata Hub Annual Return ───────────────────── -->
+        <section id="nsw-strata-hub-returns">
+            <h2>3b. Strata Hub Annual Return Records (GAP-JUR-NSW-008)</h2>
+            <p>
+                <em>SSMA 2015 s.182</em> — NSW owners corporations must submit an annual return to Strata Hub
+                within 3 months of financial year end. <strong>Penalty: up to $5,500 (OC) + $3/lot per annum.</strong>
+                The <code>GET /nsw/strata-hub-export</code> endpoint generates the export data; these endpoints
+                record that the submission was actually made and store the confirmation reference.
+            </p>
+            <p><strong>Router:</strong> <code>backend/routers/nsw_compliance.py</code> &nbsp;|&nbsp;
+               <strong>Prefix:</strong> <code>/nsw/strata-hub-returns</code> &nbsp;|&nbsp;
+               <strong>Collection:</strong> <code>nsw_strata_hub_returns</code></p>
+
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+                    <tbody>
+                    <tr><td><code>POST 201</code></td><td><code>/nsw/strata-hub-returns</code></td><td>Record a Strata Hub return submission</td></tr>
+                    <tr><td><code>GET</code></td><td><code>/nsw/strata-hub-returns</code></td><td>List return records (sorted by FY end descending)</td></tr>
+                    <tr><td><code>GET</code></td><td><code>/nsw/strata-hub-returns/{id}</code></td><td>Get a single return record</td></tr>
+                    <tr><td><code>PUT</code></td><td><code>/nsw/strata-hub-returns/{id}</code></td><td>Update (e.g. add/correct Strata Hub confirmation reference)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Key Fields (StrataHubReturnCreate)</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+                    <tbody>
+                    <tr><td><code>financial_year_end</code></td><td>ISO-8601 date</td><td>Required. End date of FY reported.</td></tr>
+                    <tr><td><code>submission_method</code></td><td>string</td><td><code>manual</code> | <code>api</code> | <code>portal</code></td></tr>
+                    <tr><td><code>submission_reference</code></td><td>string?</td><td>Strata Hub confirmation reference number.</td></tr>
+                    <tr><td><code>submitted_by_name</code></td><td>string</td><td>Required. Full name of submitter.</td></tr>
+                    <tr><td><code>lot_count</code></td><td>int?</td><td>Number of lots reported.</td></tr>
+                    <tr><td><code>total_levies_cents</code></td><td>int?</td><td>Total levies collected (cents).</td></tr>
+                    <tr><td><code>status</code></td><td>string</td><td><code>draft</code> | <code>submitted</code> | <code>amended</code></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ─── GAP-JUR-NSW-005: Initial Maintenance Schedule ──────────────── -->
+        <section id="nsw-initial-maintenance-schedule">
+            <h2>3c. Initial Maintenance Schedule (GAP-JUR-NSW-005)</h2>
+            <p>
+                <strong>Legislation:</strong> NSW Strata Schemes Management Act 2015 s.80 + Schedule 3.
+                The owners corporation must prepare an initial maintenance schedule (IMS) for all common property
+                at or before the first AGM (or within 6 months of registration). The schedule must be reviewed
+                at every subsequent AGM. <strong>Penalty: up to $5,500 per offence. Record retention: 7 years.</strong>
+            </p>
+            <p>
+                <strong>Router:</strong> <code>backend/routers/nsw_initial_maintenance_schedule.py</code> &nbsp;|&nbsp;
+                <strong>Prefix:</strong> <code>/nsw/initial-maintenance-schedule</code> &nbsp;|&nbsp;
+                <strong>Toggle:</strong> <code>nsw_maintenance_schedule</code> &nbsp;|&nbsp;
+                <strong>Collection:</strong> <code>nsw_initial_maintenance_schedules</code>
+            </p>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>POST 201</code></td><td><code>/nsw/initial-maintenance-schedule</code></td><td>Create a new IMS version for the building</td></tr>
+                        <tr><td><code>GET</code></td><td><code>/nsw/initial-maintenance-schedule</code></td><td>List all IMS versions (paginated)</td></tr>
+                        <tr><td><code>GET</code></td><td><code>/nsw/initial-maintenance-schedule/current</code></td><td>Latest active version</td></tr>
+                        <tr><td><code>GET</code></td><td><code>/nsw/initial-maintenance-schedule/{ims_id}</code></td><td>Single version by ID</td></tr>
+                        <tr><td><code>PUT</code></td><td><code>/nsw/initial-maintenance-schedule/{ims_id}</code></td><td>Update / AGM review fields</td></tr>
+                        <tr><td><code>POST</code></td><td><code>/nsw/initial-maintenance-schedule/{ims_id}/review</code></td><td>Record AGM review completion (stamps <code>last_reviewed_at</code>)</td></tr>
+                        <tr><td><code>GET</code></td><td><code>/nsw/initial-maintenance-schedule/compliance</code></td><td>Compliance status dashboard (overdue / current / upcoming)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p><strong>Tests:</strong> <code>tests/backend/test_nsw_initial_maintenance_schedule.py</code> (25 tests)
+               | <strong>FeatureTrace tag:</strong> <code>@featuretrace:nsw-initial-maintenance-schedule</code></p>
+        </section>
+
+        <!-- ─── GAP-JUR-NSW-013: Building Manager Duties Register ────────── -->
+        <section id="building-manager-duties">
+            <h2>3d. Building Manager Duties Register (GAP-JUR-NSW-013)</h2>
+            <p>
+                <strong>Legislation:</strong> NSW Strata Schemes Management Act 2015 s.46B.
+                The strata managing agent must maintain a register of all functions delegated to a building manager,
+                including their licence details, delegated duties, frequency, remuneration, and insurance certificate.
+                <strong>Penalty: up to $5,500 per offence. Record retention: 7 years (soft-cancel only).</strong>
+            </p>
+            <p>
+                <strong>Router:</strong> <code>backend/routers/building_manager_duties.py</code> &nbsp;|&nbsp;
+                <strong>Prefix:</strong> <code>/nsw/building-manager-duties</code> &nbsp;|&nbsp;
+                <strong>Toggle:</strong> <code>building_manager_duties</code> &nbsp;|&nbsp;
+                <strong>Collection:</strong> <code>building_manager_duties</code>
+            </p>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>POST 201</code></td><td><code>/nsw/building-manager-duties</code></td><td>Create duties entry (manager details + duty list + remuneration)</td></tr>
+                        <tr><td><code>GET</code></td><td><code>/nsw/building-manager-duties</code></td><td>List entries (paginated; <code>include_cancelled=true</code> to include soft-deleted)</td></tr>
+                        <tr><td><code>GET</code></td><td><code>/nsw/building-manager-duties/{entry_id}</code></td><td>Single entry by ID</td></tr>
+                        <tr><td><code>PUT</code></td><td><code>/nsw/building-manager-duties/{entry_id}</code></td><td>Update entry (contract changes, licence renewal, duty amendments)</td></tr>
+                        <tr><td><code>DELETE 204</code></td><td><code>/nsw/building-manager-duties/{entry_id}</code></td><td>Soft-cancel (<code>cancelled_at</code> set; hard-delete never used — 7-year retention)</td></tr>
+                        <tr><td><code>GET</code></td><td><code>/nsw/building-manager-duties/summary</code></td><td>Compliance summary (active entries, upcoming licence expiries)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p><strong>Tests:</strong> <code>tests/backend/test_building_manager_duties.py</code> (31 tests)
+               | <strong>FeatureTrace tag:</strong> <code>@featuretrace:building-manager-duties</code></p>
+        </section>
+
+        <!-- ─── GAP-MNT-001: Defects Register ───────────────────────────────── -->
+        <section id="defects-register">
+            <h2>3c. Defects Register + Warranty Clocks (GAP-MNT-001)</h2>
+            <p>
+                Building defects register with statutory warranty clocks per jurisdiction. Any owner or manager can
+                log a defect; managers control status updates and resolution. Warranty deadlines are computed from
+                the builder's practical completion date and jurisdiction-specific legislation.
+            </p>
+            <p><strong>Router:</strong> <code>backend/routers/defects_register.py</code> &nbsp;|&nbsp;
+               <strong>Prefix:</strong> <code>/defects</code> &nbsp;|&nbsp;
+               <strong>Collection:</strong> <code>defects</code></p>
+
+            <h3>Warranty Periods by Jurisdiction</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Jurisdiction</th><th>Major defects</th><th>Minor defects</th><th>Legislation</th></tr></thead>
+                    <tbody>
+                    <tr><td>ACT</td><td>6 years</td><td>6 years</td><td>Building Act 2004 s.89</td></tr>
+                    <tr><td>NSW</td><td>6 years</td><td>2 years</td><td>Home Building Act 1989 s.18B</td></tr>
+                    <tr><td>VIC</td><td>10 years</td><td>2 years</td><td>Domestic Building Contracts Act 1995 s.169B</td></tr>
+                    <tr><td>QLD</td><td>6 years</td><td>1 year</td><td>QBCC Act 1991 s.67C</td></tr>
+                    <tr><td>WA / SA / TAS / NT</td><td>6 years</td><td>1 year</td><td>Various state legislation</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+                    <tbody>
+                    <tr><td><code>POST 201</code></td><td><code>/defects</code></td><td>owner+</td><td>Log defect with warranty clock. <code>warranty_deadline</code> auto-computed.</td></tr>
+                    <tr><td><code>GET</code></td><td><code>/defects</code></td><td>owner+</td><td>List defects. Filter: <code>status</code>, <code>category</code>, <code>severity</code>, <code>warranty_expiring_days</code>.</td></tr>
+                    <tr><td><code>GET</code></td><td><code>/defects/warranty-summary</code></td><td>manager+</td><td>Aggregated counts: overdue / expiring_soon / active / no_warranty.</td></tr>
+                    <tr><td><code>GET</code></td><td><code>/defects/{id}</code></td><td>owner+</td><td>Full defect with timeline array.</td></tr>
+                    <tr><td><code>PUT</code></td><td><code>/defects/{id}</code></td><td>manager+</td><td>Update status, resolution notes. Recomputes warranty if completion date/jurisdiction changes.</td></tr>
+                    <tr><td><code>DELETE 204</code></td><td><code>/defects/{id}</code></td><td>manager+</td><td>Soft-cancel (7-year retention).</td></tr>
+                    <tr><td><code>POST 201</code></td><td><code>/defects/{id}/notes</code></td><td>owner+</td><td>Append timeline note (general | builder_response | inspection | legal).</td></tr>
+                    <tr><td><code>POST 201</code></td><td><code>/defects/{id}/photos</code></td><td>owner+</td><td>Attach additional photo URLs ($push $each).</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Defect Categories</h3>
+            <p><code>structural</code> · <code>waterproofing</code> · <code>fire_safety</code> · <code>mechanical</code> · <code>electrical</code> · <code>plumbing</code> · <code>facade</code> · <code>roofing</code> · <code>lift</code> · <code>common_area</code> · <code>unit</code> · <code>other</code></p>
+
+            <h3>Defect Severity</h3>
+            <p><code>critical</code> · <code>major</code> · <code>minor</code> · <code>cosmetic</code></p>
+            <p>Severity determines warranty period: <code>critical</code> and <code>major</code> use the "major defects" period; <code>minor</code> and <code>cosmetic</code> use the "minor defects" period.</p>
+
+            <div class="mermaid">
+sequenceDiagram
+    participant U as Owner/Manager
+    participant API as POST /defects
+    participant Cal as _compute_warranty_deadline()
+    participant DB as defects
+
+    U->>API: title, category, severity, jurisdiction, practical_completion_date
+    API->>Cal: date + jurisdiction + severity
+    Cal-->>API: warranty_deadline (ISO-8601 exact calendar year)
+    API->>DB: insert {status: open, timeline: [{Defect logged}]}
+    API-->>U: 201 {id, warranty_deadline, warranty_days_remaining}
+            </div>
+
+            <div class="callout callout-info">
+                <strong>Warranty clock computation:</strong> Uses exact calendar year addition
+                (<code>date.replace(year=completion.year + N)</code>), not day approximation. Feb 29 edge case
+                handled by advancing to Mar 1 in non-leap years.
+            </div>
+        </section>
+
+        <!-- ─── Compliance Registers ──────────────────────────────────────────── -->
+        <section id="compliance-registers">
+            <h2>4. Compliance Registers (Fire, Lift, Asbestos, Pool)</h2>
+            <p>
+                Tracks statutory maintenance registers required under Australian Standards. Each building maintains one
+                register per type, with individual inspection/service items tracked within it.
+            </p>
+            <p><strong>Router:</strong> <code>backend/routers/compliance_registers.py</code> &nbsp;|&nbsp; <strong>Prefix:</strong>
+                <code>/compliance</code></p>
+            <p><strong>Collections:</strong> <code>compliance_registers</code>, <code>compliance_register_items</code>,
+                <code>compliance_events</code></p>
+
+            <h3>Register Types &amp; Standards</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Standard</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>fire</code></td>
+                        <td>AS 1851:2012</td>
+                        <td>Fire Protection System Maintenance Register — inspections of sprinklers, hydrants, detection
+                            systems, extinguishers
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>lift</code></td>
+                        <td>AS/NZS 1735</td>
+                        <td>Lift and Escalator Safety Register — periodic safety inspections and maintenance logs</td>
+                    </tr>
+                    <tr>
+                        <td><code>asbestos</code></td>
+                        <td>SWA Asbestos Code of Practice</td>
+                        <td>Asbestos Management Register — identification, risk assessment, management actions</td>
+                    </tr>
+                    <tr>
+                        <td><code>pool</code></td>
+                        <td>State-specific</td>
+                        <td>Pool Safety Register — ACT: Public Pools Act; NSW: Swimming Pools Act 1992</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>API Endpoints</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/compliance/registers</code></td>
+                        <td>Create a compliance register</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/compliance/registers</code></td>
+                        <td>List registers (building-scoped)</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/compliance/registers/{reg_id}</code></td>
+                        <td>Get a single register with its items</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/compliance/registers/{reg_id}/items</code></td>
+                        <td>Add a compliance item to a register</td>
+                    </tr>
+                    <tr>
+                        <td><code>PUT</code></td>
+                        <td><code>/compliance/registers/{reg_id}/items/{item_id}</code></td>
+                        <td>Update a compliance item (e.g. mark completed)</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/compliance/events</code></td>
+                        <td>Upcoming compliance due-date events</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/compliance/dashboard</code></td>
+                        <td>Compliance summary dashboard (counts by status)</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Compliance Item Lifecycle</h3>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    stateDiagram-v2
+                    [*] --> due : item created / scheduled
+                    due --> completed : inspection/service done
+                    due --> overdue : due_date passed
+                    overdue --> completed : catch-up completed
+                    completed --> due : next recurrence scheduled
+                </div>
+                <div class="diagram-caption">Compliance item status transitions</div>
+            </div>
+
+            <h3>Permissions</h3>
+            <p>Roles allowed: <code>super_admin</code>, <code>strata_manager</code>, <code>building_admin</code>, <code>ec_member</code>,
+                <code>admin</code>, <code>maintenance</code>. Standard owners/tenants cannot access compliance
+                registers.</p>
+        </section>
+
+        <!-- ─── Decisions Register ────────────────────────────────────────────── -->
+        <section id="decisions">
+            <h2>5. Decisions Register</h2>
+            <p>
+                Formal record of all owners corporation and executive committee resolutions. Decision numbers are
+                auto-generated per year in the format <code>DEC-YYYY-NNNN</code> using an atomic counter in <code>decisions_counter</code>.
+            </p>
+            <p><strong>Router:</strong> <code>backend/routers/decisions.py</code> &nbsp;|&nbsp; <strong>Prefix:</strong>
+                <code>/decisions</code></p>
+            <p><strong>Collections:</strong> <code>decisions</code>, <code>decisions_counter</code></p>
+
+            <h3>API Endpoints</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Description</th>
+                        <th>Roles</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/decisions/search</code></td>
+                        <td>Full-text search across motion_title, motion_text, tags, decision_number</td>
+                        <td>owner, tenant, EC, managers</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/decisions</code></td>
+                        <td>Create a decision record</td>
+                        <td>EC/managers only</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/decisions</code></td>
+                        <td>List decisions (paginated). Filter: meeting_type, result, date range, tags</td>
+                        <td>owner, tenant, EC, managers</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/decisions/{id}</code></td>
+                        <td>Get a single decision</td>
+                        <td>owner, tenant, EC, managers</td>
+                    </tr>
+                    <tr>
+                        <td><code>PUT</code></td>
+                        <td><code>/decisions/{id}</code></td>
+                        <td>Update a decision</td>
+                        <td>EC/managers only</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout">
+                <strong>Route ordering note.</strong> The <code>/decisions/search</code> route MUST be registered before
+                <code>/decisions/{id}</code> in the router to prevent FastAPI from interpreting "search" as an ID
+                parameter.
+            </div>
+
+            <h3>Decision Data Model</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>decision_number</code></td>
+                        <td>string</td>
+                        <td>Auto-generated: <code>DEC-YYYY-NNNN</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>building_id</code></td>
+                        <td>string</td>
+                        <td>Tenant partition key</td>
+                    </tr>
+                    <tr>
+                        <td><code>meeting_type</code></td>
+                        <td>string</td>
+                        <td><code>agm</code> | <code>egm</code> | <code>ec_meeting</code> | <code>special</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>meeting_date</code></td>
+                        <td>ISO-8601 date</td>
+                        <td>Date the decision was made</td>
+                    </tr>
+                    <tr>
+                        <td><code>motion_title</code></td>
+                        <td>string</td>
+                        <td>Short descriptive title (5–500 chars)</td>
+                    </tr>
+                    <tr>
+                        <td><code>motion_text</code></td>
+                        <td>string</td>
+                        <td>Full text of the motion as read at the meeting</td>
+                    </tr>
+                    <tr>
+                        <td><code>resolution_type</code></td>
+                        <td>string</td>
+                        <td><code>ordinary</code> | <code>special</code> | <code>unopposed</code> |
+                            <code>unanimous</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>vote_for</code></td>
+                        <td>int</td>
+                        <td>Votes in favour</td>
+                    </tr>
+                    <tr>
+                        <td><code>vote_against</code></td>
+                        <td>int</td>
+                        <td>Votes against</td>
+                    </tr>
+                    <tr>
+                        <td><code>vote_abstain</code></td>
+                        <td>int</td>
+                        <td>Abstentions</td>
+                    </tr>
+                    <tr>
+                        <td><code>result</code></td>
+                        <td>string</td>
+                        <td><code>passed</code> | <code>failed</code> | <code>lapsed</code> | <code>deferred</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>proposer</code></td>
+                        <td>string</td>
+                        <td>Name of person who proposed the motion</td>
+                    </tr>
+                    <tr>
+                        <td><code>seconder</code></td>
+                        <td>string</td>
+                        <td>Name of person who seconded</td>
+                    </tr>
+                    <tr>
+                        <td><code>tags</code></td>
+                        <td>string[]</td>
+                        <td>Category tags (e.g. finance, maintenance, bylaw)</td>
+                    </tr>
+                    <tr>
+                        <td><code>related_levy_id</code></td>
+                        <td>string</td>
+                        <td>Link to levy record (optional)</td>
+                    </tr>
+                    <tr>
+                        <td><code>related_maintenance_id</code></td>
+                        <td>string</td>
+                        <td>Link to maintenance request (optional)</td>
+                    </tr>
+                    <tr>
+                        <td><code>document_urls</code></td>
+                        <td>string[]</td>
+                        <td>Links to supporting documents or signed minutes</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Resolution Types — Legislative Basis</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Threshold</th>
+                        <th>Legislation</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>ordinary</code></td>
+                        <td>Simple majority of votes cast</td>
+                        <td>ACT UTMA 2011 s.21</td>
+                    </tr>
+                    <tr>
+                        <td><code>special</code></td>
+                        <td>No more than 25% of eligible votes against</td>
+                        <td>ACT UTMA 2011 s.22</td>
+                    </tr>
+                    <tr>
+                        <td><code>unopposed</code></td>
+                        <td>No votes against at the time of voting</td>
+                        <td>ACT UTMA 2011 s.23</td>
+                    </tr>
+                    <tr>
+                        <td><code>unanimous</code></td>
+                        <td>All eligible voters in favour</td>
+                        <td>ACT UTMA 2011 s.24</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Viewing Permissions (Transparency)</h3>
+            <p>Decisions are readable by <strong>all authenticated roles</strong> including owners and tenants to
+                maintain transparency under the OC Act. Only EC/manager roles can create or modify decisions.</p>
+        </section>
+
+        <!-- ─── Privacy Compliance ────────────────────────────────────────────── -->
+        <section id="privacy">
+            <h2>6. Privacy Compliance</h2>
+            <p>
+                Tracks obligations under the <em>Privacy Act 1988 (Cth)</em> — Australian Privacy Principles (APPs 1–13)
+                — and the Notifiable Data Breaches (NDB) scheme (Part IIIC). Strata records must be retained for 7 years
+                minimum (ACT UTMA 2011 s.89).
+            </p>
+            <p><strong>Router:</strong> <code>backend/routers/privacy_compliance.py</code> &nbsp;|&nbsp;
+                <strong>Prefix:</strong> <code>/privacy</code></p>
+            <p><strong>Collections:</strong> <code>privacy_consents</code>, <code>privacy_breach_log</code>, <code>privacy_access_requests</code>
+            </p>
+
+            <h3>API Endpoints</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Description</th>
+                        <th>Legislation</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/privacy/consents</code></td>
+                        <td>Record consent to collect/use personal information</td>
+                        <td>APP 3/5</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/privacy/consents</code></td>
+                        <td>List consents (building-scoped)</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td><code>PUT</code></td>
+                        <td><code>/privacy/consents/{id}</code></td>
+                        <td>Update or withdraw consent</td>
+                        <td>APP 3</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/privacy/breach-log</code></td>
+                        <td>Log a data breach (NDB scheme)</td>
+                        <td>Privacy Act Part IIIC</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/privacy/breach-log</code></td>
+                        <td>List breach log entries</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/privacy/retention-schedule</code></td>
+                        <td>Data retention schedule (7-year strata records)</td>
+                        <td>UTMA 2011 s.89</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/privacy/access-request</code></td>
+                        <td>Record an access, correction, deletion, or portability request</td>
+                        <td>APP 12</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Consent Types</h3>
+            <p><code>marketing</code> | <code>data_sharing</code> | <code>strata_roll</code> | <code>photos</code> |
+                <code>third_party_disclosure</code></p>
+
+            <h3>Access Request Types</h3>
+            <p><code>access</code> (APP 12) | <code>correction</code> (APP 13) | <code>deletion</code> | <code>portability</code>
+            </p>
+
+            <h3>Breach Severity Flags</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Flag</th>
+                        <th>Meaning</th>
+                        <th>Action Required</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>eligible</code></td>
+                        <td>Likely to result in serious harm to individuals</td>
+                        <td>Notify OAIC and affected individuals ASAP (NDB scheme)</td>
+                    </tr>
+                    <tr>
+                        <td><code>ineligible</code></td>
+                        <td>Not likely to result in serious harm</td>
+                        <td>Internal record only; no mandatory notification</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Data Types Tracked</h3>
+            <p>Consent and access request records categorise which personal information types are involved:
+                <code>name</code>, <code>address</code>, <code>email</code>, <code>phone</code>,
+                <code>financial_data</code>, <code>identity_documents</code>, <code>lot_entitlements</code>, <code>levy_records</code>,
+                <code>photos</code>.</p>
+        </section>
+
+        <!-- ─── Manager Contracts ─────────────────────────────────────────────── -->
+        <section id="manager-contracts">
+            <h2>7. Manager Contracts</h2>
+            <p>
+                Strata manager contract lifecycle management with renewal alerts. ACT UTMA 2011 s.60 and NSW SSMA 2015
+                s.49 both restrict strata manager agreements to a maximum of 3 years, with no automatic renewal clauses.
+            </p>
+            <p><strong>Router:</strong> <code>backend/routers/manager_contracts.py</code> &nbsp;|&nbsp;
+                <strong>Prefix:</strong> <code>/manager-contracts</code></p>
+            <p><strong>Collection:</strong> <code>manager_contracts</code></p>
+
+            <h3>API Endpoints</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/manager-contracts</code></td>
+                        <td>Create a contract record</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/manager-contracts</code></td>
+                        <td>List contracts (building-scoped, paginated)</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/manager-contracts/expiring</code></td>
+                        <td>List contracts expiring within a configurable window (default 90 days)</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/manager-contracts/{id}</code></td>
+                        <td>Get a single contract</td>
+                    </tr>
+                    <tr>
+                        <td><code>PUT</code></td>
+                        <td><code>/manager-contracts/{id}</code></td>
+                        <td>Update a contract (e.g. terminate, extend)</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout">
+                <strong>Route ordering note.</strong> The <code>/manager-contracts/expiring</code> route MUST be
+                registered before <code>/manager-contracts/{id}</code> to avoid FastAPI treating "expiring" as an ID.
+            </div>
+
+            <h3>Contract Data Model</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>building_id</code></td>
+                        <td>string</td>
+                        <td>Tenant partition key (injected from JWT)</td>
+                    </tr>
+                    <tr>
+                        <td><code>manager_name</code></td>
+                        <td>string</td>
+                        <td>Strata manager individual's name</td>
+                    </tr>
+                    <tr>
+                        <td><code>company_name</code></td>
+                        <td>string</td>
+                        <td>Management company trading name</td>
+                    </tr>
+                    <tr>
+                        <td><code>licence_number</code></td>
+                        <td>string</td>
+                        <td>ACT Property Services Licensing Board or NSW Fair Trading licence</td>
+                    </tr>
+                    <tr>
+                        <td><code>start_date</code></td>
+                        <td>ISO-8601 date</td>
+                        <td>Contract commencement</td>
+                    </tr>
+                    <tr>
+                        <td><code>end_date</code></td>
+                        <td>ISO-8601 date</td>
+                        <td>Contract expiry (max 3 years from start)</td>
+                    </tr>
+                    <tr>
+                        <td><code>renewal_notice_days</code></td>
+                        <td>int</td>
+                        <td>Days before expiry to trigger renewal alert (default 90)</td>
+                    </tr>
+                    <tr>
+                        <td><code>fee_structure</code></td>
+                        <td>string</td>
+                        <td>percentage_of_levies | fixed_monthly | fixed_annual | hourly | per_lot</td>
+                    </tr>
+                    <tr>
+                        <td><code>fee_amount</code></td>
+                        <td>float</td>
+                        <td>Fee amount (interpretation depends on fee_structure)</td>
+                    </tr>
+                    <tr>
+                        <td><code>special_conditions</code></td>
+                        <td>string</td>
+                        <td>Free-text special contract conditions</td>
+                    </tr>
+                    <tr>
+                        <td><code>status</code></td>
+                        <td>string</td>
+                        <td>Computed: <code>active</code> | <code>expired</code> | <code>terminated</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>terminated_at</code></td>
+                        <td>ISO-8601 datetime</td>
+                        <td>Set if contract was terminated early</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Legislative Restrictions</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Jurisdiction</th>
+                        <th>Max Term</th>
+                        <th>Auto-renewal</th>
+                        <th>Disclosure</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>ACT (UTMA 2011 s.60)</td>
+                        <td>3 years</td>
+                        <td>Not permitted</td>
+                        <td>Must be disclosed at a general meeting (s.61)</td>
+                    </tr>
+                    <tr>
+                        <td>NSW (SSMA 2015 s.49)</td>
+                        <td>3 years</td>
+                        <td>Not permitted</td>
+                        <td>Managing agency agreement provisions apply</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Permissions</h3>
+            <p>Roles: <code>super_admin</code>, <code>strata_manager</code>, <code>building_admin</code>,
+                <code>ec_member</code>, <code>admin</code>. Standard owners/tenants cannot view or modify manager
+                contracts.</p>
+        </section>
+
+        <!-- ─── Compliance Overview Diagram ──────────────────────────────────── -->
+        <section id="overview-diagram">
+            <h2>Compliance Module Overview</h2>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart TD
+                    A["Strata Compliance Suite"] --> B["Rental Certificates<br/>rental_certificates.py<br/>ACT UTMA
+                    s.119A"]
+                    A --> C["WHS Compliance<br/>whs.py<br/>WHS Act 2011"]
+                    A --> D["NSW/ACT Reports<br/>nsw_compliance.py<br/>SSMA s.58 / s.182"]
+                    A --> E["Compliance Registers<br/>compliance_registers.py<br/>AS 1851 / AS 1735"]
+                    A --> F["Decisions Register<br/>decisions.py<br/>UTMA Sch.2/3"]
+                    A --> G["Privacy Compliance<br/>privacy_compliance.py<br/>Privacy Act 1988"]
+                    A --> H["Manager Contracts<br/>manager_contracts.py<br/>UTMA s.60 / SSMA s.49"]
+
+                    B --> B1[("rental_certificates")]
+                    C --> C1[("whs_inductions<br/>whs_swms<br/>whs_incidents")]
+                    D --> D1[("nsw_reports")]
+                    E --> E1[("compliance_registers<br/>compliance_register_items")]
+                    F --> F1[("decisions<br/>decisions_counter")]
+                    G --> G1[("privacy_consents<br/>privacy_breach_log<br/>privacy_access_requests")]
+                    H --> H1[("manager_contracts")]
+                </div>
+                <div class="diagram-caption">All compliance modules and their MongoDB collections</div>
+            </div>
+        </section>
+
+    </main>
+</div>
+<footer>East Gate Residences · Technical Documentation · Compliance · Super Admin Only · 2026 · A vision by: Silverfox
+    Technologies, Australia · Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+</body>
+</html>

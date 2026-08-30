@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Seed Reference – Eastgate Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad: true, theme: 'dark', securityLevel: 'strict'});</script>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">East Gate Residences</div>
+            <div class="sub">Technical Documentation · Seed Reference</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">Feature Domains</div>
+            <a data-page="trust-accounting.md" href="trust-accounting.md"><span class="icon">🏦</span> Trust
+                Accounting</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔁</span> Feature Toggles</a>
+            <a data-page="compliance.html" href="compliance.html"><span class="icon">📋</span> Compliance</a>
+            <a class="active" data-page="seed-reference.html" href="seed-reference.html"><span class="icon">🌱</span>
+                Seed Reference</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#overview">Overview</a>
+            <a href="#snapshot-seeds">Snapshot Seeds</a>
+            <a href="#idempotent-seeds">Idempotent Creator Seeds</a>
+            <a href="#env-matrix">Environment Matrix</a>
+            <a href="#quick-commands">Quick Commands</a>
+            <a href="#production-protection">Production Data Protection</a>
+            <a href="#deprecated">Deprecated Seeds</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <h1>Seed Reference</h1>
+        <div class="callout"><strong>Role note:</strong> <code>chairman</code> is not a top-level system role — it is <code>ec_position=CHAIRMAN</code> on a user whose <code>role</code> is <code>ec_member</code>. Role lists on this page naming "chairman" alongside real role names are shorthand for this; see <a href="permissions.md">permissions.md</a> for the full contract.</div>
+        <p>
+            Seed files populate MongoDB collections with initial data. All seeds live in <code>backend/seeds/</code>.
+            The orchestrator entry point is <code>backend/seeds/seed_all.py</code>.
+        </p>
+
+        <!-- ─── Overview ──────────────────────────────────────────────────────── -->
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>There are two categories of seed file with very different operational rules:</p>
+
+            <div class="two-col">
+                <div class="card">
+                    <h3>Type A — Snapshot Seeds</h3>
+                    <p>Generated from the live production database using <code>scripts/db/snapshot_all.py</code>. They
+                        capture the authoritative state of production collections at a point in time.</p>
+                    <ul>
+                        <li><strong>Do not edit manually</strong> — regenerate from the live DB</li>
+                        <li>East Gate (13195) financial data is read-only — never overwrite</li>
+                        <li>Named with the <code>snapshot_</code> prefix or are the source-of-truth unit files</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Type B — Idempotent Creator Seeds</h3>
+                    <p>Use upsert logic — safe to run on any environment including fresh installs. Running them multiple
+                        times has no adverse effect.</p>
+                    <ul>
+                        <li>Safe to run in any order after Type A snapshots</li>
+                        <li>Demo buildings (Sierra, Harbourview) use these exclusively</li>
+                        <li>CI/CD pipelines should use these (not snapshots of East Gate financial data)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3>Seed Data Flow</h3>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart LR
+                    A["Live Production DB<br/>building 13195"] -->|"scripts/db/snapshot_all.py"| B["snapshot_*.py<br/>units_east_gate.py<br/>levy_ledger_east_gate.py"]
+                    B -->|"seed_all.py"| C["MongoDB<br/>Local / Staging"]
+                    D["Idempotent creators<br/>seed_sierra.py<br/>seed_harbourview.py<br/>users.py etc."]
+                    -->|"seed_all.py"| C
+                    C --> E["Application<br/>/api endpoints"]
+                </div>
+                <div class="diagram-caption">Snapshots capture production state; idempotent seeds create demo/default
+                    data
+                </div>
+            </div>
+        </section>
+
+        <!-- ─── Snapshot Seeds ─────────────────────────────────────────────────── -->
+        <section id="snapshot-seeds">
+            <h2>Type A — Snapshot Seeds</h2>
+            <p>These files are the authoritative data source for East Gate Residences (building 13195) production
+                collections. Generated by <code>scripts/db/snapshot_all.py</code> and committed to the repository.</p>
+
+            <div class="callout callout-warn">
+                <strong>Do not edit these files manually.</strong> If production data needs to change, apply the change
+                via the API or a direct MongoDB operation, then regenerate the snapshot with <code>scripts/db/snapshot_all.py</code>.
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>What It Captures</th>
+                        <th>Collections</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>snapshot_buildings.py</code></td>
+                        <td>3 buildings (13195, 16244, harbourside_view) with trust_config and lot counts</td>
+                        <td><code>buildings</code></td>
+                        <td>Regenerate when building metadata changes</td>
+                    </tr>
+                    <tr>
+                        <td><code>snapshot_feature_toggles.py</code></td>
+                        <td>40+ feature toggles with global defaults (<code>building_id=None</code>) and per-building
+                            overrides
+                        </td>
+                        <td><code>feature_toggles</code></td>
+                        <td>Authoritative for production — use instead of <code>feature_toggles.py</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>snapshot_settings.py</code></td>
+                        <td>Per-building settings documents (levy due dates, financial config, building name)</td>
+                        <td><code>settings</code></td>
+                        <td>Authoritative for production — use instead of <code>settings.py</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>snapshot_annual_levies.py</code></td>
+                        <td>FY2021–2026 approved annual levy summaries for building 13195</td>
+                        <td><code>annual_levies</code></td>
+                        <td><strong>READ-ONLY</strong> — real production financial data</td>
+                    </tr>
+                    <tr>
+                        <td><code>snapshot_budgets.py</code></td>
+                        <td>Budget records for FY2024–2025, 2025–2026, 2026–2027</td>
+                        <td><code>budgets</code></td>
+                        <td>Regenerate after any budget update</td>
+                    </tr>
+                    <tr>
+                        <td><code>snapshot_chat_groups.py</code></td>
+                        <td>System chat group definitions with auto-join criteria</td>
+                        <td><code>chat_groups</code></td>
+                        <td>Includes General, Apartments, Townhouses, EC, Service Requests</td>
+                    </tr>
+                    <tr>
+                        <td><code>snapshot_compliance_items.py</code></td>
+                        <td>Compliance register items (fire, lift, asbestos schedules)</td>
+                        <td><code>compliance_items</code></td>
+                        <td>Regenerate when compliance schedule changes</td>
+                    </tr>
+                    <tr>
+                        <td><code>snapshot_document_folders.py</code></td>
+                        <td>Default document folder tree with access-control settings</td>
+                        <td><code>document_folders</code></td>
+                        <td>6 folders: General/Public, EC, Owners, Tenants, Services, Financial</td>
+                    </tr>
+                    <tr>
+                        <td><code>snapshot_ec_members.py</code></td>
+                        <td>Executive Committee member profiles (name, role, contact)</td>
+                        <td><code>ec_members</code></td>
+                        <td>Regenerate after EC changes (AGM, co-option, resignation)</td>
+                    </tr>
+                    <tr>
+                        <td><code>snapshot_emergency_services.py</code></td>
+                        <td>Emergency contact records (fire brigade, ambulance, building manager, etc.)</td>
+                        <td><code>emergency_services</code></td>
+                        <td>Regenerate when emergency contacts change</td>
+                    </tr>
+                    <tr>
+                        <td><code>snapshot_navigation_configs.py</code></td>
+                        <td>Navigation menu configuration per role group</td>
+                        <td><code>navigation_configs</code></td>
+                        <td>Authoritative for production — use instead of <code>navigation_configs.py</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>units_east_gate.py</code></td>
+                        <td>Complete East Gate unit ledger — 87 units with 2026 levy data, UOE, owner names, 2025
+                            closing balances
+                        </td>
+                        <td><code>units</code></td>
+                        <td><strong>READ-ONLY</strong> — real production data. Generated 2026-04-01</td>
+                    </tr>
+                    <tr>
+                        <td><code>finance_history.py</code></td>
+                        <td>SP 13195 FY2021–2026 levy income and budget history</td>
+                        <td><code>finance</code>, <code>annual_levies</code></td>
+                        <td><strong>READ-ONLY</strong> — real transaction history</td>
+                    </tr>
+                    <tr>
+                        <td><code>levy_ledger_east_gate.py</code></td>
+                        <td>Per-unit per-year levy ledger entries for all financial years (289 KB)</td>
+                        <td><code>unit_levy_ledger</code></td>
+                        <td><strong>READ-ONLY</strong> — source of truth for levy calculations and owner statements</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Regenerating Snapshots</h3>
+            <pre><code># Regenerate all snapshots from the live production database
+cd backend && source venv/bin/activate
+python3 scripts/db/snapshot_all.py
+
+# Regenerate a specific collection only
+python3 scripts/db/snapshot_all.py --collection feature_toggles
+python3 scripts/db/snapshot_all.py --collection ec_members
+python3 scripts/db/snapshot_all.py --collection settings</code></pre>
+        </section>
+
+        <!-- ─── Idempotent Seeds ───────────────────────────────────────────────── -->
+        <section id="idempotent-seeds">
+            <h2>Type B — Idempotent Creator Seeds</h2>
+            <p>These seeds use upsert logic and are safe to re-run. They create or update records without destroying
+                existing data. Organised by category:</p>
+
+            <h3>Building Seeds</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Purpose</th>
+                        <th>Target Building</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>seed_sierra.py</code></td>
+                        <td>Creates Sierra building (16244) with demo units, levies, users, and financial history</td>
+                        <td><code>16244</code> (demo)</td>
+                        <td>Full demo dataset — safe to reseed at any time</td>
+                    </tr>
+                    <tr>
+                        <td><code>seed_harbourview.py</code></td>
+                        <td>Creates Harbourview building with demo units, levies, users, and financial history</td>
+                        <td><code>harbourside_view</code> (demo)</td>
+                        <td>Full demo dataset — safe to reseed at any time</td>
+                    </tr>
+                    <tr>
+                        <td><code>seed_demo_building.py</code></td>
+                        <td>Creates East Gate demo shell (building structure only, no financial data)</td>
+                        <td><code>13195</code> (demo shell)</td>
+                        <td>Does NOT touch units/levies/finance — safe for East Gate</td>
+                    </tr>
+                    <tr>
+                        <td><code>seed_mega_complex.py</code></td>
+                        <td>120-lot complex for LBFI levy fairness testing</td>
+                        <td><code>test_complex</code></td>
+                        <td>Test/dev only — never used in production</td>
+                    </tr>
+                    <tr>
+                        <td><code>buildings.py</code></td>
+                        <td>Generic multi-tenant building creator (base building documents)</td>
+                        <td>all</td>
+                        <td>Foundation seed — run before building-specific seeds</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>User &amp; Unit Seeds</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Purpose</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>users.py</code></td>
+                        <td>8 demo users covering all roles: super_admin, chairman, ec_member, owner, tenant,
+                            strata_manager, service_provider, guest
+                        </td>
+                        <td>Uses eastgateresidences.com.au email domain. Real owners used for East Gate test accounts.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>multi_user.py</code></td>
+                        <td>User-unit occupancy relationships (<code>user_units</code>) and by-laws acknowledgments</td>
+                        <td>Must run after <code>users.py</code>. Creates the occupancy audit trail.</td>
+                    </tr>
+                    <tr>
+                        <td><code>units_2026.py</code></td>
+                        <td>Re-seeds East Gate units from Excel source file (2026 data)</td>
+                        <td>Parses Excel source. Use only if refreshing from source Excel — prefer the snapshot <code>units_east_gate.py</code>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Financial Seeds</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Purpose</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>finance.py</code></td>
+                        <td>Demo finance transactions (income and expense entries)</td>
+                        <td>Building-scoped — only affects the target building</td>
+                    </tr>
+                    <tr>
+                        <td><code>budget.py</code></td>
+                        <td>Budget entries that reference existing financial year data</td>
+                        <td>Requires annual levy records to exist first</td>
+                    </tr>
+                    <tr>
+                        <td><code>trust_accounting.py</code></td>
+                        <td>Trust account defaults — chart of accounts, trust account structure, East Gate trust
+                            config
+                        </td>
+                        <td>Config-only — does not create transaction records</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Configuration Seeds</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Purpose</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>feature_toggles.py</code></td>
+                        <td>Default toggle set (~39 toggles) with global <code>building_id=None</code> defaults</td>
+                        <td>SUPERSEDED in production by <code>snapshot_feature_toggles.py</code>. Use for dev/staging
+                            only.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>navigation_configs.py</code></td>
+                        <td>Navigation menu configs per role group</td>
+                        <td>SUPERSEDED in production by <code>snapshot_navigation_configs.py</code>. Use for dev/staging
+                            only.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>settings.py</code></td>
+                        <td>Default per-building settings (levy due dates, building name, contact details)</td>
+                        <td>SUPERSEDED in production by <code>snapshot_settings.py</code>. Use for dev/staging only.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>rbac.py</code></td>
+                        <td>Role definitions and permission maps (RBAC configuration)</td>
+                        <td>Run once at install. Update only when role permissions change.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Content Seeds</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Purpose</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>blog.py</code></td>
+                        <td>Demo blog posts for the community notice board</td>
+                        <td>Demo content only</td>
+                    </tr>
+                    <tr>
+                        <td><code>listings.py</code></td>
+                        <td>Demo marketplace listings (sales, services, parking)</td>
+                        <td>Demo content only</td>
+                    </tr>
+                    <tr>
+                        <td><code>by_laws.py</code></td>
+                        <td>By-laws reference data and acknowledgment templates</td>
+                        <td>Reference data — safe</td>
+                    </tr>
+                    <tr>
+                        <td><code>compliance_items.py</code></td>
+                        <td>Default compliance register items (fire, lift inspection schedules)</td>
+                        <td>Template data — safe</td>
+                    </tr>
+                    <tr>
+                        <td><code>compliance_demo.py</code></td>
+                        <td>Demo compliance register with sample entries for all register types</td>
+                        <td>Demo data — safe</td>
+                    </tr>
+                    <tr>
+                        <td><code>service_provider.py</code></td>
+                        <td>Demo contractors and service providers</td>
+                        <td>Demo data — safe</td>
+                    </tr>
+                    <tr>
+                        <td><code>organisations.py</code></td>
+                        <td>Organisation records (strata management companies, insurers)</td>
+                        <td>Demo data — safe</td>
+                    </tr>
+                    <tr>
+                        <td><code>document_folders.py</code></td>
+                        <td>Default document folder tree with access control</td>
+                        <td>6 folders: General/Public, EC, Owners, Tenants, Services, Financial</td>
+                    </tr>
+                    <tr>
+                        <td><code>chat_groups.py</code></td>
+                        <td>Chat group definitions with auto-join criteria by role/unit type</td>
+                        <td>5 groups: General, Apartments, Townhouses, EC, Service Requests</td>
+                    </tr>
+                    <tr>
+                        <td><code>initialize_defaults.py</code></td>
+                        <td>Idempotent initialiser for document_folders + chat_groups combined</td>
+                        <td>Use in preference to running <code>document_folders.py</code> and
+                            <code>chat_groups.py</code> separately
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Intelligence &amp; Analytics Seeds</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Purpose</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>ppm_schedule.py</code></td>
+                        <td>Planned Preventive Maintenance schedule entries for building assets</td>
+                        <td>Requires <code>seed_asset_templates.py</code> to run first</td>
+                    </tr>
+                    <tr>
+                        <td><code>seed_asset_templates.py</code></td>
+                        <td>PPM asset template definitions — lifts, HVAC, fire systems, pool, BMS</td>
+                        <td>Foundation for PPM schedule generation</td>
+                    </tr>
+                    <tr>
+                        <td><code>seed_building_summaries.py</code></td>
+                        <td>Pre-computed building health summaries used by the portfolio dashboard</td>
+                        <td>Requires <code>set_ctx_building_id(bid)</code> for tenant context. Reads <code>bld.get("lot_count",
+                            bld.get("lots", 0))</code> for lot count.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>seed_demo_enrichment.py</code></td>
+                        <td>Demo intelligence enrichment data (asset health scores, risk indicators)</td>
+                        <td>Demo/staging only</td>
+                    </tr>
+                    <tr>
+                        <td><code>seed_demo_finance.py</code></td>
+                        <td>Demo finance transactions for intelligence analytics dashboards</td>
+                        <td>Demo/staging only — does NOT affect East Gate financials</td>
+                    </tr>
+                    <tr>
+                        <td><code>seed_demo_intelligence_dataset.py</code></td>
+                        <td>Maintenance intelligence demo dataset (work orders, asset scores, forecasts)</td>
+                        <td>Demo/staging only</td>
+                    </tr>
+                    <tr>
+                        <td><code>seed_demo_workorders.py</code></td>
+                        <td>Demo work order data for PPM and maintenance dashboards</td>
+                        <td>Demo/staging only</td>
+                    </tr>
+                    <tr>
+                        <td><code>phase2_seed.py</code></td>
+                        <td>Trust accounting, bank reconciliation, and building stress score demo data</td>
+                        <td>Demo/staging only. Required for trust accounting UI demos.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ─── Environment Matrix ────────────────────────────────────────────── -->
+        <section id="env-matrix">
+            <h2>Environment Matrix</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Environment</th>
+                        <th>Seeds to Run</th>
+                        <th>Notes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><strong>Local dev (fresh)</strong></td>
+                        <td><code>seed_all.py</code> then <code>seed_sierra.py</code>, <code>seed_harbourview.py</code>
+                        </td>
+                        <td>Gets all collections populated including demo buildings</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Local dev (data restore)</strong></td>
+                        <td>Restore from MongoDB backup, then run individual snapshots</td>
+                        <td><code>mongorestore ~/backups/mongodb/latest/</code> — preserves real financial data</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Staging</strong></td>
+                        <td><code>seed_all.py --skip-production</code> then demo building seeds</td>
+                        <td>Skips East Gate financial collections — uses demo financial data only</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Production (first install)</strong></td>
+                        <td><code>seed_all.py</code> then restore financial data from backup</td>
+                        <td>NEVER reseed <code>unit_levy_ledger</code>, <code>annual_levies</code>, <code>finance</code>,
+                            <code>trust_ledger_entries</code> from scripts after initial restore
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Production (config update)</strong></td>
+                        <td>Run individual snapshot seeds only</td>
+                        <td>e.g. <code>snapshot_feature_toggles.py</code> after adding a new feature toggle</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CI/CD tests</strong></td>
+                        <td><code>seed_sierra.py</code> + <code>seed_harbourview.py</code></td>
+                        <td>Use demo buildings only. Tests must never touch building 13195 data. Tests must be
+                            building-agnostic.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ─── Quick Commands ────────────────────────────────────────────────── -->
+        <section id="quick-commands">
+            <h2>Quick Commands</h2>
+
+            <h3>Fresh Development Environment</h3>
+            <pre><code># Activate the virtual environment
+cd backend && source venv/bin/activate
+
+# Run all seeds (snapshot + idempotent creators for East Gate)
+python3 seeds/seed_all.py
+
+# Add demo buildings
+python3 seeds/seed_sierra.py
+python3 seeds/seed_harbourview.py</code></pre>
+
+            <h3>Regenerate Snapshots from Live DB</h3>
+            <pre><code># Regenerate ALL snapshots (connects to the live production database)
+python3 scripts/db/snapshot_all.py
+
+# Regenerate a specific collection only
+python3 scripts/db/snapshot_all.py --collection feature_toggles</code></pre>
+
+            <h3>Demo Buildings Only (Keeps East Gate Pristine)</h3>
+            <pre><code># Safe to run at any time — only affects Sierra and Harbourview
+python3 seeds/seed_sierra.py
+python3 seeds/seed_harbourview.py</code></pre>
+
+            <h3>Run a Single Seed</h3>
+            <pre><code># Run any individual seed directly
+python3 seeds/users.py
+python3 seeds/rbac.py
+python3 seeds/initialize_defaults.py
+python3 seeds/snapshot_feature_toggles.py</code></pre>
+
+            <h3>DESTRUCTIVE: Full Reseed (Development Only)</h3>
+            <pre><code># WARNING: Clears ALL data then reseeds from scratch.
+# Never run against production or any environment with real financial data.
+python3 seed_database.py --clear</code></pre>
+        </section>
+
+        <!-- ─── Production Data Protection ───────────────────────────────────── -->
+        <section id="production-protection">
+            <h2>Production Data Protection</h2>
+
+            <div class="callout callout-danger">
+                <strong>CRITICAL — NEVER overwrite these collections for building 13195.</strong>
+                <p>The following collections contain real production financial data for East Gate Residences. They are
+                    the source of truth for levy calculations, owner statements, audit trails, and trust accounting.
+                    Overwriting them — even with a "fresh" reseed — can corrupt financial records, break levy
+                    calculations, and affect real owners' account balances.</p>
+                <ul>
+                    <li><code>unit_levy_ledger</code> — per-unit per-year financial ledger (all payments, balances,
+                        opening arrears)
+                    </li>
+                    <li><code>annual_levies</code> — FY2021–2026 approved levy schedules and UOE totals</li>
+                    <li><code>levy_payments</code> — individual payment records (date, amount, method, reference)</li>
+                    <li><code>finance</code> — financial transactions (income, expense entries, reconciliation data)
+                    </li>
+                    <li><code>trust_ledger_entries</code> — double-entry journal for trust accounting</li>
+                </ul>
+                <p>Restore from backup if these are accidentally overwritten:</p>
+                <pre><code>ls ~/backups/mongodb/
+mongorestore --uri="$MONGO_URL" --db="$DB_NAME" ~/backups/mongodb/latest/</code></pre>
+            </div>
+
+            <h3>Protected Collections by Building</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Collection</th>
+                        <th>East Gate 13195</th>
+                        <th>Sierra 16244</th>
+                        <th>Harbourview</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>unit_levy_ledger</code></td>
+                        <td>READ-ONLY (real data)</td>
+                        <td>Reseedable (demo)</td>
+                        <td>Reseedable (demo)</td>
+                    </tr>
+                    <tr>
+                        <td><code>annual_levies</code></td>
+                        <td>READ-ONLY (real data)</td>
+                        <td>Reseedable (demo)</td>
+                        <td>Reseedable (demo)</td>
+                    </tr>
+                    <tr>
+                        <td><code>levy_payments</code></td>
+                        <td>READ-ONLY (real data)</td>
+                        <td>Reseedable (demo)</td>
+                        <td>Reseedable (demo)</td>
+                    </tr>
+                    <tr>
+                        <td><code>finance</code></td>
+                        <td>READ-ONLY (real data)</td>
+                        <td>Reseedable (demo)</td>
+                        <td>Reseedable (demo)</td>
+                    </tr>
+                    <tr>
+                        <td><code>trust_ledger_entries</code></td>
+                        <td>READ-ONLY (real data)</td>
+                        <td>Reseedable (demo)</td>
+                        <td>Reseedable (demo)</td>
+                    </tr>
+                    <tr>
+                        <td><code>units</code></td>
+                        <td>READ-ONLY (87 real lots)</td>
+                        <td>Reseedable (demo)</td>
+                        <td>Reseedable (demo)</td>
+                    </tr>
+                    <tr>
+                        <td><code>feature_toggles</code></td>
+                        <td>Snapshot only</td>
+                        <td>Idempotent OK</td>
+                        <td>Idempotent OK</td>
+                    </tr>
+                    <tr>
+                        <td><code>settings</code></td>
+                        <td>Snapshot only</td>
+                        <td>Idempotent OK</td>
+                        <td>Idempotent OK</td>
+                    </tr>
+                    <tr>
+                        <td><code>ec_members</code></td>
+                        <td>Snapshot only</td>
+                        <td>Idempotent OK</td>
+                        <td>Idempotent OK</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>How Well-Behaved Seeds Protect Production Data</h3>
+            <pre><code># Pattern A — skip if East Gate collection is already populated
+count = await db.unit_levy_ledger.count_documents({"building_id": "13195"})
+if count > 0:
+    print("Skipping — East Gate levy ledger already populated")
+    return
+
+# Pattern B — upsert (setOnInsert) — safe for config collections
+await db.feature_toggles.update_one(
+    {"key": toggle["key"], "building_id": toggle["building_id"]},
+    {"$setOnInsert": toggle},   # only inserts if not already present
+    upsert=True,
+)</code></pre>
+        </section>
+
+        <!-- ─── Deprecated Seeds ──────────────────────────────────────────────── -->
+        <section id="deprecated">
+            <h2>Deprecated &amp; Superseded Seeds</h2>
+            <p>These files are kept in the repository for historical reference only. Do not run them in any
+                environment.</p>
+
+            <div class="callout callout-warn">
+                <strong>Do not run these files.</strong> They produce stale or conflicting data and have been superseded
+                by more accurate snapshot-based alternatives.
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Status</th>
+                        <th>Replaced By</th>
+                        <th>Reason</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>units.py</code></td>
+                        <td>DEPRECATED</td>
+                        <td><code>units_east_gate.py</code></td>
+                        <td>Incomplete unit data; missing 2026 levy fields and closing balances</td>
+                    </tr>
+                    <tr>
+                        <td><code>units_comprehensive.py</code></td>
+                        <td>DEPRECATED</td>
+                        <td><code>units_east_gate.py</code></td>
+                        <td>Superseded by the 2026-04-01 snapshot with full levy data, UOE, and owner details</td>
+                    </tr>
+                    <tr>
+                        <td><code>feature_toggles.py</code></td>
+                        <td>SUPERSEDED</td>
+                        <td><code>snapshot_feature_toggles.py</code></td>
+                        <td>Hardcoded 39 toggle defaults — snapshot captures 40+ toggles including per-building
+                            overrides
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>navigation_configs.py</code></td>
+                        <td>SUPERSEDED</td>
+                        <td><code>snapshot_navigation_configs.py</code></td>
+                        <td>Snapshot is generated from live production menu configuration — always more current</td>
+                    </tr>
+                    <tr>
+                        <td><code>enhanced_dashboard.py</code></td>
+                        <td>SNAPSHOT (regenerate)</td>
+                        <td><code>scripts/db/snapshot_all.py</code></td>
+                        <td>Should be regenerated via snapshot tooling, not maintained manually</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Seed Dependency Order for a Fresh Install</h3>
+            <div class="diagram-wrap">
+                <div class="mermaid">
+                    flowchart TD
+                    A[buildings.py] --> B[snapshot_settings.py]
+                    A --> C[users.py]
+                    C --> D[multi_user.py]
+                    A --> E[units_east_gate.py]
+                    A --> F[snapshot_annual_levies.py]
+                    F --> G[levy_ledger_east_gate.py]
+                    A --> H[snapshot_feature_toggles.py]
+                    A --> I[snapshot_navigation_configs.py]
+                    A --> J[rbac.py]
+                    J --> K[trust_accounting.py]
+                    A --> L[initialize_defaults.py]
+                    A --> M[seed_asset_templates.py]
+                    M --> N[ppm_schedule.py]
+                    A --> O[seed_building_summaries.py]
+
+                    style E fill:#ef4444,color:#fff
+                    style F fill:#ef4444,color:#fff
+                    style G fill:#ef4444,color:#fff
+                </div>
+                <div class="diagram-caption">Seed dependency graph — red nodes contain real production data for building
+                    13195 and must not be reseeded in a live environment without a prior backup restore
+                </div>
+            </div>
+        </section>
+
+    </main>
+</div>
+<footer>East Gate Residences · Technical Documentation · Seed Reference · Super Admin Only · 2026 · A vision by:
+    Silverfox Technologies, Australia · Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Strata Manager Portfolio Guide</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform</div>
+            </div>
+        </div>
+        <div class="badge">User Guide</div>
+    </div>
+</header>
+
+<main style="display:block">
+    <article class="content">
+
+        <h1>Strata Manager Portfolio Guide</h1>
+        <p>This guide is for <strong>Strata Managers</strong> who manage one or more buildings. It explains how
+            to use StrataOS to stay across your entire portfolio — from a high-level workload overview down to
+            individual building issues that need your attention today.</p>
+
+        <h2>Viewing Your Assigned Buildings</h2>
+        <p>After logging in, your <strong>Portfolio Dashboard</strong> is your home base. It lists every building
+            assigned to you, showing a status summary for each:</p>
+        <ul>
+            <li><strong>Green</strong> — everything is on track. Levies are being collected, no overdue compliance,
+                maintenance SLAs are being met.</li>
+            <li><strong>Amber</strong> — attention needed soon. There may be a compliance item due, a small arrears
+                balance, or a work order approaching its SLA deadline.</li>
+            <li><strong>Red</strong> — action required now. Significant arrears, overdue compliance, or an SLA
+                breach has occurred.</li>
+        </ul>
+        <p>Click any building card to go directly into that building's management view.</p>
+
+        <div class="card callout success">
+            <strong>Tip:</strong> Use the <strong>Sort by Status</strong> option on the portfolio page to
+            bring your red and amber buildings to the top. This is a quick way to triage your morning.
+        </div>
+
+        <h2>Switching Between Buildings</h2>
+        <p>When you are working inside a specific building, the building name appears in the top navigation bar.
+            To switch to a different building:</p>
+        <ol>
+            <li>Click the building name in the top navigation bar to open the <strong>Building Switcher</strong>.</li>
+            <li>Select the building you want to work on from the list.</li>
+            <li>All screens — financials, maintenance, compliance, documents — update to show data for that building.</li>
+        </ol>
+
+        <div class="card callout warn">
+            <strong>Important:</strong> Every action you take (recording a payment, approving an invoice,
+            sending a notice) applies only to the currently selected building. Always check the building
+            name in the navigation bar before making changes.
+        </div>
+
+        <h2>Using the Manager BI Analytics Page</h2>
+        <p>The <strong>Manager Analytics</strong> page gives you a detailed view of a single building's performance.
+            Access it from <strong>Dashboard → Analytics</strong> within any building. Key panels include:</p>
+        <ul>
+            <li><strong>Levy collection rate</strong> — percentage of levies collected this quarter.</li>
+            <li><strong>Arrears summary</strong> — total outstanding and which lots are in arrears.</li>
+            <li><strong>Sinking fund projection</strong> — is the sinking fund on track for future capital works?</li>
+            <li><strong>Maintenance pipeline</strong> — open requests, in-progress, and recently closed work orders.</li>
+            <li><strong>Compliance calendar</strong> — upcoming and overdue compliance obligations.</li>
+            <li><strong>Budget vs. actual</strong> — admin fund spending against the approved budget, by category.</li>
+        </ul>
+
+        <h2>Identifying Buildings That Need Attention</h2>
+        <p>Your portfolio overview uses the following signals to flag buildings for attention:</p>
+        <ul>
+            <li><strong>Arrears threshold</strong> — a building flags amber when total arrears exceed a set
+                percentage of the annual levy budget.</li>
+            <li><strong>Compliance overdue</strong> — any compliance item past its due date triggers a red flag.</li>
+            <li><strong>SLA breaches</strong> — maintenance requests that have exceeded their response or resolution
+                timeframe appear as breaches on the portfolio view.</li>
+            <li><strong>Levy collection below target</strong> — if collection rate drops below 85% at any point
+                in the quarter, the building is flagged amber.</li>
+        </ul>
+
+        <div class="card callout success">
+            <strong>Tip:</strong> You can export a weekly portfolio summary as a PDF from the Portfolio
+            Dashboard. This is useful for internal reporting to your strata admin or principal.
+        </div>
+
+        <h2>Workload Overview</h2>
+        <p>The <strong>My Workload</strong> panel on your portfolio dashboard aggregates tasks across all your
+            buildings in one place:</p>
+        <ul>
+            <li>Open maintenance requests awaiting your action or approval.</li>
+            <li>Invoices pending your review.</li>
+            <li>Upcoming AGM or EC meeting preparation tasks.</li>
+            <li>Compliance deadlines due in the next 30 days.</li>
+        </ul>
+        <p>You can click any workload item to go directly to the relevant screen in the correct building — the
+            system switches building context automatically.</p>
+
+    </article>
+</main>
+
+<footer>
+    <span data-bldg="name">your building</span> | Executive Committee | Strata Manager &nbsp;·&nbsp; E: <a
+        data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC email</a>
+    &nbsp;·&nbsp; P: <span data-bldg="contact_phone">(contact number)</span>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Deployment – Eastgate Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script src="auth-guard.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-brand">
+        <div>
+            <div class="logo">East Gate Residences</div>
+            <div class="sub">Technical Documentation · Deployment</div>
+        </div>
+    </div>
+    <span class="header-badge">Super Admin Only</span>
+</header>
+<div class="layout">
+    <nav id="sidebar">
+        <div class="nav-group">
+            <div class="nav-group-label">Documentation</div>
+            <a data-page="index.html" href="index.html"><span class="icon">🏠</span> Overview</a>
+            <a data-page="architecture.html" href="architecture.html"><span class="icon">🏗️</span> Architecture</a>
+            <a data-page="backend.html" href="backend.html"><span class="icon">⚙️</span> Backend</a>
+            <a data-page="database.html" href="database.html"><span class="icon">🗄️</span> Database</a>
+            <a data-page="api.html" href="api.html"><span class="icon">🔌</span> API Reference</a>
+            <a data-page="external-api.html" href="external-api.html"><span class="icon">🌐</span> External API v1</a>
+            <a data-page="frontend.html" href="frontend.html"><span class="icon">🖥️</span> Frontend</a>
+            <a data-page="auth.html" href="auth.html"><span class="icon">🔐</span> Auth &amp; Permissions</a>
+            <a data-page="workflows.html" href="workflows.html"><span class="icon">🔄</span> Workflows</a>
+            <a class="active" data-page="deployment.html" href="deployment.html"><span class="icon">🚀</span> Deployment</a>
+            <a data-page="testing.html" href="testing.html"><span class="icon">🧪</span> Testing</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">On This Page</div>
+            <a href="#env-vars">Environment Variables</a>
+            <a href="#backend-deploy">Backend Deploy</a>
+            <a href="#frontend-deploy">Frontend Build</a>
+            <a href="#database-ops">Database Ops</a>
+            <a href="#email-config">Email Config</a>
+            <a href="#stripe-config">Stripe Config</a>
+            <a href="#cron-jobs">Cron Jobs</a>
+            <a href="#troubleshooting">Troubleshooting</a>
+        </div>
+        <div class="nav-group">
+            <div class="nav-group-label">External</div>
+            <a href="/dashboard"><span class="icon">◀</span> Back to Dashboard</a>
+        </div>
+    </nav>
+    <main class="content">
+        <div style="background:#3a2418;border:1px solid #c2410c;color:#fed7aa;padding:12px 16px;border-radius:8px;margin-bottom:20px;">
+            <strong>⚠ Doc refresh in progress (2026-04-30):</strong>
+            Production scheduling is primarily systemd-based (installed by <code>deploy/install.sh</code>).
+            The legacy crontab installer, APScheduler worker, and ARQ Redis queue described elsewhere
+            are secondary surfaces. See the
+            <a href="AUDIT_ADDENDUM_2026-04-30.html" style="color:#fed7aa;text-decoration:underline;">2026-04-30 audit
+                addendum</a>.
+        </div>
+        <h1>Deployment &amp; Configuration</h1>
+        <p>Complete reference for deploying and configuring the East Gate Residences platform in production.</p>
+
+        <section id="env-vars">
+            <h2>Environment Variables</h2>
+            <div class="callout warn">
+                <strong>Never commit .env files to git.</strong> Use <code>backend/.env.example</code> as a template.
+                The <code>.gitignore</code> excludes <code>.env</code>.
+            </div>
+
+            <h3>Backend — <code>backend/.env</code></h3>
+            <pre><code># ── REQUIRED ─────────────────────────────────────────
+# Database
+MONGO_URL=mongodb://localhost:27018
+DB_NAME=eastgate_production
+
+# JWT Authentication
+JWT_SECRET=your-32-char-url-safe-secret-here
+JWT_ALGORITHM=HS256
+JWT_EXPIRATION_HOURS=24
+
+# ── EMAIL ─────────────────────────────────────────────
+# Choose one provider (SMTP recommended for Migadu)
+EMAIL_PROVIDER=smtp
+
+# SMTP (Migadu)
+SMTP_HOST=smtp.migadu.com
+SMTP_PORT=465
+SMTP_USER=admin@eastgateresidences.com.au
+SMTP_PASSWORD=your-mail-password
+SMTP_SECURITY=ssl          # ssl (port 465) or tls (port 587)
+SENDER_EMAIL=noreply@eastgateresidences.com.au
+
+# OR Resend (alternative)
+RESEND_API_KEY=re_xxxxxxxxxxxx
+
+# ── PAYMENTS ─────────────────────────────────────────
+STRIPE_SECRET_KEY=sk_test_xxxxxxxx
+STRIPE_PUBLISHABLE_KEY=pk_test_xxxxxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxx
+
+# ── EXTERNAL APIS ────────────────────────────────────
+ABN_LOOKUP_GUID=your-guid-from-abr.business.gov.au
+
+# ── APP SETTINGS ─────────────────────────────────────
+APP_ENV=production         # development | production
+CORS_ORIGINS=https://eastgateresidences.com.au,https://www.eastgateresidences.com.au
+FRONTEND_URL=https://www.eastgateresidences.com.au   # Used in email links
+TIMEZONE=Australia/Canberra
+LOG_LEVEL=INFO
+
+# ── REGISTRATION WORKFLOW ────────────────────────────
+ADMIN_AUTO_APPROVE_MINUTES=15    # Auto-approve guests/tenants N min after owner-approved
+GUEST_ESCALATION_HOURS=2         # Escalate alert if guest unapproved after N hours
+TENANT_ESCALATION_HOURS=48       # Escalate alert if tenant unapproved after N hours
+TOKEN_VALIDITY_HOURS=72          # Registration approval token TTL
+NOTIFY_BCC_EMAIL=                # BCC address on admin notification emails (blank = disabled)
+NOTIFY_BCC_NAME=Building Administrator
+
+# ── GEOIP / LOGIN SECURITY ───────────────────────────
+# MaxMind GeoLite2 — optional but strongly recommended.
+# Without it, login audit still captures the real IP (CF-Connecting-IP →
+# X-Real-IP → X-Forwarded-For) but geo fields default to AU/Unknown.
+GEOIP_DIR=/home/gagneet/GeoIP
+MAXMIND_LICENSE_KEY=your-key    # Register free at maxmind.com</code></pre>
+
+            <h3>Frontend — <code>frontend/.env</code></h3>
+            <pre><code># Backend API URL (must end without trailing slash)
+REACT_APP_BACKEND_URL=https://eastgateresidences.com.au/api
+
+# Stripe publishable key (same as backend but needed in React)
+REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxxxxx</code></pre>
+        </section>
+
+        <section id="backend-deploy">
+            <h2>Backend Deployment</h2>
+
+            <h3>Install Dependencies</h3>
+            <pre><code>cd backend
+pip install -r requirements.txt</code></pre>
+
+            <h3>Run Development Server</h3>
+            <pre><code>cd backend
+uvicorn server:app --reload --host 0.0.0.0 --port 8003</code></pre>
+
+            <h3>systemd Service (Production)</h3>
+            <pre><code># Service file: /etc/systemd/system/eastgate-backend.service
+[Unit]
+Description=Eastgate Backend
+After=network.target mongod.service
+
+[Service]
+User=eastgate
+WorkingDirectory=/home/eastgate/strata-management/backend
+ExecStart=/usr/bin/uvicorn server:app --host 127.0.0.1 --port 8003 --workers 2
+Restart=always
+RestartSec=5
+EnvironmentFile=/home/eastgate/strata-management/backend/.env
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+
+            <pre><code># Control commands
+sudo systemctl start eastgate-backend
+sudo systemctl stop eastgate-backend
+sudo systemctl restart eastgate-backend
+sudo systemctl status eastgate-backend
+
+# View logs (last 100 lines, follow)
+sudo journalctl -u eastgate-backend -n 100 -f</code></pre>
+
+            <h3>Cache Cleanup (after code changes)</h3>
+            <pre><code># Clear Python bytecode cache
+find backend/ -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
+find backend/ -name "*.pyc" -delete 2>/dev/null
+
+# Then restart
+sudo systemctl restart eastgate-backend</code></pre>
+        </section>
+
+        <section id="frontend-deploy">
+            <h2>Frontend Build &amp; Deploy</h2>
+
+            <h3>Install Dependencies</h3>
+            <pre><code>cd frontend
+yarn install
+# OR
+npm install</code></pre>
+
+            <h3>Development Server (port 3000)</h3>
+            <pre><code>cd frontend
+yarn start</code></pre>
+
+            <h3>Production Build</h3>
+            <pre><code>cd frontend
+yarn build
+# Output: frontend/build/
+# Main bundle: build/static/js/main.xxxxxxxx.js (~400KB gzipped)
+
+# OR npm
+npm run build</code></pre>
+
+            <h3>Deploy Build Output</h3>
+            <pre><code># Copy build/ to web server (Nginx/Apache)
+sudo cp -r frontend/build/* /var/www/eastgate/
+
+# Or deploy script
+bash scripts/deploy.sh</code></pre>
+
+            <h3>Nginx Configuration (production — with Cloudflare)</h3>
+            <div class="callout info">
+                Nginx listens on port 80 only. Cloudflare terminates TLS. The config lives in
+                <code>deploy/nginx/eastgate.conf</code> and is installed to
+                <code>/etc/nginx/sites-available/eastgate</code> by <code>deploy/install.sh</code>.
+            </div>
+            <pre><code>upstream eastgate_backend  { server 127.0.0.1:8003; keepalive 32; }
+upstream eastgate_frontend { server 127.0.0.1:3020; keepalive 32; }
+
+server {
+    listen 80;
+    server_name eastgateresidences.com.au www.eastgateresidences.com.au;
+
+    # NextAuth internal routes → Next.js (must come before /api block)
+    location ~ ^/api/auth/(callback|csrf|session|signin|signout|providers|error|verify-request)(/|$) {
+        proxy_pass http://eastgate_frontend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto "https";
+        proxy_set_header CF-Connecting-IP $http_cf_connecting_ip;
+        proxy_set_header CF-IPCountry $http_cf_ipcountry;
+        proxy_buffer_size 256k; proxy_buffers 8 512k; proxy_busy_buffers_size 512k;
+    }
+
+    # FastAPI backend: /api/auth/login, /api/auth/me, and all other /api/*
+    location /api {
+        proxy_pass http://eastgate_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto "https";
+        # CRITICAL: forward Cloudflare real-IP headers so FastAPI logs correct client IP
+        proxy_set_header CF-Connecting-IP $http_cf_connecting_ip;
+        proxy_set_header CF-IPCountry $http_cf_ipcountry;
+        proxy_read_timeout 300;
+    }
+
+    # Everything else → Next.js frontend
+    location / {
+        proxy_pass http://eastgate_frontend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto "https";
+        proxy_set_header CF-Connecting-IP $http_cf_connecting_ip;
+        proxy_set_header CF-IPCountry $http_cf_ipcountry;
+        proxy_buffer_size 256k; proxy_buffers 8 512k; proxy_busy_buffers_size 512k;
+    }
+}</code></pre>
+        </section>
+
+        <section id="database-ops">
+            <h2>Database Operations</h2>
+
+            <h3>Fresh Server Install</h3>
+            <pre><code># Clone repo
+git clone &lt;repo&gt; /home/gagneet/strata-management
+cd /home/gagneet/strata-management
+
+# Run automated installer (Ubuntu 22.04/24.04)
+sudo bash deploy/install.sh \
+  --domain eastgateresidences.com.au \
+  --user gagneet \
+  --mongo-port 27018 \
+  --geoip-key &lt;MAXMIND_LICENSE_KEY&gt;
+
+# Then fill in secrets
+nano backend/.env
+nano frontend/.env.local
+
+# Rebuild frontend with real secrets
+cd frontend && NEXT_TELEMETRY_DISABLED=1 yarn build
+sudo systemctl restart eastgate-backend eastgate-frontend</code></pre>
+
+            <h3>Seed / Initialise</h3>
+            <pre><code>cd backend
+
+# Safe seed (skips existing docs)
+python3 seed_database.py
+
+# Force reset (DESTRUCTIVE)
+python3 seed_database.py --clear
+
+# Individual seed scripts
+python3 seeds/feature_toggles.py     # Initialise/update 43 toggles
+python3 seeds/document_folders.py    # Create folder structure
+python3 seeds/chat_groups.py         # Create default chat groups
+python3 seeds/initialize_defaults.py # Site settings defaults
+
+# Create all MongoDB indexes
+python3 ../scripts/db/create_security_indexes.py
+python3 ../scripts/db/create_rental_cert_indexes.py
+python3 ../scripts/db/create_work_order_indexes.py
+python3 ../scripts/db/create_intelligence_indexes.py
+python3 ../scripts/db/create_levy_fairness_indexes.py</code></pre>
+
+            <h3>Financial Data Import</h3>
+            <pre><code># Import 2026 budget from Excel
+python3 scripts/finances/fix_2026_budget_exact.py
+
+# Import unit levy ledger
+python3 backend/update_balances_from_excel.py
+
+# Import closing balances from Excel
+python3 backend/import_closing_balances.py</code></pre>
+
+            <h3>Backup</h3>
+            <pre><code># Dump all collections
+mongodump --uri "$MONGO_URL" --db eastgate_production --out /backup/$(date +%Y%m%d)
+
+# Restore
+mongorestore --uri "$MONGO_URL" --db eastgate_production /backup/20260225/eastgate_production/</code></pre>
+
+            <h3>Common MongoDB Queries (Mongo Shell)</h3>
+            <pre><code>// Count users by role
+db.users.aggregate([{$group:{_id:"$role",count:{$sum:1}}}])
+
+// Find users pending approval
+db.users.find({is_approved:false, status:{$ne:"archived"}})
+
+// Check a unit's 2026 levy
+db.unit_levy_ledger.findOne({unit_number:"TH017", year:"2026"})
+
+// List all feature toggles
+db.feature_toggles.find({},{key:1,is_enabled:1,_id:0})
+
+// Update a feature toggle
+db.feature_toggles.updateOne({key:"finance"},{$set:{is_enabled:false}})</code></pre>
+        </section>
+
+        <section id="email-config">
+            <h2>Email Configuration</h2>
+            <div class="two-col">
+                <div class="card">
+                    <h3>Migadu SMTP (Primary)</h3>
+                    <ul>
+                        <li><strong>Host:</strong> smtp.migadu.com</li>
+                        <li><strong>Port 465:</strong> SMTP_SSL (implicit TLS) ← recommended</li>
+                        <li><strong>Port 587:</strong> SMTP + STARTTLS</li>
+                        <li><strong>Username:</strong> full email address</li>
+                        <li><strong>From:</strong> noreply@eastgateresidences.com.au</li>
+                    </ul>
+                    <pre><code>SMTP_HOST=smtp.migadu.com
+SMTP_PORT=465
+SMTP_USER=admin@eastgateresidences.com.au
+SMTP_PASSWORD=xxxx
+SMTP_SECURITY=ssl
+SENDER_EMAIL=noreply@eastgateresidences.com.au</code></pre>
+                </div>
+                <div class="card">
+                    <h3>Test Email Config</h3>
+                    <pre><code># From the admin dashboard
+POST /api/email-settings/test
+{ "to": "test@example.com" }
+
+# Or from server directly
+cd backend
+python3 test_smtp_connection.py</code></pre>
+                    <h3>Troubleshoot SMTP</h3>
+                    <ul>
+                        <li>Error 421: Username/sender mismatch → ensure SMTP_USER matches SENDER_EMAIL domain</li>
+                        <li>Error 553: Sender doesn't exist in Migadu → create the mailbox</li>
+                        <li>Error 535: Wrong password → update in email-settings UI</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="stripe-config">
+            <h2>Stripe Payment Configuration</h2>
+            <div class="callout warn">
+                <strong>Currently in TEST mode.</strong> No real charges are processed. Switch to live keys when ready
+                for production payments.
+            </div>
+            <div class="two-col">
+                <div class="card">
+                    <h3>Test Keys</h3>
+                    <ul>
+                        <li>Test card: <code>4242 4242 4242 4242</code></li>
+                        <li>Any future expiry, any CVC</li>
+                        <li>Webhooks: use <code>stripe listen --forward-to localhost:8003/api/stripe/webhook</code>
+                            locally
+                        </li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Webhook Events Handled</h3>
+                    <ul>
+                        <li><code>payment_intent.succeeded</code> → Mark levy payment as paid</li>
+                        <li><code>payment_intent.payment_failed</code> → Log failed attempt</li>
+                    </ul>
+                    <p>Endpoint: <code>POST /api/stripe/webhook</code></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="cron-jobs">
+            <h2>Cron Jobs (systemd Timers)</h2>
+            <p>All scheduled tasks run as systemd one-shot services triggered by timers. Service files live in <code>deploy/systemd/</code>
+                and are installed to <code>/etc/systemd/system/</code> by <code>deploy/install.sh</code>.</p>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Timer</th>
+                        <th>Schedule</th>
+                        <th>Script</th>
+                        <th>Purpose</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><code>eastgate-finance-recompute</code></td>
+                        <td>Daily 02:00 UTC</td>
+                        <td><code>cron/cron_finance_recompute.py</code></td>
+                        <td>Recompute levy totals, arrears, KPIs</td>
+                    </tr>
+                    <tr>
+                        <td><code>eastgate-maintenance-intelligence</code></td>
+                        <td>Daily 17:00 UTC</td>
+                        <td><code>cron/cron_maintenance_intelligence.py</code></td>
+                        <td>Asset health scores, risk predictions</td>
+                    </tr>
+                    <tr>
+                        <td><code>eastgate-archive-stale</code></td>
+                        <td>Daily (random delay)</td>
+                        <td><code>scripts/archive/archive_stale_registrations.py</code></td>
+                        <td>Archive expired registration tokens</td>
+                    </tr>
+                    <tr>
+                        <td><code>eastgate-auto-approve</code></td>
+                        <td>Every 5 min</td>
+                        <td><code>cron/cron_admin_auto_approve.py</code></td>
+                        <td>Auto-approve guests/tenants N min after owner-approved</td>
+                    </tr>
+                    <tr>
+                        <td><code>eastgate-payment-reminders</code></td>
+                        <td>Daily 22:00 UTC (08:00 AEST)</td>
+                        <td><code>cron/cron_payment_reminders.py</code></td>
+                        <td>Levy, council rates, water bill reminders</td>
+                    </tr>
+                    <tr>
+                        <td><code>eastgate-notification-cleanup</code></td>
+                        <td>Weekly Sunday</td>
+                        <td><code>cron/cron_notification_cleanup.py</code></td>
+                        <td>Purge old notifications</td>
+                    </tr>
+                    <tr>
+                        <td><code>eastgate-news-scraper</code></td>
+                        <td>Every 6 hours</td>
+                        <td><code>cron/cron_news_scraper.py</code></td>
+                        <td>RSS + Serper news articles</td>
+                    </tr>
+                    <tr>
+                        <td><code>eastgate-property-scraper</code></td>
+                        <td>Twice daily</td>
+                        <td><code>cron/cron_property_scraper.py</code></td>
+                        <td>Property listings (East Gate only)</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <pre><code># Check timer status
+systemctl list-timers --all | grep eastgate
+
+# View cron job logs
+tail -f /var/log/eastgate/finance-recompute.log
+tail -f /var/log/eastgate/auto-approve.log
+journalctl -u eastgate-auto-approve -n 50
+
+# Manually trigger a cron job
+sudo systemctl start eastgate-finance-recompute.service
+sudo systemctl start eastgate-auto-approve.service</code></pre>
+        </section>
+
+        <section id="troubleshooting">
+            <h2>Troubleshooting</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Symptom</th>
+                        <th>Likely Cause</th>
+                        <th>Fix</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>502 Bad Gateway</td>
+                        <td>Backend service stopped</td>
+                        <td><code>sudo systemctl restart eastgate-backend</code></td>
+                    </tr>
+                    <tr>
+                        <td>503 on API calls</td>
+                        <td>Backend not listening on port 8003</td>
+                        <td>Check <code>journalctl -u eastgate-backend -n 50</code></td>
+                    </tr>
+                    <tr>
+                        <td>Login returns 500</td>
+                        <td>MongoDB not running or wrong MONGO_URL</td>
+                        <td>Check <code>systemctl status mongod</code></td>
+                    </tr>
+                    <tr>
+                        <td>Frontend shows old build</td>
+                        <td>Browser cache</td>
+                        <td>Hard refresh (Ctrl+Shift+R) or clear cache</td>
+                    </tr>
+                    <tr>
+                        <td>JWT expired errors</td>
+                        <td>24h token expiry</td>
+                        <td>Normal — user must log in again. Check JWT_SECRET matches</td>
+                    </tr>
+                    <tr>
+                        <td>Email not sending</td>
+                        <td>SMTP config incorrect</td>
+                        <td>Test with <code>POST /api/email-settings/test</code></td>
+                    </tr>
+                    <tr>
+                        <td>Feature toggle not working</td>
+                        <td>Toggle not seeded</td>
+                        <td>Run <code>python3 seeds/feature_toggles.py</code></td>
+                    </tr>
+                    <tr>
+                        <td>Import fails 422</td>
+                        <td>Model validation error</td>
+                        <td>Check request body matches Pydantic model. Check <code>unit_number</code> is a string</td>
+                    </tr>
+                    <tr>
+                        <td>PDF download empty</td>
+                        <td>ReportLab error</td>
+                        <td>Check backend logs for <code>reportlab</code> exceptions</td>
+                    </tr>
+                    <tr>
+                        <td>403 on owner route</td>
+                        <td>Permission flag missing</td>
+                        <td>Check user permissions in DB; check <code>check_permission()</code> call</td>
+                    </tr>
+                    <tr>
+                        <td>Login audit shows 127.0.0.1</td>
+                        <td>GeoIP lib absent + old code path</td>
+                        <td>Fixed 2026-03-09 — update to latest code &amp; restart backend. Verify <code>CF-Connecting-IP</code>
+                            is forwarded by nginx.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Cron timer not firing</td>
+                        <td>Timer not enabled after deploy</td>
+                        <td><code>sudo systemctl enable --now eastgate-auto-approve.timer</code> (repeat for each timer)
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Log Locations</h3>
+            <pre><code># Backend logs (systemd)
+sudo journalctl -u eastgate-backend -f
+
+# Backend logs (if running directly)
+uvicorn server:app ... 2>&gt;&amp;1 | tee /var/log/eastgate-backend.log
+
+# Nginx access logs
+tail -f /var/log/nginx/access.log
+tail -f /var/log/nginx/error.log</code></pre>
+        </section>
+    </main>
+</div>
+<footer>East Gate Residences · Technical Documentation · Deployment · Super Admin Only · 2026 · A vision by: Silverfox
+    Technologies, Australia · Contact: gagneet@silverfoxtechnologies.com.au
+</footer>
+</body>
+</html>

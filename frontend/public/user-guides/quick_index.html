@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title><span data-bldg="name">your building</span> – Guides</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em"><span
+                        data-bldg="name">your building</span></div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform
+                </div>
+            </div>
+        </div>
+        <div class="badge">Quick Guide</div>
+    </div>
+</header>
+
+<main style="display:block">
+
+    <article class="content">
+
+        <h1><span data-bldg="name">your building</span> – User Guides</h1>
+        <p>Welcome! This portal contains all the information you need to effectively use the <span data-bldg="name">your building</span>
+            platform. Based on your user role, you will have access to different guides on the left.</p>
+
+        <div class="card callout success">
+            <strong>Recommended:</strong> Start with the <strong>Quick Guide</strong> for your role to see your most
+            common tasks and where to find them.
+        </div>
+
+        <div class="card">
+            <h3>What's inside</h3>
+            <ul>
+                <li><strong>Role Quick Guides:</strong> Role-specific checklists and screen overviews.
+                    <ul>
+                        <li><a href="quick_role_owner.html">Owner Quick Guide</a></li>
+                        <li><a href="quick_role_tenant.html">Tenant Quick Guide</a></li>
+                        <li><a href="quick_role_guest.html">Guest Information &amp; House Rules</a> — house rules, pet
+                            policy, fire emergency plan
+                        </li>
+                        <li><a href="quick_role_ec.html">EC Member Quick Guide</a></li>
+                        <li><a href="quick_role_strata_admin.html">Strata Admin Quick Guide</a></li>
+                        <li><a href="quick_role_reception.html">Admin Staff Quick Guide</a></li>
+                        <li><a href="quick_role_admin.html">Super Admin Quick Guide</a></li>
+                        <li><a href="quick_role_strata_manager.html">Strata Manager Quick Guide</a></li>
+                    </ul>
+                </li>
+                <li><strong>Unit Inclusions:</strong> A detailed list of standard inclusions for your building\'s units.
+                </li>
+            </ul>
+        </div>
+
+        <div class="card callout info">
+            <strong>Note:</strong> Newly registered users can access the User Guide while their account is pending
+            approval; full portal access unlocks after approval.
+        </div>
+
+        <div class="card">
+            <h3>Financial Year Data Import</h3>
+            <p>Bulk-load financial year data (owner &amp; unit details, levy summary, budget categories, per-unit levy
+                status) using pre-formatted CSV templates. A 5-step wizard guides you through template download, file
+                upload, validation preview, and confirmed import.</p>
+            <ul>
+                <li><strong>Available to:</strong> Strata Manager, Strata Admin, Super Admin, and EC chairperson where
+                    the building grants the required finance permissions.</li>
+                <li><strong>Navigate to:</strong> Dashboard → Finance → Financial Year Import</li>
+                <li>See the <a href="full_guide.html#financial-year-import">Resident Handbook</a> for column reference
+                    and error handling details.
+                </li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3>Capital Funding &amp; Special Levy Workspace</h3>
+            <p>Planned/Pilot workflow for major repairs and strata-loan scenarios. Strata managers prepare funding
+                options at Finance → Capital Funding, owners vote through the linked AGM/SGM/GM item, and preview-only
+                levy notice PDFs are generated after approval checks.</p>
+            <ul>
+                <li><strong>Available to:</strong> Strata Manager, Strata Admin, Super Admin, EC review roles and
+                    Owners where the building enables the pilot feature.</li>
+                <li><strong>Owner path:</strong> Meetings → AGM/SGM/GM voting, then the linked Capital Funding election
+                    page when elections are open.</li>
+                <li><strong>Guide:</strong> <a href="capital-funding-special-levies.html">Capital Funding &amp; Special
+                    Levy Workspace Guide</a></li>
+            </ul>
+        </div>
+
+        <div class="card callout warn">
+            <strong>Building Selector:</strong> If you have access to multiple buildings, choose the correct building
+            before following a Quick Guide.
+        </div>
+
+    </article>
+</main>
+
+<footer>
+    <span data-bldg="name">your building</span> | Executive Committee | Strata Manager &nbsp;·&nbsp; E: <a
+        data-bldg="contact_email" href="mailto:">contact email</a> / <a data-bldg="ec_email" href="mailto:">EC email</a>
+    &nbsp;·&nbsp; P: <span data-bldg="contact_phone">(contact number)</span>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>

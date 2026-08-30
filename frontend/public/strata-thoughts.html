@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strata Community Digital Platform: Industry Trends & Market Research</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F4F4F8; /* Neutral Light Gray */
+            color: #333333; /* Onyx */
+        }
+        .brand-primary { color: #0A2463; } /* Deep Indigo */
+        .brand-accent { color: #FF6F61; } /* Living Coral */
+        .bg-brand-primary { background-color: #0A2463; }
+        .bg-brand-accent { background-color: #FF6F61; }
+        .border-brand-accent { border-color: #FF6F61; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; 
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .sticky-nav {
+            position: -webkit-sticky; /* Safari */
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .stat-card {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6B7280; /* Tailwind gray-500 */
+            margin-top: 0.5rem;
+        }
+        .section-title {
+            font-size: 1.875rem; /* text-3xl */
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        .section-subtitle {
+            font-size: 1.125rem; /* text-xl */
+            color: #4B5563; /* Tailwind gray-600 */
+            margin-bottom: 2rem;
+        }
+        .flowchart-step {
+            border: 2px solid #3E92CC; /* Cerulean Blue */
+            background-color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .flowchart-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #3E92CC; /* Cerulean Blue */
+            margin: 0.5rem 0;
+        }
+        .swot-quadrant {
+            border: 1px solid #D1D5DB; /* Tailwind gray-300 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: white;
+            min-height: 150px;
+        }
+        .swot-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .loading-spinner {
+            border-top-color: #FF6F61;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-brand-primary text-white py-8 shadow-lg">
+        <div class="container mx-auto px-6 text-center">
+            <h1 class="text-4xl font-bold mb-2">The Future of Strata Living: A Digital Transformation</h1>
+            <p class="text-xl opacity-90">Insights and Trends for Developing a Cloud-Based Platform for Australian Strata Communities</p>
+        </div>
+    </header>
+
+    <nav class="sticky-nav bg-white shadow-md py-3">
+        <div class="container mx-auto px-6 flex flex-wrap justify-center space-x-4 text-sm md:text-base">
+            <a href="#introduction" class="text-gray-700 hover:brand-accent font-medium py-1">Introduction</a>
+            <a href="#strata-needs" class="text-gray-700 hover:brand-accent font-medium py-1">Strata Needs</a>
+            <a href="#solution-architecture" class="text-gray-700 hover:brand-accent font-medium py-1">Solution Architecture</a>
+            <a href="#key-benefits" class="text-gray-700 hover:brand-accent font-medium py-1">Key Benefits</a>
+            <a href="#llm-insights" class="text-gray-700 hover:brand-accent font-medium py-1">LLM Insights</a>
+            <a href="#compliance" class="text-gray-700 hover:brand-accent font-medium py-1">Compliance</a>
+            <a href="#implementation" class="text-gray-700 hover:brand-accent font-medium py-1">Implementation</a>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-6 py-12">
+
+        <section id="introduction" class="mb-16">
+            <h2 class="section-title brand-primary">The Digital Imperative for Strata Communities</h2>
+            <p class="section-subtitle">Australian strata communities are increasingly seeking digital solutions to enhance operational efficiency, improve communication, and foster greater resident engagement. A custom-built, cloud-native platform represents a strategic investment towards a more connected and streamlined community living experience. This infographic explores the market needs, proposed solutions, and key considerations for such a transformative project.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="stat-card">
+                    <div class="stat-number brand-accent">25-300</div>
+                    <div class="stat-label">Target Strata Size (Units)</div>
+                    <p class="text-sm mt-2">Scalable solutions designed for typical Australian strata building sizes, ensuring relevance and performance.</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number brand-accent">90%</div>
+                    <div class="stat-label">Projected Increase in Efficiency</div>
+                    <p class="text-sm mt-2">Digital platforms aim to significantly reduce administrative burdens and streamline common strata operations.</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number brand-accent">75%</div>
+                    <div class="stat-label">Expected Boost in Resident Engagement</div>
+                    <p class="text-sm mt-2">Centralized information and communication tools foster a more informed and involved community.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="strata-needs" class="mb-16">
+            <h2 class="section-title brand-primary">Understanding Strata Community Needs</h2>
+            <p class="section-subtitle">The foundation of a successful digital platform lies in addressing the core operational and communication requirements of modern strata communities. This includes both essential features requested by users and strategic additions that enhance value.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <div>
+                    <h3 class="text-2xl font-semibold mb-4 brand-primary">Core Feature Demand</h3>
+                    <p class="mb-4 text-gray-700">Analysis of user requests reveals a strong demand for features that improve information access, communication, and day-to-day management within the strata.</p>
+                    <div class="chart-container h-[350px] md:h-[400px]">
+                        <canvas id="coreFeaturesChart"></canvas>
+                    </div>
+                    <p class="mt-4 text-sm text-gray-600">The chart illustrates the relative importance assigned to core platform features, highlighting communication and document management as top priorities for strata residents and committees.</p>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-semibold mb-4 brand-primary">Essential Additional Features</h3>
+                    <p class="mb-4 text-gray-700">Beyond basic requests, several features are critical for maximizing the platform's utility and aligning with best practices in Australian strata management.</p>
+                     <ul class="list-disc list-inside space-y-3 text-gray-700 bg-white p-6 rounded-lg shadow">
+                        <li><strong class="brand-accent">Online Facility Booking:</strong> Streamlines management of shared amenities like gyms, BBQ areas, and meeting rooms.</li>
+                        <li><strong class="brand-accent">Community Polling & Surveys:</strong> Facilitates democratic decision-making and gathers resident feedback effectively.</li>
+                        <li><strong class="brand-accent">Integrated Maintenance Tracking:</strong> Simplifies reporting and monitoring of building maintenance issues for faster resolution.</li>
+                        <li><strong class="brand-accent">Financial Transparency Tools:</strong> Provides secure access to levy notices, payment history, and financial reports.</li>
+                        <li><strong class="brand-accent">Digital Meeting Management:</strong> Supports online distribution of agendas, minutes, and secure electronic voting.</li>
+                    </ul>
+                    <p class="mt-4 text-sm text-gray-600">These additions address key operational efficiencies and enhance overall community governance and satisfaction, as identified in the deep research report.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="solution-architecture" class="mb-16">
+            <h2 class="section-title brand-primary">The Architectural Blueprint: Modern & Maintainable</h2>
+            <p class="section-subtitle">A serverless architecture, complemented by Backend-as-a-Service (BaaS) and a Headless CMS, forms the recommended foundation. This approach prioritizes scalability, cost-efficiency, and importantly, minimal ongoing infrastructure maintenance.</p>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4 brand-primary text-center">Key Architectural Components & Flow</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+                    <div class="flowchart-step">
+                        <strong class="text-lg mb-1">Headless CMS</strong>
+                        <p class="text-sm">Manages all platform content (events, notices, documents metadata) independently.</p>
+                    </div>
+                    <div class="hidden md:flex flowchart-arrow">→</div>
+                    <div class="md:hidden flowchart-arrow">↓</div>
+                    <div class="flowchart-step">
+                        <strong class="text-lg mb-1">Backend-as-a-Service (BaaS)</strong>
+                        <p class="text-sm">(e.g., Firebase) Handles authentication, real-time database, storage, and serverless functions.</p>
+                    </div>
+                    <div class="hidden md:flex flowchart-arrow">→</div>
+                     <div class="md:hidden flowchart-arrow">↓</div>
+                    <div class="flowchart-step">
+                        <strong class="text-lg mb-1">Frontend Applications</strong>
+                        <p class="text-sm">Web Portal & Mobile App consume data via APIs, providing the user interface.</p>
+                    </div>
+                </div>
+                 <p class="mt-6 text-center text-gray-700">This decoupled architecture allows content to be created once and delivered to multiple frontends (web and mobile), while serverless functions and BaaS handle the logic and data, reducing the need for traditional server management.</p>
+            </div>
+        </section>
+
+        <section id="key-benefits" class="mb-16">
+            <h2 class="section-title brand-primary">Key Benefits of the Proposed Digital Platform</h2>
+            <p class="section-subtitle">Adopting this modern architectural approach yields significant advantages for the strata community, directly addressing the goals of efficiency, engagement, and cost-effectiveness.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="stat-card">
+                    <div class="text-4xl mb-2">💰</div>
+                    <h3 class="font-semibold text-lg brand-primary mb-1">Cost Efficiency</h3>
+                    <p class="text-sm text-gray-600">Pay-per-use model of serverless and BaaS significantly reduces upfront hardware costs and ongoing infrastructure spending.</p>
+                </div>
+                <div class="stat-card">
+                    <div class="text-4xl mb-2">📈</div>
+                    <h3 class="font-semibold text-lg brand-primary mb-1">Automatic Scaling</h3>
+                    <p class="text-sm text-gray-600">Platform resources automatically adjust to handle fluctuating user demand, ensuring consistent performance.</p>
+                </div>
+                <div class="stat-card">
+                     <div class="text-4xl mb-2">🛠️</div>
+                    <h3 class="font-semibold text-lg brand-primary mb-1">Reduced Overhead</h3>
+                    <p class="text-sm text-gray-600">Cloud provider manages server maintenance, patching, and updates, minimizing the strata's operational burden.</p>
+                </div>
+                <div class="stat-card">
+                     <div class="text-4xl mb-2">📱</div>
+                    <h3 class="font-semibold text-lg brand-primary mb-1">Mobile Ready</h3>
+                    <p class="text-sm text-gray-600">Architecture supports seamless future mobile app development, replicating web functionalities efficiently (e.g., via Firebase & Flutter).</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="llm-insights" class="mb-16">
+            <h2 class="section-title brand-primary">Intelligent Document & By-Law Insights ✨</h2>
+            <p class="section-subtitle">Leveraging Large Language Models (LLMs) via the Gemini API, the platform can provide enhanced intelligence for document comprehension and by-law clarification, empowering residents and committee members with instant insights.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-xl font-semibold mb-3 brand-primary">Document Summarizer ✨</h3>
+                    <p class="text-gray-700 mb-4">Paste meeting minutes, reports, or other long documents to get a concise summary of key points.</p>
+                    <textarea id="documentText" class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-accent mb-4 h-40" placeholder="Paste your document text here..."></textarea>
+                    <button id="summarizeBtn" class="bg-brand-accent text-white px-6 py-2 rounded-md hover:bg-opacity-90 transition-all duration-200">Summarize Document</button>
+                    <div id="summaryOutput" class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-800 min-h-[50px]"></div>
+                    <div id="summaryLoadingSpinner" class="hidden text-center mt-4">
+                        <div class="loading-spinner inline-block w-8 h-8 border-4 border-t-4 border-brand-accent border-opacity-75 rounded-full"></div>
+                        <p class="text-gray-600 mt-2">Generating summary...</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-xl font-semibold mb-3 brand-primary">By-Law Clarifier ✨</h3>
+                    <p class="text-gray-700 mb-4">Get simple explanations and examples for complex strata by-laws.</p>
+                    <textarea id="byLawText" class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-accent mb-4 h-28" placeholder="Paste the by-law text here..."></textarea>
+                    <input type="text" id="byLawQuestion" class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-accent mb-4" placeholder="Ask a question about the by-law (e.g., 'What does this mean for pets?')">
+                    <button id="clarifyBtn" class="bg-brand-accent text-white px-6 py-2 rounded-md hover:bg-opacity-90 transition-all duration-200">Clarify By-Law</button>
+                    <div id="clarificationOutput" class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-800 min-h-[50px]"></div>
+                    <div id="clarificationLoadingSpinner" class="hidden text-center mt-4">
+                        <div class="loading-spinner inline-block w-8 h-8 border-4 border-t-4 border-brand-accent border-opacity-75 rounded-full"></div>
+                        <p class="text-gray-600 mt-2">Clarifying by-law...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="compliance" class="mb-16">
+            <h2 class="section-title brand-primary">Navigating Australian Strata Laws & Compliance</h2>
+            <p class="section-subtitle">Compliance with Australian strata laws, particularly regarding electronic record-keeping and data privacy, is not an afterthought but a core design principle. The platform must be built with these legal obligations in mind.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-xl font-semibold mb-3 brand-primary">Electronic Record-Keeping (e.g., NSW from June 2024)</h3>
+                    <p class="text-gray-700 mb-2">Mandatory electronic storage of strata roll, financial records, and official communications.</p>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
+                        <li>Secure, auditable document management system.</li>
+                        <li>Role-based access control for sensitive information.</li>
+                        <li>Defined retention periods as per legislation.</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-xl font-semibold mb-3 brand-primary">Data Privacy & Security (Privacy Act 1988 & APPs)</h3>
+                    <p class="text-gray-700 mb-2">Protection of residents' personal and financial data is paramount.</p>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
+                        <li>Strong data encryption (in transit and at rest).</li>
+                        <li>Adherence to Australian Privacy Principles.</li>
+                        <li>Mechanisms for data access, correction, and secure disposal.</li>
+                        <li>Preparedness for Notifiable Data Breaches scheme.</li>
+                    </ul>
+                </div>
+            </div>
+             <div class="mt-8 bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded-md" role="alert">
+                <p class="font-bold">Critical Note:</p>
+                <p>The platform's "minimal maintenance" goal includes maintaining compliance. This requires automated processes and robust security features designed from the outset to mitigate legal risks and operational burdens associated with non-compliance.</p>
+            </div>
+        </section>
+
+        <section id="implementation" class="mb-16">
+            <h2 class="section-title brand-primary">The Path Forward: Phased Implementation & Long-Term Value</h2>
+            <p class="section-subtitle">A phased implementation approach is recommended to manage complexity, control budgets, and deliver value incrementally. Each phase builds upon the last, moving towards a comprehensive digital ecosystem.</p>
+            <div class="chart-container h-[400px] md:h-[450px]">
+                <canvas id="phasedImplementationChart"></canvas>
+            </div>
+            <p class="mt-4 text-sm text-gray-600 text-center">The line chart illustrates the cumulative value and feature richness delivered to the strata community across the planned implementation phases. Initial phases focus on foundational communication, followed by enhanced engagement, operational efficiency, mobile access, and finally, ongoing optimization and evolution based on community feedback and technological advancements.</p>
+            
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h4 class="font-semibold brand-accent mb-1">Phase 1: Foundation</h4>
+                    <p class="text-gray-600">Core User Auth, Events (Read-Only), Services Glossary, Basic File Access (All/Committee), Notice Board.</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h4 class="font-semibold brand-accent mb-1">Phase 2: Engagement</h4>
+                    <p class="text-gray-600">Full Hierarchical Files (RBAC), Group Chat, Targeted Notifications, Polling/Surveys.</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h4 class="font-semibold brand-accent mb-1">Phase 3: Efficiency & Mobile</h4>
+                    <p class="text-gray-600">Maintenance Tracking, Facility Booking, Rentals/Selling Page, Mobile App (Phase 1/2 features).</p>
+                </div>
+                 <div class="bg-white p-4 rounded-lg shadow">
+                    <h4 class="font-semibold brand-accent mb-1">Phase 4: Optimization</h4>
+                    <p class="text-gray-600">Continuous Monitoring, Security Audits, New Features based on feedback (e.g., Digital Meetings).</p>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center pt-12 border-t mt-16">
+            <p class="text-gray-600">&copy; 2025 Strata Community Insights. Investing in a connected future.</p>
+            <p class="text-xs text-gray-400 mt-2">This infographic is based on the Deep Research report: "Developing a Cloud-Based Digital Platform for Australian Strata Communities". All data is illustrative unless otherwise specified in source material.</p>
+        </footer>
+
+    </main>
+
+    <script>
+        function wrapText(text, maxWidth) {
+            if (typeof text !== 'string') return text;
+            if (text.length <= maxWidth) return text;
+
+            const words = text.split(' ');
+            let currentLine = '';
+            const lines = [];
+
+            for (const word of words) {
+                if ((currentLine + word).length <= maxWidth) {
+                    currentLine += (currentLine === '' ? '' : ' ') + word;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+        
+        const tooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+                return label.join(' ');
+            }
+            return label;
+        };
+
+        const primaryColor = '#0A2463'; // Deep Indigo
+        const accentColor = '#FF6F61'; // Living Coral
+        const secondaryColor = '#3E92CC'; // Cerulean Blue
+        const highlightColor = '#FFD166'; // Sunglow
+        const neutralLightGray = '#F4F4F8';
+        const neutralDarkGray = '#333333';
+
+        // Core Features Chart (Donut)
+        const coreFeaturesCtx = document.getElementById('coreFeaturesChart').getContext('2d');
+        const coreFeaturesData = {
+            labels: [
+                wrapText('Hierarchical File Storage', 16),
+                wrapText('User Management & Comms', 16),
+                'Group Chat',
+                wrapText('Events & Issues Page', 16),
+                wrapText('Rentals & Selling Page', 16),
+                wrapText('Services Glossary', 16)
+            ],
+            datasets: [{
+                label: 'Importance Score',
+                data: [30, 28, 15, 12, 8, 7],
+                backgroundColor: [
+                    accentColor,
+                    secondaryColor,
+                    highlightColor,
+                    '#58B368', // A Green
+                    '#A974D5', // A Purple
+                    '#4BC0C0'  // A Teal
+                ],
+                borderColor: neutralLightGray,
+                borderWidth: 2
+            }]
+        };
+        new Chart(coreFeaturesCtx, {
+            type: 'doughnut',
+            data: coreFeaturesData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { size: 10 },
+                            boxWidth: 15,
+                             padding: 10
+                        }
+                    },
+                    title: {
+                        display: false,
+                        text: 'Core Feature Demand by Importance'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: tooltipTitleCallback
+                        }
+                    }
+                }
+            }
+        });
+
+        // Phased Implementation Chart (Line)
+        const phasedImplementationCtx = document.getElementById('phasedImplementationChart').getContext('2d');
+        const phasedImplementationData = {
+            labels: ['Phase 1: Foundation', wrapText('Phase 2: Engagement', 16), wrapText('Phase 3: Efficiency & Mobile', 16), wrapText('Phase 4: Optimization', 16)],
+            datasets: [
+                {
+                    label: 'Cumulative Platform Value/Features',
+                    data: [25, 55, 85, 100],
+                    borderColor: accentColor,
+                    backgroundColor: 'rgba(255, 111, 97, 0.2)', // Light Coral
+                    fill: true,
+                    tension: 0.1,
+                    pointBackgroundColor: accentColor,
+                    pointBorderColor: primaryColor,
+                    pointHoverRadius: 7,
+                    pointRadius: 5
+                },
+                 {
+                    label: 'Community Engagement Level',
+                    data: [15, 45, 70, 90],
+                    borderColor: secondaryColor,
+                    backgroundColor: 'rgba(62, 146, 204, 0.2)', 
+                    fill: true,
+                    tension: 0.1,
+                    pointBackgroundColor: secondaryColor,
+                    pointBorderColor: primaryColor,
+                    pointHoverRadius: 7,
+                    pointRadius: 5,
+                    hidden: true
+                }
+            ]
+        };
+        new Chart(phasedImplementationCtx, {
+            type: 'line',
+            data: phasedImplementationData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 105,
+                        title: { display: true, text: 'Relative Score (%)' }
+                    },
+                    x: {
+                         ticks: {
+                            font: {size: 10}
+                         }
+                    }
+                },
+                plugins: {
+                    legend: { 
+                        position: 'top',
+                         labels: {
+                            font: { size: 11 }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Platform Growth & Value Over Implementation Phases',
+                        font: { size: 14, weight: 'bold' },
+                        padding: { top: 10, bottom: 20 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: tooltipTitleCallback
+                        }
+                    }
+                }
+            }
+        });
+
+        // Gemini API Integration
+        async function callGeminiAPI(prompt, outputElement, loadingSpinner) {
+            outputElement.textContent = '';
+            loadingSpinner.classList.remove('hidden');
+
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    outputElement.textContent = text;
+                } else {
+                    outputElement.textContent = 'Error: Could not get a valid response from the API.';
+                }
+            } catch (error) {
+                outputElement.textContent = `Error: ${error.message}. Please try again.`;
+                console.error('Gemini API call failed:', error);
+            } finally {
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+
+        // Document Summarizer Logic
+        const summarizeBtn = document.getElementById('summarizeBtn');
+        const documentText = document.getElementById('documentText');
+        const summaryOutput = document.getElementById('summaryOutput');
+        const summaryLoadingSpinner = document.getElementById('summaryLoadingSpinner');
+
+        documentText.value = `Minutes of the Executive Committee Meeting - 15th May 2025.
+Attendees: John Smith (Chair), Jane Doe (Secretary), Mark Brown, Sarah Lee.
+Apologies: David Green.
+1. Maintenance Update: The lift repair was completed on 12th May. The cost was within budget. The common area lighting upgrade tender is now open, closing 30th May.
+2. Financial Report: April levies collection is at 95%. Outstanding levies are being followed up. Budget review for Q3 is scheduled for next meeting.
+3. Community Garden Project: Approval granted for Phase 1. Volunteers needed for planting weekend on 8th June. Sign-up sheet available on notice board.
+4. By-law Review: Discussion on proposed amendment to By-law 7 regarding pet registration. Committee to circulate draft for resident feedback.
+Next Meeting: 19th June 2025.`; // Pre-fill for demo
+
+        summarizeBtn.addEventListener('click', () => {
+            const docContent = documentText.value.trim();
+            if (docContent) {
+                const prompt = `Summarize the following document concisely, highlighting key points and main conclusions:\n\n${docContent}`;
+                callGeminiAPI(prompt, summaryOutput, summaryLoadingSpinner);
+            } else {
+                summaryOutput.textContent = 'Please enter some text to summarize.';
+            }
+        });
+
+        // By-Law Clarifier Logic
+        const clarifyBtn = document.getElementById('clarifyBtn');
+        const byLawText = document.getElementById('byLawText');
+        const byLawQuestion = document.getElementById('byLawQuestion');
+        const clarificationOutput = document.getElementById('clarificationOutput');
+        const clarificationLoadingSpinner = document.getElementById('clarificationLoadingSpinner');
+
+        byLawText.value = `By-law 14: Use of Common Property. An owner or occupier of a lot must not: (a) obstruct the lawful use of common property by any person, or (b) use the common property in a manner that interferes with the peaceful enjoyment of a lot or the common property by any other person, or (c) use the common property for any purpose other than for its intended use, as determined by the owners corporation. This includes, but is not limited to, leaving personal items, rubbish, or vehicles in common areas not designated for such purposes. Any breach may result in a notice to comply and potential fines.`; // Pre-fill for demo
+        byLawQuestion.value = `What does this mean for leaving items in the hallway?`; // Pre-fill for demo
+
+        clarifyBtn.addEventListener('click', () => {
+            const byLawContent = byLawText.value.trim();
+            const questionContent = byLawQuestion.value.trim();
+            if (byLawContent && questionContent) {
+                const prompt = `Explain the following Australian strata by-law in simple terms, assuming the user is a resident or tenant. Also, provide a brief example of its application:\n\nBy-law: ${byLawContent}\n\nQuestion: ${questionContent}`;
+                callGeminiAPI(prompt, clarificationOutput, clarificationLoadingSpinner);
+            } else {
+                clarificationOutput.textContent = 'Please provide both the by-law text and a question.';
+            }
+        });
+
+        // Smooth scrolling for nav links
+        document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    const navHeight = document.querySelector('nav.sticky-nav').offsetHeight;
+                    const elementPosition = targetElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - navHeight - 20;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: "smooth"
+                    });
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>

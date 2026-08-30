@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>PostgreSQL Cutover State — StrataOS Tech Docs</title>
+    <link href="styles.css" rel="stylesheet"/>
+    <script defer src="auth-guard.js"></script>
+</head>
+<body>
+<header class="page-header">
+    <h1>PostgreSQL Cutover State</h1>
+    <p class="subtitle">Where the Mongo → Postgres migration actually is, measured live 2026-08-29 — and what
+        still has to happen.</p>
+</header>
+
+<main class="content">
+<section>
+    <h2 class="section-title">The headline</h2>
+    <p><strong>Nobody chose MongoDB.</strong> The routers were written against Mongo before Postgres existed,
+        and the cutover was built as a <em>control plane</em> — tables and toggles that decide which store
+        <em>should</em> serve a read — without ever rewiring the 1,292 route handlers to ask it.</p>
+    <p class="callout"><strong>10 of 133 router files consult the control plane. 103 call
+        <code>db.&lt;collection&gt;</code> directly, with no dispatch at all.</strong> So the control plane can
+        say &ldquo;Postgres is promoted for finance&rdquo; — and it does — and nothing changes, because
+        <code>routers/work_orders.py</code> has never heard of it.</p>
+</section>
+
+<section>
+    <h2 class="section-title">Control plane — all eight domains promoted</h2>
+    <p><code>core.domain_cutover_status</code> for East Gate (13195) holds <code>finance_ledger</code>,
+        <code>governance</code>, <code>identity_core</code>, <code>occupancy</code>,
+        <code>powerhouse_conversations</code>, <code>settings</code>, <code>trust_ledger</code> and
+        <code>trust_reconciliation</code>, all at <code>mode=postgres_write, readiness=promoted</code>. Every
+        other building is Mongo-served.</p>
+    <p><strong>This corrects a claim that stood in CLAUDE.md until 2026-08-29</strong>, which said four domains
+        were promoted and that finance/trust/powerhouse had no row at all. That was true when written; the rows
+        were restored on or about 2026-08-28. <code>core.cutover_audit_log</code> holds 25,568
+        <code>domain_source.missing_state_defaulted</code> decisions for <code>finance_ledger</code> running
+        2026-08-21 → 2026-08-28 and then stopping dead — that stop is the fingerprint of the restore.</p>
+    <p class="callout"><strong>&ldquo;Promoted&rdquo; does not mean the router reads Postgres.</strong>
+        <code>GET /users</code> has been a Mongo-primary read UNIONed with Postgres since
+        <code>identity_core</code> was promoted. That is coexistence, not cutover — and it is the best case in
+        the tree.</p>
+</section>
+
+<section>
+    <h2 class="section-title">The four blockers</h2>
+    <table>
+        <thead><tr><th>#</th><th>Blocker</th><th>Measured</th></tr></thead>
+        <tbody>
+        <tr><td>1</td><td><strong>Schema deployed, data not.</strong> Porting a route is often a data-modelling
+            exercise, not a rewrite.</td>
+            <td><strong>177 of 230</strong> Postgres tables are empty. Of 153 populated Mongo collections, 13
+                have a populated Postgres home, 12 map to an empty table, and <strong>128 have no Postgres
+                target at all</strong> — including <code>unit_levy_ledger</code> (638 docs), which half the
+                finance UI reads from.</td></tr>
+        <tr><td>2</td><td><strong>A wrong Postgres read returns zero rows silently.</strong> RLS without
+            <code>app.tenant_id</code> gives <code>count(*) = 0</code>, no error. A ported router that forgets
+            tenant context renders an empty dashboard that looks like a <em>fact</em>.</td>
+            <td>Mitigated: <code>documents_repo._require_tenant</code> raises
+                <code>TenantContextMissing</code> rather than returning empty.</td></tr>
+        <tr><td>3</td><td><strong>Postgres cannot yet compute a defensible per-lot finance position.</strong>
+            <code>paid_cents</code> is a denormalised total; allocations are the trail saying which receipt paid
+            which levy item.</td>
+            <td><strong>$224,733.13</strong> of <code>levy_items.paid_cents</code> has no allocation row (496
+                items). 356 receipts / $567,813.95 unallocated. Receipts exceed charges by $338,335.05.</td></tr>
+        <tr><td>4</td><td><strong>The old cutover machinery is read-only by design.</strong></td>
+            <td><code>finance_route_cutover_service</code> holds 37 policies, all
+                <code>read_only=True</code>, 5 pg-read-supported. <strong>0 of 614 mutating routes</strong> had
+                any write dispatch before 2026-08-29.</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<section>
+    <h2 class="section-title">The stores agree where it has been measured</h2>
+    <p>The nightly DR check reports East Gate at <strong>87/87 lots matching, $0.00 net gap, 0 payments missing
+        from Postgres</strong>. The FY2026 unit ledger matches to the cent on both sides — Mongo 87 units,
+        $220,187.56 levied / $212,146.26 paid; Postgres 22018756 / 21214626 cents over 87 lots.</p>
+    <p>The 260 unresolved <code>finance_ledger</code> shadow diffs that appeared to contradict this were
+        <strong>comparator artefacts</strong>, fixed at source: a one-unit Mongo payload was being compared
+        against an 87-lot Postgres aggregate, <code>_dimension</code> was passed by the router and never read by
+        the comparator, and test runs were writing fixture values (<code>12345</code> cents) into the production
+        gate flagged <code>is_test_data=False</code>. See
+        <a href="mongo-postgres-finance-sync.html">Mongo → Postgres Sync</a>.</p>
+</section>
+
+<section>
+    <h2 class="section-title">The one dispatch seam</h2>
+    <p>New code never hardcodes a store.</p>
+    <pre>from services.store_router import resolve_store
+
+decision = await resolve_store(domain="documents", building_id=building_id, operation="read")
+if decision.use_postgres:
+    ...        # try Postgres
+...            # fall back to Mongo — always this direction, never the reverse</pre>
+    <ul>
+        <li><strong>Fails closed</strong> — a domain with no control-plane row resolves to MongoDB.</li>
+        <li><strong>Never raises</strong> — a blocked domain, or an unreachable control plane, degrades to Mongo
+            with the reason attached rather than 503-ing a page.</li>
+        <li><strong><code>mirror_to_mongo</code></strong> is true for every Postgres write while both stores are
+            live. An unmirrored Postgres write destroys the DR position silently.</li>
+    </ul>
+    <p>Reference implementation: <code>services/documents_store.py</code> over
+        <code>db_postgres/repos/documents_repo.py</code> — the first non-finance Postgres <strong>write</strong>
+        path in the codebase, wired into <code>GET</code>/<code>POST /documents</code>. Verified live:
+        insert → read back → count → soft-archive → idempotent re-archive.</p>
+    <p class="callout"><strong>The coexistence union is a PHASE, not the architecture.</strong> While a domain
+        has a Postgres table and no Postgres data, an empty Postgres result falls back to Mongo and the response
+        says which happened — <code>mongo_fallback_pg_empty</code> vs
+        <code>mongo_fallback_pg_unavailable</code>. Empty and unavailable are never collapsed. Delete the union
+        once that domain's data genesis has run.</p>
+</section>
+
+<section>
+    <h2 class="section-title">Promoting a domain</h2>
+    <p>A new domain needs a readiness snapshot before it can be promoted at all:
+        <code>promote_domain</code>'s pre-shadow gate rejects the <code>unknown</code> default, and until
+        2026-08-29 readiness could only be set by three hardcoded functions (identity, powerhouse, financial) —
+        so no other domain could enter the lifecycle regardless of how ready its data was.
+        <code>record_domain_foundation_readiness()</code> is the generic on-ramp.</p>
+    <pre>python3 scripts/cutover/promote_domain_to_postgres.py --building-id 13195 --domain documents
+python3 scripts/cutover/promote_domain_to_postgres.py --building-id 13195 --domain documents --apply</pre>
+    <p><code>--apply</code> is a <strong>production routing change</strong>. It walks every existing gate and
+        stops at the first refusal; it never bypasses one. Rollback:
+        <code>cutover_status_service.rollback_domain(...)</code>.</p>
+</section>
+
+<section>
+    <h2 class="section-title">Reproducing every figure on this page</h2>
+    <pre>backend/venv/bin/python3 backend/scripts/audits/cutover_readiness_snapshot.py
+python3 scripts/validation/generate_router_datastore_map.py --format all   # run with a live DB
+backend/venv/bin/python3 scripts/audits/generate_mongo_postgres_mapping.py
+backend/venv/bin/python3 backend/scripts/audits/generate_database_live_inventory.py</pre>
+    <p>Full analysis and the six-phase plan:
+        <code>docs/architecture/postgres_router_cutover_state_and_plan_2026-08-29.md</code>.
+        <strong>Never restate this state from memory — it changes as domains are promoted.</strong></p>
+</section>
+</main>
+</body>
+</html>

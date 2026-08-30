@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>StrataOS – Setting Up a Strata Management Company</title>
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div>
+                <div style="font-weight:800;font-size:15px;letter-spacing:.02em">StrataOS Platform</div>
+                <div style="color:var(--muted);font-size:12px">Strata Management Platform</div>
+            </div>
+        </div>
+        <div class="badge">User Guide</div>
+    </div>
+</header>
+
+<main style="display:block">
+    <article class="content">
+
+        <h1>Setting Up a Strata Management Company</h1>
+        <p>This guide is for <strong>Super Admins</strong> who are onboarding a new strata management company
+            onto StrataOS. It walks through creating the company profile, adding buildings, setting up management
+            teams, and inviting staff.</p>
+
+        <div class="card callout warn">
+            <strong>Super Admin only:</strong> Creating a new strata management company (also called an SM
+            organisation) requires super admin access. Strata admins and managers cannot create their own
+            company — this is to ensure accurate organisational data across the platform.
+        </div>
+
+        <h2>Step 1: Create the Strata Management Company</h2>
+        <ol>
+            <li>Go to <strong>Super Admin → Organisations</strong>.</li>
+            <li>Click <strong>New Organisation</strong>.</li>
+            <li>Enter the company's legal name, trading name (if different), ABN, and primary contact details.</li>
+            <li>Select the state or territory the company is licensed in. If the company operates across
+                multiple states, select all that apply.</li>
+            <li>Click <strong>Create Organisation</strong>.</li>
+        </ol>
+        <p>The company profile is now created. You can return to it at any time from the Organisations list
+            to update details, add staff, or review performance analytics.</p>
+
+        <h2>Step 2: Add Buildings to the Company</h2>
+        <p>Buildings (also called schemes) can be added to the company profile in two ways:</p>
+        <ul>
+            <li><strong>Manual entry</strong> — enter the unit plan number, address, lot count, and type
+                (apartment, townhouse, commercial, mixed-use). Use this for buildings being onboarded
+                fresh onto the platform.</li>
+            <li><strong>Bulk import</strong> — if the company is migrating from another system, a CSV
+                import is available from <strong>Super Admin → Organisations → Import Buildings</strong>.
+                Contact StrataOS support for the import template.</li>
+        </ul>
+
+        <div class="card callout success">
+            <strong>Tip:</strong> When adding a building, you can mark it as <strong>self-managed</strong>
+            or <strong>agency-managed</strong>. This distinction is explained at the end of this guide.
+        </div>
+
+        <h2>Step 3: Create Management Entities</h2>
+        <p>A management entity is a team or office within the company. For a small company with one office,
+            you may only need one entity. For larger companies, create one entity per branch or team:</p>
+        <ol>
+            <li>Open the company profile from <strong>Super Admin → Organisations</strong>.</li>
+            <li>Go to the <strong>Management Entities</strong> tab.</li>
+            <li>Click <strong>Add Entity</strong>.</li>
+            <li>Enter the entity name (for example, "Canberra Office") and assign a team lead if applicable.</li>
+            <li>Use the <strong>Buildings</strong> tab within the entity to assign buildings to it.</li>
+        </ol>
+
+        <h2>Step 4: Invite Members</h2>
+        <p>Once the company structure is in place, you can invite staff to join:</p>
+        <ul>
+            <li><strong>Strata Admin</strong> — a senior staff member who manages the company on StrataOS.
+                They can invite additional strata managers, view all buildings, and access agency analytics.
+                Assign this role to the principal or office manager.</li>
+            <li><strong>Strata Manager</strong> — a staff member who manages day-to-day operations for
+                one or more buildings. They see only the buildings assigned to them.</li>
+        </ul>
+        <p>To invite a member:</p>
+        <ol>
+            <li>Open the company profile and go to the <strong>Members</strong> tab.</li>
+            <li>Click <strong>Invite Member</strong>.</li>
+            <li>Enter their email address and select their role (strata admin or strata manager).</li>
+            <li>Click <strong>Send Invitation</strong>. They will receive an email with a link to set up
+                their account.</li>
+        </ol>
+
+        <div class="card callout warn">
+            <strong>Important:</strong> Invited members must complete registration before they can access
+            any buildings. If an invitation expires (after 7 days), you can resend it from the Members tab.
+        </div>
+
+        <h2>Self-Managed vs. Agency-Managed Schemes</h2>
+        <p>When adding a building, you will be asked to select its management type:</p>
+        <ul>
+            <li><strong>Agency-managed</strong> — the building is managed by a professional strata management
+                company (the one you are setting up). The appointed strata manager is a staff member of the
+                company. This is the most common arrangement.</li>
+            <li><strong>Self-managed</strong> — the owners corporation manages the building themselves without
+                a professional management company. EC members take on the administrative responsibilities.
+                StrataOS still provides all the tools, but there is no strata manager appointment. The strata
+                admin role may be held by an EC member or the building's own administrator.</li>
+        </ul>
+        <p>Both types use the same portal features — the distinction affects who can be appointed as manager
+            and which analytics views are available.</p>
+
+        <div class="card callout success">
+            <strong>Tip:</strong> Self-managed schemes can be converted to agency-managed (and vice versa)
+            at any time. Go to the building's settings and update the management type. All data is preserved
+            during the conversion.
+        </div>
+
+    </article>
+</main>
+
+<footer>
+    StrataOS Platform &nbsp;·&nbsp; Super Admin &nbsp;·&nbsp; <a href="mailto:support@strataos.com.au">support@strataos.com.au</a>
+</footer>
+<script src="building-config.js"></script>
+</body>
+</html>
