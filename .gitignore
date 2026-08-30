@@ -1,0 +1,149 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# IDE and editors
+.idea/
+.vscode/*
+
+# Local data backups (contain real financial/PII data — never commit)
+/backups/
+
+# Dependencies
+node_modules/
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Testing
+/coverage
+*.test_run_id*
+
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Production builds
+/build
+dist/
+dist
+
+# Environment files (comprehensive coverage)
+*settings.local.json*
+*token.json*
+*credentials.json*
+
+# Logs and debug files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dump.rdb
+docs/architecture/db_dump/
+logs/
+*.log
+
+# Generated performance-run raw logs can be very large; keep summary/report
+# artifacts reviewable, but never commit per-script k6 stdout/stderr logs.
+docs/performance/k6_run_*/logs/
+docs/performance/k6_run_*/logs/*.log
+
+# System files
+.DS_Store
+*.pem
+*.key
+
+# Python
+__pycache__/
+*pyc*
+venv/
+.venv/
+
+# Development tools
+chainlit.md
+.chainlit
+.ipynb_checkpoints/
+.ac
+
+# Deployment
+.vercel
+
+# Data and databases
+agenthub/agents/youtube/db
+backup/
+
+# Archive files and large assets
+**/*.zip
+**/*.tar.gz
+**/*.tar
+**/*.tgz
+*.pack
+*.deb
+*.dylib
+
+# Build caches
+.cache/
+
+# Mobile development
+android-sdk/ frontend/node_modules/.cache/default-development/3.pack
+frontend/node_modules/.cache/default-development/3.pack
+frontend/node_modules/.cache/default-development/0.pack
+frontend/node_modules/.cache/default-development/1.pack
+frontend/node_modules/.cache/default-development/2.pack
+frontend/node_modules/.cache/default-development/6.pack
+frontend/node_modules/.cache/default-development/7.pack
+frontend/node_modules/.cache/default-development/8.pack
+frontend/node_modules/.cache/default-development/10.pack
+frontend/node_modules/.cache/default-development/11.pack
+frontend/node_modules/.cache/default-development/13.pack
+
+# Environment files
+*.env
+# Suffixed variants too: .env.local, .env.bak.20260825_003333, .env.backup.*
+# This line was commented out, so every real secrets file except a bare `.env`
+# was one `git add -A` away from being committed — and several exist on disk
+# right now (frontend/.env.local, frontend/.env.backup.*, backend/.env.bak.*).
+# Nothing has leaked: the only tracked env files are *.example, re-permitted below.
+*.env.*
+!*.env.example
+!*.env.local.example
+.log
+
+# Playwright
+/test-results/
+/test_reports/
+tests/reports/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+tests/frontend/e2e/.auth/
+tests/frontend/.test_run_id
+tests/frontend/.admin_token
+tests/frontend/.cleanup_registry.ndjson
+
+# Sensitive migration data — personal emails, financial figures, owner names (PII).
+# These files must be sourced from Civium exports at runtime; never commit them.
+data-intake/sensitive/
+
+# MarkItDown source clone (installed from PyPI via requirements.txt)
+markitdown/
+
+# Data-repair backups: verbatim dumps of production documents written by
+# scripts/data_repair/*.py before a destructive step. They carry resident-linkable
+# fields (owner_id, unit_number) and must never be committed. The scripts recreate
+# them on demand and read them back for --restore, so nothing here is needed in git.
+backend/scripts/data_repair/backups/
+
+# Local archive of backups / stale artifacts (see _archive/README.md)
+_archive/
+
+# Function Lens full index — a local cache. 13.5 MB compact; the committed
+# artefact is function_lens_digest.json. See scripts/validation/generate_function_lens.py
+docs/architecture/function_lens.json
