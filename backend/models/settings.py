@@ -100,6 +100,11 @@ class UnitDisplayRulesUpdate(BaseModel):
 class SiteSettingsUpdate(BaseModel):
     building_name: Optional[str] = None
     building_address: Optional[str] = None
+    strata_address: Optional[str] = None
+    plan_number: Optional[str] = None
+    building_abn: Optional[str] = None
+    building_logo_url: Optional[str] = None
+    logo_url: Optional[str] = None  # legacy alias retained for existing buildings
     building_description: Optional[str] = None
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
@@ -129,9 +134,20 @@ class SiteSettingsUpdate(BaseModel):
     # company's identity everywhere the notice is issued. Resolved by
     # services/levy_notice_email_service.resolve_managing_agent_branding.
     strata_management_company: Optional[str] = None  # e.g. "Civium Property Group"
+    strata_management_logo_url: Optional[str] = None
+    strata_management_abn: Optional[str] = None
+    strata_management_licence: Optional[str] = None
+    strata_management_website: Optional[str] = None
     strata_manager_phone: Optional[str] = None
     strata_manager_email: Optional[str] = None
     strata_manager_address: Optional[str] = None
+    # Shared document appearance for notices, meeting letters and finance exports.
+    document_branding_mode: Optional[str] = "dual"  # dual | agency | building
+    document_accent_color: Optional[str] = "#B8823D"
+    document_footer_text: Optional[str] = None
+    document_show_page_numbers: Optional[bool] = True
+    agm_recording_disclosure: Optional[str] = None
+    agm_insurance_disclosure: Optional[str] = None
     levies_department_phone: Optional[str] = None  # "levies_team" email format contact
     levies_department_email: Optional[str] = None
     # Levy Notice email delivery options.
@@ -160,6 +176,30 @@ class SiteSettingsUpdate(BaseModel):
     rate_limit_change_password: Optional[int] = None
     rate_limit_registration_decision: Optional[int] = None
     rate_limit_multiplier: Optional[float] = None
+
+    @field_validator("document_branding_mode")
+    @classmethod
+    def validate_document_branding_mode(cls, value):
+        if value is None:
+            return value
+        mode = str(value).strip().lower()
+        if mode not in {"dual", "agency", "building"}:
+            raise ValueError("document_branding_mode must be dual, agency, or building")
+        return mode
+
+    @field_validator("document_accent_color")
+    @classmethod
+    def validate_document_accent_color(cls, value):
+        if value is None:
+            return value
+        colour = str(value).strip().upper()
+        if len(colour) != 7 or not colour.startswith("#"):
+            raise ValueError("document_accent_color must be a six-digit hex colour")
+        try:
+            int(colour[1:], 16)
+        except ValueError as exc:
+            raise ValueError("document_accent_color must be a six-digit hex colour") from exc
+        return colour
 
     @field_validator("levy_due_custom_dates")
     @classmethod
