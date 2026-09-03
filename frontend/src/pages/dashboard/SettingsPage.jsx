@@ -896,6 +896,19 @@ const SettingsPage = () => {
                                            value={settings.document_footer_text || ''} onChange={handleChange}
                                            placeholder="Confidential - issued on behalf of the Owners Corporation"/>
                                 </div>
+                                <div className="md:col-span-3 flex items-center justify-between rounded-lg border p-3">
+                                    <div>
+                                        <Label htmlFor="document_show_page_numbers">Show page numbers</Label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Used on AGM correspondence and other multi-page generated letters.
+                                        </p>
+                                    </div>
+                                    <Switch id="document_show_page_numbers"
+                                            checked={settings.document_show_page_numbers !== false}
+                                            onCheckedChange={(checked) => setSettings(prev => ({
+                                                ...prev, document_show_page_numbers: checked
+                                            }))}/>
+                                </div>
                             </div>
 
                             <div className="grid gap-4 md:grid-cols-2">
