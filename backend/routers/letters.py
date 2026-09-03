@@ -23,6 +23,7 @@ from models.letter import (
     LetterTemplateInfo,
 )
 from services.owner_service import get_all_unit_owners
+from services.settings_service import get_general_settings_or_default
 from utils.auth import effective_role, get_current_building, get_current_user
 from utils.email import send_email_async
 from utils.helpers import get_current_utc_iso
@@ -51,12 +52,15 @@ def _require_letter_role(user: dict) -> None:
 
 
 async def _get_building_info(building_id: str) -> dict:
-    """Fetch minimal building details for letter headers."""
-    building = await db.buildings.find_one({"id": building_id}, {"_id": 0, "name": 1, "address": 1, "id": 1})
-    if not building:
-        building = {}
-    building["building_id"] = building_id
-    return building
+    """Fetch scheme identity and the canonical document-branding profile source."""
+    building = await db.buildings.find_one(
+        {"id": building_id},
+        {"_id": 0, "name": 1, "address": 1, "id": 1},
+    ) or {}
+    settings = await get_general_settings_or_default(building_id, {"_id": 0})
+    # General settings are authoritative for document identity. The building record
+    # remains a compatibility fallback for installations not yet configured.
+    return {**building, **(settings or {}), "building_id": building_id}
 
 
 # ── List available templates ──────────────────────────────────────────────────

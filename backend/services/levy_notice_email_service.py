@@ -27,6 +27,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
+from services.document_branding_service import resolve_document_branding
+
 logger = logging.getLogger(__name__)
 
 # ── Platform brand defaults ──────────────────────────────────────────────────
@@ -115,30 +117,30 @@ def resolve_managing_agent_branding(
         ``building_abn``, ``email_format``.
     """
     s = settings or {}
-
-    company_name = _first_nonempty(
-        s.get("strata_management_company"),
-        s.get("strata_manager_name"),
-        s.get("manager_name"),
-    ) or DEFAULT_COMPANY_NAME
+    profile = resolve_document_branding(s, building_id)
+    company_name = profile["strata_management_company"] or DEFAULT_COMPANY_NAME
 
     branding = {
         "building_id": building_id,
         "company_name": company_name,
-        "company_phone": _first_nonempty(s.get("strata_manager_phone"), s.get("manager_phone"))
-        or DEFAULT_COMPANY_PHONE,
-        "company_email": _first_nonempty(s.get("strata_manager_email"), s.get("manager_email"))
-        or DEFAULT_COMPANY_EMAIL,
-        "company_address": _first_nonempty(
-            s.get("strata_manager_address"),
-            s.get("manager_address"),
-        )
-        or DEFAULT_COMPANY_ADDRESS,
+        "company_phone": profile["strata_manager_phone"] or DEFAULT_COMPANY_PHONE,
+        "company_email": profile["strata_manager_email"] or DEFAULT_COMPANY_EMAIL,
+        "company_address": profile["strata_manager_address"] or DEFAULT_COMPANY_ADDRESS,
         "levies_phone": _first_nonempty(s.get("levies_department_phone")) or DEFAULT_LEVIES_PHONE,
         "levies_email": _first_nonempty(s.get("levies_department_email")) or DEFAULT_LEVIES_EMAIL,
         "support_email": _support_email(s),
-        "logo_url": _first_nonempty(s.get("logo_url"), s.get("building_logo_url")),
-        "building_abn": _first_nonempty(s.get("building_abn")) or "",
+        # logo_url remains for email-template compatibility and now correctly prefers
+        # the issuer's (managing agency) logo over the owners-corporation logo.
+        "logo_url": profile["strata_management_logo_url"] or profile["building_logo_url"],
+        "building_logo_url": profile["building_logo_url"],
+        "strata_management_logo_url": profile["strata_management_logo_url"],
+        "strata_management_abn": profile["strata_management_abn"],
+        "strata_management_licence": profile["strata_management_licence"],
+        "strata_management_website": profile["strata_management_website"],
+        "document_branding_mode": profile["document_branding_mode"],
+        "document_accent_color": profile["document_accent_color"],
+        "document_footer_text": profile["document_footer_text"],
+        "building_abn": profile["building_abn"],
         "email_format": resolve_email_format(s),
     }
     return branding

@@ -10,6 +10,7 @@ from typing import Optional
 from config import PDF_AVAILABLE
 from domain.jurisdictional_rules import rule_engine
 from services.gst_service import parse_levy_gst_settings
+from services.document_branding_service import local_brand_asset_path
 from utils.name_utils import format_owner_names
 
 if PDF_AVAILABLE:
@@ -17,7 +18,10 @@ if PDF_AVAILABLE:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import mm
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.platypus import (
+        SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable,
+        Image as PdfImage,
+    )
     from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 
 
@@ -298,39 +302,78 @@ def generate_levy_notice_pdf(levy_data: dict, unit_data: dict, owner_data: dict,
     from services.levy_notice_email_service import resolve_managing_agent_branding
     branding = resolve_managing_agent_branding(s.get("building_id", ""), s)
     company_name = branding["company_name"]
+    accent = colors.HexColor(branding.get("document_accent_color") or "#B8823D")
+    branding_mode = branding.get("document_branding_mode") or "dual"
+    agency_logo_path = local_brand_asset_path(branding.get("strata_management_logo_url"))
+    building_logo_path = local_brand_asset_path(branding.get("building_logo_url"))
 
     elements = []
 
-    # ── Managing-agent branding header ────────────────────────────────────────
+    # ── Shared building + managing-agent branding header ──────────────────────
     agent_name_style = ParagraphStyle(
-        'AgentName', parent=styles['Heading1'], fontSize=18,
-        textColor=colors.HexColor("#2F4F4F"),
+        'AgentName', parent=styles['Heading1'], fontSize=17,
+        textColor=accent,
+    )
+    building_name_style = ParagraphStyle(
+        'BuildingName', parent=styles['Normal'], fontSize=9, alignment=TA_CENTER,
+        fontName='Helvetica-Bold', textColor=colors.HexColor("#4B5563"),
     )
     agent_contact_style = ParagraphStyle(
         'AgentContact', parent=styles['Normal'], fontSize=8, alignment=TA_RIGHT,
-        textColor=colors.grey, leading=10,
+        textColor=colors.HexColor("#4B5563"), leading=10,
     )
     agent_contact_bits = []
+    if branding.get("strata_management_abn"):
+        agent_contact_bits.append(f"ABN: {html_lib.escape(str(branding['strata_management_abn']))}")
+    if branding.get("strata_management_licence"):
+        agent_contact_bits.append(f"Licence: {html_lib.escape(str(branding['strata_management_licence']))}")
     if branding.get("company_address"):
         agent_contact_bits.append(html_lib.escape(str(branding["company_address"])))
     if branding.get("company_phone"):
         agent_contact_bits.append(f"Ph: {html_lib.escape(str(branding['company_phone']))}")
     if branding.get("company_email"):
         agent_contact_bits.append(html_lib.escape(str(branding["company_email"])))
+    if branding.get("strata_management_website"):
+        agent_contact_bits.append(html_lib.escape(str(branding["strata_management_website"])))
+
+    if branding_mode == "building":
+        primary_identity = (
+            PdfImage(building_logo_path, width=38 * mm, height=14 * mm)
+            if building_logo_path
+            else Paragraph(html_lib.escape(str(building_name)), agent_name_style)
+        )
+        secondary_identity = ""
+    else:
+        primary_identity = (
+            PdfImage(agency_logo_path, width=38 * mm, height=14 * mm)
+            if agency_logo_path
+            else Paragraph(html_lib.escape(str(company_name)), agent_name_style)
+        )
+        if branding_mode == "dual":
+            secondary_identity = (
+                PdfImage(building_logo_path, width=24 * mm, height=12 * mm)
+                if building_logo_path
+                else Paragraph(html_lib.escape(str(building_name)), building_name_style)
+            )
+        else:
+            secondary_identity = ""
+
     agent_header = Table(
         [[
-            Paragraph(html_lib.escape(str(company_name)), agent_name_style),
+            primary_identity,
+            secondary_identity,
             Paragraph("<br/>".join(agent_contact_bits), agent_contact_style),
         ]],
-        colWidths=[90 * mm, 80 * mm],
+        colWidths=[58 * mm, 38 * mm, 74 * mm],
     )
     agent_header.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
     ]))
     elements.append(agent_header)
-    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#2F4F4F"), spaceBefore=4, spaceAfter=8))
+    elements.append(HRFlowable(width="100%", thickness=1.2, color=accent, spaceBefore=4, spaceAfter=8))
 
     # ── Levy Notice Header ────────────────────────────────────────────────────
     elements.append(Paragraph("LEVY NOTICE", title_style))
@@ -527,6 +570,11 @@ def generate_levy_notice_pdf(levy_data: dict, unit_data: dict, owner_data: dict,
         elements.append(Spacer(1, 4 * mm))
         elements.append(
             Paragraph(footer_text, ParagraphStyle('Hardship', fontSize=9, textColor=colors.black, leading=11)))
+
+    # Configurable legal/disclaimer copy plus the shared document footer.
+    shared_footer = branding.get("document_footer_text") or ""
+    if shared_footer:
+        disclaimer = f"{disclaimer}\n{shared_footer}".strip()
 
     # Disclaimer
     if disclaimer:

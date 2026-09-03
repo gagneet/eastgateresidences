@@ -26,6 +26,10 @@ from db_postgres.repos.config_repo import resolve_scheme_context
 from db_postgres.session import async_session_context, set_tenant
 from services.owner_service import format_owner_names, get_all_unit_owners
 from services.settings_service import get_general_settings
+from services.document_branding_service import (
+    local_brand_asset_path,
+    resolve_document_branding,
+)
 from utils.finance_helpers import get_fy_date_range, get_fy_label
 
 try:
@@ -249,13 +253,37 @@ class ReportWindow:
     building_name: str | None = None
     building_address: str | None = None
     logo_url: str | None = None
+    document_branding: dict[str, Any] | None = None
 
 
 async def resolve_report_window(building_id: str, financial_year: str) -> ReportWindow:
     settings = await get_general_settings(
         building_id,
-        {"_id": 0, "financial_year_start_month": 1, "building_name": 1, "building_address": 1, "logo_url": 1},
+        {
+            "_id": 0,
+            "financial_year_start_month": 1,
+            "building_name": 1,
+            "building_address": 1,
+            "strata_address": 1,
+            "plan_number": 1,
+            "building_abn": 1,
+            "logo_url": 1,
+            "building_logo_url": 1,
+            "strata_management_company": 1,
+            "strata_management_logo_url": 1,
+            "strata_management_abn": 1,
+            "strata_management_licence": 1,
+            "strata_management_website": 1,
+            "strata_manager_phone": 1,
+            "strata_manager_email": 1,
+            "strata_manager_address": 1,
+            "document_branding_mode": 1,
+            "document_accent_color": 1,
+            "document_footer_text": 1,
+            "document_show_page_numbers": 1,
+        },
     )
+    document_branding = resolve_document_branding(settings, building_id)
     start_month = int((settings or {}).get("financial_year_start_month") or 1)
     year_int = int(str(financial_year).split("-")[0])
     start_raw, end_raw = get_fy_date_range(year_int, start_month)
@@ -265,9 +293,10 @@ async def resolve_report_window(building_id: str, financial_year: str) -> Report
         start_date=date.fromisoformat(start_raw),
         end_date=date.fromisoformat(end_raw),
         start_month=start_month,
-        building_name=(settings or {}).get("building_name"),
-        building_address=(settings or {}).get("building_address"),
-        logo_url=(settings or {}).get("logo_url"),
+        building_name=document_branding.get("building_name"),
+        building_address=document_branding.get("building_address"),
+        logo_url=document_branding.get("building_logo_url"),
+        document_branding=document_branding,
     )
 
 
@@ -292,6 +321,7 @@ def _base_metadata(
         "building_name": window.building_name,
         "building_address": window.building_address,
         "logo_url": window.logo_url,
+        **(window.document_branding or {}),
     }
 
 
@@ -1116,20 +1146,8 @@ def _report_rows_for_export(report: dict[str, Any], columns: list[str]) -> list[
 
 
 def _local_logo_path(report: dict[str, Any]) -> str | None:
-    # Use only the configured building logo. A building-specific fallback would
-    # put the wrong strata branding on multi-tenant exports.
-    logo_url = str(report.get("logo_url") or "").strip()
-    if not logo_url or logo_url.startswith(("http://", "https://")):
-        return None
-    relative = logo_url.lstrip("/")
-    candidates = [
-        os.path.abspath(os.path.join(os.getcwd(), "frontend", "public", relative)),
-        os.path.abspath(os.path.join(os.getcwd(), "..", "frontend", "public", relative)),
-    ]
-    for candidate in candidates:
-        if os.path.exists(candidate):
-            return candidate
-    return None
+    """Resolve the owners-corporation logo for spreadsheet/document exports."""
+    return local_brand_asset_path(report.get("building_logo_url") or report.get("logo_url"))
 
 
 def report_to_xlsx(report: dict[str, Any]) -> bytes:
@@ -1188,7 +1206,58 @@ def report_to_pdf(report: dict[str, Any]) -> bytes:
         bottomMargin=24,
     )
     styles = getSampleStyleSheet()
+    accent = colors.HexColor(str(report.get("document_accent_color") or "#B8823D"))
+    agency_name = str(report.get("strata_management_company") or "StrataOS")
+    agency_logo_path = local_brand_asset_path(report.get("strata_management_logo_url"))
+    building_logo_path = _local_logo_path(report)
+    mode = str(report.get("document_branding_mode") or "dual")
+
+    if mode == "building":
+        left_brand = (
+            PdfImage(building_logo_path, width=58, height=42)
+            if building_logo_path
+            else Paragraph(str(report.get("building_name") or report.get("building_id")), styles["Heading2"])
+        )
+        centre_brand = ""
+    else:
+        left_brand = (
+            PdfImage(agency_logo_path, width=96, height=42)
+            if agency_logo_path
+            else Paragraph(agency_name, styles["Heading2"])
+        )
+        centre_brand = ""
+        if mode == "dual":
+            centre_brand = (
+                PdfImage(building_logo_path, width=58, height=42)
+                if building_logo_path
+                else Paragraph(str(report.get("building_name") or report.get("building_id")), styles["Normal"])
+            )
+
+    agency_details = []
+    if report.get("strata_management_abn"):
+        agency_details.append(f"ABN: {report['strata_management_abn']}")
+    if report.get("strata_management_licence"):
+        agency_details.append(f"Licence: {report['strata_management_licence']}")
+    for key in ("strata_manager_address", "strata_manager_phone", "strata_manager_email", "strata_management_website"):
+        if report.get(key):
+            prefix = "Ph: " if key == "strata_manager_phone" else ""
+            agency_details.append(prefix + str(report[key]))
+
+    header = Table(
+        [[left_brand, centre_brand, Paragraph("<br/>".join(agency_details), styles["Normal"])]],
+        colWidths=[210, 170, 365],
+    )
+    header.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ALIGN", (1, 0), (1, 0), "CENTER"),
+        ("ALIGN", (2, 0), (2, 0), "RIGHT"),
+        ("LINEBELOW", (0, 0), (-1, -1), 1.2, accent),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
+
     story = [
+        header,
+        Spacer(1, 10),
         Paragraph(str(report.get("title") or report.get("report_id") or "Financial Report"), styles["Title"]),
         Paragraph(
             f"{report.get('building_name') or 'Building ' + str(report.get('building_id'))} | "
@@ -1199,14 +1268,6 @@ def report_to_pdf(report: dict[str, Any]) -> bytes:
         ),
         Paragraph(f"Generated {report.get('generated_at') or '-'}", styles["Normal"]),
     ]
-    logo_path = _local_logo_path(report)
-    if logo_path:
-        try:
-            story.insert(0, PdfImage(logo_path, width=42, height=42))
-        except Exception:
-            pass
-    else:
-        story.insert(0, Paragraph("StrataOS Reports", styles["Heading2"]))
     warnings = report.get("quality_warnings") or []
     if warnings:
         story.append(Spacer(1, 8))
@@ -1218,13 +1279,19 @@ def report_to_pdf(report: dict[str, Any]) -> bytes:
         data.append([str(value if value is not None else "")[:48] for value in row])
     table = Table(data, repeatRows=1)
     table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e5e7eb")),
+        ("BACKGROUND", (0, 0), (-1, 0), accent),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 7),
         ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#cbd5e1")),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
     ]))
     story.append(table)
+    if report.get("document_footer_text"):
+        story.extend([
+            Spacer(1, 10),
+            Paragraph(str(report["document_footer_text"]), styles["Normal"]),
+        ])
     doc.build(story)
     return output.getvalue()
 

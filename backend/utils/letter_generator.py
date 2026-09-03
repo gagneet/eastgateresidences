@@ -1,203 +1,260 @@
-# @featuretrace:letters — WeasyPrint HTML/CSS → PDF letter renderer
+# @featuretrace:letters
 # Layer: service
-# Data flow: routers/letters.py → generate_letter_pdf() → WeasyPrint → bytes
-# Related: backend/routers/letters.py
-#           backend/models/letter.py
-# Scope: (building-scoped)
+# Data flow: routers/letters.py -> generate_letter_pdf() -> WeasyPrint -> bytes
+# Related: backend/routers/letters.py, backend/services/document_branding_service.py
+# Scope: building-scoped
 
 import asyncio
 import html as html_lib
-from typing import Optional
+import os
 
 from config import WEASYPRINT_AVAILABLE
+from services.document_branding_service import resolve_document_branding
 
 if WEASYPRINT_AVAILABLE:
     from weasyprint import HTML, CSS  # type: ignore
 
-# ── Design-system colours (matches design_guidelines.json) ───────────────────
 
 _LETTER_CSS = """
-@page { size: A4; margin: 25mm 20mm 20mm 20mm; }
+@page { size: A4; margin: 22mm 18mm 20mm 18mm; }
 body {
-    font-family: 'Charter', Georgia, 'Times New Roman', serif;
-    font-size: 11pt;
-    line-height: 1.6;
-    color: #2F4F4F;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.48;
+    color: #20242A;
 }
-.header {
-    border-bottom: 2px solid #2F4F4F;
-    padding-bottom: 8px;
-    margin-bottom: 24px;
+.document-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .7fr) minmax(190px, 1fr);
+    align-items: start;
+    gap: 14px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 10px;
+    margin-bottom: 22px;
 }
-.header h1 {
-    margin: 0 0 2px 0;
-    font-size: 16pt;
-    color: #E07A5F;
-    font-family: 'Manrope', Arial, sans-serif;
+.brand-logo { max-width: 175px; max-height: 68px; object-fit: contain; object-position: left top; }
+.building-brand { text-align: center; color: #4B5563; font-size: 9pt; font-weight: 700; }
+.building-brand .brand-logo { max-width: 110px; max-height: 54px; object-position: center top; }
+.agency-name { color: var(--accent); font-size: 17pt; font-weight: 700; line-height: 1.1; }
+.agency-details { text-align: right; color: #4B5563; font-size: 8.5pt; line-height: 1.35; }
+.document-title {
+    color: var(--accent);
+    font-size: 17pt;
+    line-height: 1.2;
+    font-weight: 700;
+    text-align: center;
+    margin: 0 0 5px;
 }
-.header .subtitle {
-    font-size: 9pt;
-    color: #6B7280;
-}
-.body-section { margin-bottom: 20px; }
+.document-subtitle { color: #4B5563; text-align: center; font-weight: 700; margin: 0 0 22px; }
+.re-line { font-weight: 700; margin: 16px 0; }
+.body-section { margin-bottom: 18px; }
 .highlight-box {
-    background: #FEF3EE;
-    border-left: 4px solid #E07A5F;
-    padding: 12px 16px;
-    margin: 16px 0;
-    border-radius: 0 4px 4px 0;
+    background: #F8F7F4;
+    border-left: 4px solid var(--accent);
+    padding: 11px 14px;
+    margin: 15px 0;
 }
-.amount { font-size: 18pt; font-weight: bold; color: #E07A5F; }
+.amount { font-size: 18pt; font-weight: 700; color: var(--accent); }
+.disclosure { border: 1px solid #D6D8DC; padding: 11px 13px; margin: 15px 0; font-size: 9pt; }
+.disclosure h3 { margin: 0 0 6px; color: var(--accent); font-size: 10pt; }
 .footer {
     border-top: 1px solid #D1D5DB;
-    margin-top: 32px;
+    margin-top: 28px;
     padding-top: 8px;
     font-size: 8pt;
-    color: #9CA3AF;
+    color: #6B7280;
+    text-align: center;
 }
-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-th { background: #2F4F4F; color: white; padding: 6px 10px; text-align: left; font-size: 9pt; }
-td { padding: 6px 10px; border-bottom: 1px solid #E5E7EB; font-size: 10pt; }
-ul { padding-left: 20px; }
+table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+th { background: var(--accent); color: white; padding: 6px 9px; text-align: left; font-size: 9pt; }
+td { padding: 6px 9px; border-bottom: 1px solid #E5E7EB; font-size: 9.5pt; vertical-align: top; }
+ul, ol { padding-left: 20px; }
 li { margin-bottom: 4px; }
+a { color: #3157A4; word-break: break-all; }
 """
 
 
-def _e(value: str) -> str:
-    """HTML-escape a user-supplied string to prevent XSS in WeasyPrint output."""
-    return html_lib.escape(str(value))
+def _e(value) -> str:
+    return html_lib.escape(str(value or ""))
 
 
-def _building_header(building_name: str, plan_number: str, address: str) -> str:
-    """Generated function header.
+def _public_asset_url(value: str | None) -> str:
+    url = str(value or "").strip()
+    if url.startswith("/"):
+        base = os.getenv("FRONTEND_URL", "").rstrip("/")
+        return f"{base}{url}" if base else url
+    return url
 
-    Function: _building_header
-    Path: backend/utils/letter_generator.py
 
-    Note: Generated inventory header. Replace or expand this with reviewed business-purpose documentation before relying on it as source commentary.
-    """
+def _logo(value: str | None, alt: str) -> str:
+    url = _public_asset_url(value)
+    return f'<img class="brand-logo" src="{_e(url)}" alt="{_e(alt)}">' if url else ""
+
+
+def _dynamic_style(profile: dict) -> str:
+    page_number_rule = (
+        '@page { @bottom-right { content: "Page " counter(page) " of " counter(pages); '
+        'font: 8pt Arial; color: #6B7280; } }'
+        if profile.get("document_show_page_numbers", True)
+        else ""
+    )
+    return f"<style>:root {{ --accent: {_e(profile['document_accent_color'])}; }}{page_number_rule}</style>"
+
+
+def _document_header(building: dict) -> str:
+    profile = resolve_document_branding(building, str(building.get("building_id") or ""))
+    mode = profile["document_branding_mode"]
+    agency_logo = _logo(profile.get("strata_management_logo_url"), profile["strata_management_company"])
+    building_logo = _logo(profile.get("building_logo_url"), profile["building_name"])
+
+    if mode == "building":
+        primary = building_logo or f'<div class="agency-name">{_e(profile["building_name"])}</div>'
+        building_mark = ""
+    else:
+        primary = agency_logo or f'<div class="agency-name">{_e(profile["strata_management_company"])}</div>'
+        building_mark = ""
+        if mode == "dual":
+            building_mark = building_logo or f'<div>{_e(profile["building_name"])}</div>'
+
+    detail_lines = []
+    if profile.get("strata_management_abn"):
+        detail_lines.append(f'ABN: {_e(profile["strata_management_abn"])}')
+    if profile.get("strata_management_licence"):
+        detail_lines.append(f'Licence: {_e(profile["strata_management_licence"])}')
+    for key in ("strata_manager_address", "strata_manager_phone", "strata_manager_email", "strata_management_website"):
+        if profile.get(key):
+            prefix = "Ph: " if key == "strata_manager_phone" else ""
+            detail_lines.append(prefix + _e(profile[key]))
+
     return f"""
-    <div class="header">
-        <h1>{_e(building_name)}</h1>
-        <div class="subtitle">Unit Plan {_e(plan_number)} &bull; {_e(address)}</div>
+    {_dynamic_style(profile)}
+    <div class="document-header">
+        <div>{primary}</div>
+        <div class="building-brand">{building_mark}</div>
+        <div class="agency-details">{"<br>".join(detail_lines)}</div>
     </div>
     """
+
+
+def _footer(building: dict) -> str:
+    profile = resolve_document_branding(building, str(building.get("building_id") or ""))
+    scheme = f'Units Plan {_e(profile["plan_number"])}' if profile.get("plan_number") else _e(profile["building_name"])
+    parts = [scheme, _e(profile.get("building_address"))]
+    if profile.get("document_footer_text"):
+        parts.append(_e(profile["document_footer_text"]))
+    return f'<div class="footer">{" &bull; ".join(part for part in parts if part)}</div>'
 
 
 def _render_levy_reminder(data: dict, building: dict) -> str:
-    """Generated function header.
-
-    Function: _render_levy_reminder
-    Path: backend/utils/letter_generator.py
-
-    Note: Generated inventory header. Replace or expand this with reviewed business-purpose documentation before relying on it as source commentary.
-    """
     owner = _e(data.get("owner_name", "Owner"))
     unit = _e(data.get("unit_number", ""))
-    amount = _e(str(data.get("amount_due", "0.00")))
+    amount = _e(data.get("amount_due", "0.00"))
     due_date = _e(data.get("due_date", ""))
     quarter = _e(data.get("quarter", ""))
     ref = _e(data.get("payment_ref", ""))
-    bname = _e(building.get("name", "Your Building"))
-    plan_no = _e(str(building.get("building_id", "")))
-    addr = _e(building.get("address", ""))
+    profile = resolve_document_branding(building, str(building.get("building_id") or ""))
 
-    quarter_line = f"<tr><td>Quarter</td><td>{quarter}</td></tr>" if quarter else ""
-    ref_line = f"<tr><td>Payment Reference</td><td>{ref}</td></tr>" if ref else ""
+    rows = [
+        f"<tr><td>Lot / Unit</td><td>{unit}</td></tr>",
+        f"<tr><td>Due date</td><td>{due_date}</td></tr>",
+    ]
+    if quarter:
+        rows.append(f"<tr><td>Contribution period</td><td>{quarter}</td></tr>")
+    if ref:
+        rows.append(f"<tr><td>Payment reference</td><td>{ref}</td></tr>")
 
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>
-    {_building_header(bname, plan_no, addr)}
+    {_document_header(building)}
+    <h1 class="document-title">LEVY REMINDER</h1>
+    <div class="document-subtitle">{_e(profile["building_name"])} - Units Plan {_e(profile["plan_number"])}</div>
     <p>Dear {owner},</p>
-    <p>This notice is to inform you that your strata levy payment for <strong>Unit {unit}</strong>
-    is now overdue. Please arrange payment at your earliest convenience to avoid further action.</p>
-    <div class="highlight-box">
-        <div>Amount Due</div>
-        <div class="amount">${amount}</div>
-        <div>Due Date: {due_date}</div>
-    </div>
-    <table>
-        <tr><th>Detail</th><th>Value</th></tr>
-        <tr><td>Unit Number</td><td>{unit}</td></tr>
-        {quarter_line}
-        {ref_line}
-    </table>
-    <div class="body-section">
-        <p>To make a payment, please use your online banking (BSB and account number provided
-        separately) or contact the strata manager directly.</p>
-        <p>If you have recently made payment, please disregard this notice.</p>
-    </div>
-    <p>Yours sincerely,<br>Strata Manager<br>{bname}</p>
-    <div class="footer">This letter was generated automatically. Please retain for your records.</div>
+    <p>This notice records the levy amount currently due for <strong>Lot / Unit {unit}</strong>.
+    Please arrange payment by the due date or contact the strata manager promptly if the
+    account details require review.</p>
+    <div class="highlight-box"><div>Amount due</div><div class="amount">${amount}</div></div>
+    <table><tr><th>Detail</th><th>Value</th></tr>{"".join(rows)}</table>
+    <p>If you have recently paid, please retain the payment confirmation while the receipt is allocated.</p>
+    <p>Yours sincerely,<br>{_e(data.get("manager_name") or "Strata Manager")}<br>
+    {_e(profile["strata_management_company"])}</p>
+    {_footer(building)}
     </body></html>"""
 
 
 def _render_agm_invitation(data: dict, building: dict) -> str:
-    """Generated function header.
-
-    Function: _render_agm_invitation
-    Path: backend/utils/letter_generator.py
-
-    Note: Generated inventory header. Replace or expand this with reviewed business-purpose documentation before relying on it as source commentary.
-    """
     owner = _e(data.get("owner_name", "Owner"))
     agm_date = _e(data.get("agm_date", ""))
     agm_time = _e(data.get("agm_time", ""))
     location = _e(data.get("agm_location", ""))
-    raw_agenda = data.get("agenda_items", "")
-    agenda_items = [_e(item.strip()) for item in str(raw_agenda).splitlines() if item.strip()]
+    meeting_link = _e(data.get("meeting_link", ""))
+    meeting_id = _e(data.get("meeting_id", ""))
+    meeting_passcode = _e(data.get("meeting_passcode", ""))
+    manager_name = _e(data.get("manager_name", "Strata Manager"))
+    agenda_items = [_e(item.strip()) for item in str(data.get("agenda_items", "")).splitlines() if item.strip()]
     agenda_html = "".join(f"<li>{item}</li>" for item in agenda_items) if agenda_items else "<li>To be advised</li>"
-    bname = _e(building.get("name", "Your Building"))
-    plan_no = _e(str(building.get("building_id", "")))
-    addr = _e(building.get("address", ""))
+    profile = resolve_document_branding(building, str(building.get("building_id") or ""))
+
+    online_rows = ""
+    if meeting_link:
+        online_rows += f'<tr><td><strong>Join link</strong></td><td><a href="{meeting_link}">{meeting_link}</a></td></tr>'
+    if meeting_id:
+        online_rows += f"<tr><td><strong>Meeting ID</strong></td><td>{meeting_id}</td></tr>"
+    if meeting_passcode:
+        online_rows += f"<tr><td><strong>Passcode</strong></td><td>{meeting_passcode}</td></tr>"
+
+    quorum = _e(data.get("quorum_text") or (
+        "Business may proceed only when the quorum required by the legislation applying "
+        "to this owners corporation is present. Owners unable to attend should consider "
+        "appointing a valid proxy or submitting an absentee vote where permitted."
+    ))
+    disclosures = []
+    for title, key in (
+        ("Recording and transcription", "agm_recording_disclosure"),
+        ("Insurance disclosure", "agm_insurance_disclosure"),
+    ):
+        if profile.get(key):
+            disclosures.append(f'<div class="disclosure"><h3>{title}</h3><div>{_e(profile[key])}</div></div>')
 
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>
-    {_building_header(bname, plan_no, addr)}
+    {_document_header(building)}
+    <h1 class="document-title">NOTICE OF ANNUAL GENERAL MEETING</h1>
+    <div class="document-subtitle">THE OWNERS - UNITS PLAN NO. {_e(profile["plan_number"])}<br>
+    {_e(profile["building_name"])}, {_e(profile["building_address"])}</div>
     <p>Dear {owner},</p>
-    <p>You are cordially invited to attend the <strong>Annual General Meeting (AGM)</strong>
-    of the Owners Corporation.</p>
-    <div class="highlight-box">
-        <table>
-            <tr><td><strong>Date</strong></td><td>{agm_date}</td></tr>
-            <tr><td><strong>Time</strong></td><td>{agm_time}</td></tr>
-            <tr><td><strong>Location</strong></td><td>{location}</td></tr>
-        </table>
-    </div>
-    <div class="body-section">
-        <p><strong>Agenda:</strong></p>
-        <ul>{agenda_html}</ul>
-    </div>
-    <p>Your attendance and participation are encouraged. Proxy forms are available from the
-    strata manager if you are unable to attend in person.</p>
-    <p>Yours sincerely,<br>Strata Manager<br>{bname}</p>
-    <div class="footer">This letter was generated automatically. Please retain for your records.</div>
+    <p>We write on behalf of the Owners Corporation to give notice of the Annual General Meeting.</p>
+    <table>
+        <tr><th>Meeting detail</th><th>Information</th></tr>
+        <tr><td><strong>Date</strong></td><td>{agm_date}</td></tr>
+        <tr><td><strong>Time</strong></td><td>{agm_time}</td></tr>
+        <tr><td><strong>Venue</strong></td><td>{location}</td></tr>
+        {online_rows}
+    </table>
+    <div class="body-section"><p><strong>Quorum and voting</strong></p><p>{quorum}</p></div>
+    <div class="body-section"><p><strong>Agenda</strong></p><ol>{agenda_html}</ol></div>
+    {"".join(disclosures)}
+    <p>Please read the agenda and supporting papers before the meeting. Owners should also
+    check whether their account must be financially current in order to vote.</p>
+    <p>Yours faithfully,<br>{manager_name}<br>Strata Manager<br>
+    {_e(profile["strata_management_company"])}</p>
+    {_footer(building)}
     </body></html>"""
 
 
 def _render_general_notice(data: dict, building: dict) -> str:
-    """Generated function header.
-
-    Function: _render_general_notice
-    Path: backend/utils/letter_generator.py
-
-    Note: Generated inventory header. Replace or expand this with reviewed business-purpose documentation before relying on it as source commentary.
-    """
     owner = _e(data.get("owner_name", "Owner"))
     subject = _e(data.get("subject", "Notice"))
-    # body allows newlines → convert to <br> after escaping
-    body_raw = str(data.get("body", ""))
-    body_html = "<br>".join(_e(line) for line in body_raw.splitlines())
+    body_html = "<br>".join(_e(line) for line in str(data.get("body", "")).splitlines())
     closing = _e(data.get("closing", "Yours sincerely"))
-    bname = _e(building.get("name", "Your Building"))
-    plan_no = _e(str(building.get("building_id", "")))
-    addr = _e(building.get("address", ""))
+    profile = resolve_document_branding(building, str(building.get("building_id") or ""))
 
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>
-    {_building_header(bname, plan_no, addr)}
+    {_document_header(building)}
+    <h1 class="document-title">NOTICE</h1>
     <p>Dear {owner},</p>
-    <p><strong>Re: {subject}</strong></p>
+    <p class="re-line">RE: {subject}</p>
     <div class="body-section"><p>{body_html}</p></div>
-    <p>{closing},<br>Strata Manager<br>{bname}</p>
-    <div class="footer">This letter was generated automatically. Please retain for your records.</div>
+    <p>{closing},<br>{_e(data.get("manager_name") or "Strata Manager")}<br>
+    {_e(profile["strata_management_company"])}</p>
+    {_footer(building)}
     </body></html>"""
 
 
@@ -209,13 +266,6 @@ _RENDERERS = {
 
 
 def render_letter_html(template: str, data: dict, building: dict) -> str:
-    """Generated function header.
-
-    Function: render_letter_html
-    Path: backend/utils/letter_generator.py
-
-    Note: Generated inventory header. Replace or expand this with reviewed business-purpose documentation before relying on it as source commentary.
-    """
     renderer = _RENDERERS.get(template)
     if not renderer:
         raise ValueError(f"Unknown template: {template!r}")
@@ -223,24 +273,17 @@ def render_letter_html(template: str, data: dict, building: dict) -> str:
 
 
 def _generate_pdf_sync(html_str: str) -> bytes:
-    """Generated function header.
-
-    Function: _generate_pdf_sync
-    Path: backend/utils/letter_generator.py
-
-    Note: Generated inventory header. Replace or expand this with reviewed business-purpose documentation before relying on it as source commentary.
-    """
     if not WEASYPRINT_AVAILABLE:
-        raise RuntimeError("WeasyPrint is not installed — cannot generate PDF")
-    pdf_bytes = HTML(string=html_str).write_pdf(stylesheets=[CSS(string=_LETTER_CSS)])
-    _PDF_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
-    if len(pdf_bytes) > _PDF_MAX_BYTES:
-        raise ValueError(f"Generated PDF exceeds {_PDF_MAX_BYTES // (1024 * 1024)} MB limit")
+        raise RuntimeError("WeasyPrint is not installed - cannot generate PDF")
+    base_url = os.getenv("FRONTEND_URL") or None
+    pdf_bytes = HTML(string=html_str, base_url=base_url).write_pdf(stylesheets=[CSS(string=_LETTER_CSS)])
+    max_bytes = 10 * 1024 * 1024
+    if len(pdf_bytes) > max_bytes:
+        raise ValueError(f"Generated PDF exceeds {max_bytes // (1024 * 1024)} MB limit")
     return pdf_bytes
 
 
 async def generate_letter_pdf(template: str, data: dict, building: dict) -> bytes:
-    """Render HTML template then convert to PDF via WeasyPrint in a thread executor."""
     html_str = render_letter_html(template, data, building)
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _generate_pdf_sync, html_str)

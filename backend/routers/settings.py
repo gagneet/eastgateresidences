@@ -28,10 +28,13 @@ PostgreSQL dual-read migration (Phase D):
 
 import html as html_lib
 import logging
+import os
+import re
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -56,6 +59,7 @@ from utils.auth import get_current_user, get_current_building, get_optional_buil
 from utils.crypto import encrypt_sensitive, is_encrypted
 from utils.email import get_email_settings, send_email_async
 from utils.permissions import get_user_permissions
+from utils.file_scan import scan_upload
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +211,82 @@ async def update_site_settings(
     await upsert_general_settings(building_id, update_dict)
 
     return await get_site_settings(building_id=building_id)
+
+
+_BRANDING_LOGO_TYPES = {
+    "building": "building_logo_url",
+    "strata-manager": "strata_management_logo_url",
+}
+_BRANDING_IMAGE_TYPES = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/webp": ".webp",
+}
+_BRANDING_LOGO_MAX_BYTES = 2 * 1024 * 1024
+
+
+@router.post("/settings/document-logo/{logo_type}")
+async def upload_document_logo(
+        logo_type: str,
+        file: UploadFile = File(...),
+        current_user: dict = Depends(get_current_user),
+        building_id: str = Depends(get_current_building),
+):
+    """Upload a building or managing-agency logo used on generated documents.
+
+    The upload is building-scoped, scanned before storage, limited to raster formats
+    that ReportLab and WeasyPrint can render, and persisted back to general settings.
+    SVG is deliberately excluded because active content is inappropriate in letterhead.
+    """
+    permissions = get_user_permissions(current_user)
+    if not permissions.can_manage_users:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    field_name = _BRANDING_LOGO_TYPES.get(logo_type)
+    if not field_name:
+        raise HTTPException(status_code=404, detail="Unknown document logo type")
+
+    content_type = (file.content_type or "").lower()
+    extension = _BRANDING_IMAGE_TYPES.get(content_type)
+    if not extension:
+        raise HTTPException(status_code=415, detail="Logo must be PNG, JPEG, or WebP")
+
+    content = await file.read(_BRANDING_LOGO_MAX_BYTES + 1)
+    if not content:
+        raise HTTPException(status_code=400, detail="Logo file is empty")
+    if len(content) > _BRANDING_LOGO_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="Logo must be 2 MB or smaller")
+    await scan_upload(content, context="image", filename=file.filename or f"logo{extension}")
+
+    safe_building_id = re.sub(r"[^A-Za-z0-9_-]", "", str(building_id))
+    if not safe_building_id or safe_building_id != str(building_id):
+        raise HTTPException(status_code=400, detail="Invalid building identifier")
+
+    storage_root = Path(os.getenv("FILE_STORAGE_PATH", "/uploads")).resolve()
+    upload_dir = (storage_root / "branding" / safe_building_id).resolve()
+    try:
+        upload_dir.relative_to(storage_root)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid upload path") from exc
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = f"{logo_type}-{uuid.uuid4().hex}{extension}"
+    target = (upload_dir / filename).resolve()
+    try:
+        target.relative_to(upload_dir)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid upload filename") from exc
+    temporary = target.with_suffix(target.suffix + ".tmp")
+    try:
+        with temporary.open("wb") as stream:
+            stream.write(content)
+        os.replace(temporary, target)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+    public_url = f"/uploads/branding/{safe_building_id}/{filename}"
+    await upsert_general_settings(building_id, {field_name: public_url})
+    return {"logo_type": logo_type, "field": field_name, "url": public_url}
 
 
 @router.get("/settings/unit-display")
