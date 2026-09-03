@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import {
     Building2,
@@ -30,6 +31,7 @@ import {
     ShieldAlert,
     ShieldCheck,
     Trash2,
+    Upload,
     UserCheck,
     Zap
 } from 'lucide-react';
@@ -97,8 +99,23 @@ const SettingsPage = () => {
         resident_links: [],
         rate_limit_multiplier: 1.0,
         bank_feed_auto_approve: true,
-        // Managing-agent branding for Levy Notices (email + PDF). Blank = platform default.
+        // Shared document identity. Kept separate because the owners corporation
+        // and its appointed managing agency are different legal/visual entities.
+        plan_number: '',
+        building_abn: '',
+        building_logo_url: '',
+        document_branding_mode: 'dual',
+        document_accent_color: '#B8823D',
+        document_footer_text: '',
+        document_show_page_numbers: true,
+        agm_recording_disclosure: '',
+        agm_insurance_disclosure: '',
+        // Managing-agent branding for notices, meetings and financial exports.
         strata_management_company: '',
+        strata_management_logo_url: '',
+        strata_management_abn: '',
+        strata_management_licence: '',
+        strata_management_website: '',
         strata_manager_phone: '',
         strata_manager_email: '',
         strata_manager_address: '',
@@ -110,6 +127,7 @@ const SettingsPage = () => {
         levy_notice_disclaimer: ''
     });
     const [regeneratingRisk, setRegeneratingRisk] = useState(false);
+    const [uploadingLogo, setUploadingLogo] = useState(null);
 
     const [ocrSettings, setOcrSettings] = useState({
         ocr_provider: 'auto',
@@ -344,6 +362,25 @@ const SettingsPage = () => {
      *
      * @remarks Generated inventory header. Replace or expand this with reviewed business-purpose documentation before relying on it as source commentary.
      */
+    const handleLogoUpload = async (logoType, event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        setUploadingLogo(logoType);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const response = await api.post(`/settings/document-logo/${logoType}`, formData);
+            const {field, url} = response.data;
+            setSettings(prev => ({...prev, [field]: url}));
+            toast.success(logoType === 'building' ? 'Building logo uploaded' : 'Strata management logo uploaded');
+        } catch (error) {
+            toast.error(error?.response?.data?.detail || 'Logo upload failed');
+        } finally {
+            setUploadingLogo(null);
+            event.target.value = '';
+        }
+    };
+
     const handleSubmit = async (e) => {
         if (e) e.preventDefault();
         setSaving(true);
@@ -700,11 +737,11 @@ const SettingsPage = () => {
                         <CardHeader className="bg-muted/30 pb-4">
                             <div className="flex items-center gap-2">
                                 <Building2 className="h-5 w-5 text-primary"/>
-                                <CardTitle>Managing Agent &amp; Levy Notice Branding</CardTitle>
+                                <CardTitle>Document Branding &amp; Letterhead</CardTitle>
                             </div>
                             <CardDescription>
-                                Identity used on automated Levy Notices (email + PDF). Leave a field
-                                blank to use the StrataOS platform default.
+                                Shared owners-corporation and managing-agency identity for levy notices,
+                                AGM correspondence and financial exports. Blank agency fields use platform defaults.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-6 space-y-4">
@@ -755,6 +792,126 @@ const SettingsPage = () => {
                                         onChange={handleChange}
                                         placeholder="PO BOX 919 Canberra, ACT, 2600"
                                     />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                {[
+                                    {type: 'building', field: 'building_logo_url', label: 'Owners Corporation / Building Logo'},
+                                    {type: 'strata-manager', field: 'strata_management_logo_url', label: 'Strata Management Logo'},
+                                ].map(({type, field, label}) => (
+                                    <div key={type} className="rounded-lg border bg-background/60 p-4 space-y-3">
+                                        <Label htmlFor={`${type}-logo-upload`}>{label}</Label>
+                                        {settings[field] ? (
+                                            <div className="h-20 rounded border bg-white p-2 flex items-center justify-center">
+                                                <img src={settings[field]} alt={label}
+                                                     className="max-h-full max-w-full object-contain"/>
+                                            </div>
+                                        ) : (
+                                            <div className="h-20 rounded border border-dashed flex items-center justify-center text-xs text-muted-foreground">
+                                                No logo uploaded
+                                            </div>
+                                        )}
+                                        <label className="inline-flex">
+                                            <Input id={`${type}-logo-upload`} type="file"
+                                                   accept="image/png,image/jpeg,image/webp"
+                                                   className="sr-only"
+                                                   disabled={uploadingLogo !== null}
+                                                   onChange={(event) => handleLogoUpload(type, event)}/>
+                                            <span className={cn(
+                                                "inline-flex h-9 cursor-pointer items-center rounded-md border px-3 text-sm font-medium",
+                                                uploadingLogo !== null && "pointer-events-none opacity-50"
+                                            )}>
+                                                {uploadingLogo === type
+                                                    ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                                    : <Upload className="mr-2 h-4 w-4"/>}
+                                                Upload logo
+                                            </span>
+                                        </label>
+                                        <p className="text-xs text-muted-foreground">PNG, JPEG or WebP; maximum 2 MB.</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-3">
+                                <div className="space-y-2">
+                                    <Label htmlFor="plan_number">Units Plan Number</Label>
+                                    <Input id="plan_number" name="plan_number"
+                                           value={settings.plan_number || ''} onChange={handleChange}
+                                           placeholder="13195"/>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="building_abn">Owners Corporation ABN</Label>
+                                    <Input id="building_abn" name="building_abn"
+                                           value={settings.building_abn || ''} onChange={handleChange}
+                                           placeholder="98 212 234 337"/>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="document_branding_mode">Letterhead Identity</Label>
+                                    <Select value={settings.document_branding_mode || 'dual'}
+                                            onValueChange={(value) =>
+                                                setSettings(prev => ({...prev, document_branding_mode: value}))
+                                            }>
+                                        <SelectTrigger id="document_branding_mode">
+                                            <SelectValue/>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="dual">Building + managing agency</SelectItem>
+                                            <SelectItem value="agency">Managing agency only</SelectItem>
+                                            <SelectItem value="building">Building only</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="strata_management_abn">Agency ABN</Label>
+                                    <Input id="strata_management_abn" name="strata_management_abn"
+                                           value={settings.strata_management_abn || ''} onChange={handleChange}/>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="strata_management_licence">Agency Licence</Label>
+                                    <Input id="strata_management_licence" name="strata_management_licence"
+                                           value={settings.strata_management_licence || ''} onChange={handleChange}/>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="strata_management_website">Agency Website</Label>
+                                    <Input id="strata_management_website" name="strata_management_website"
+                                           value={settings.strata_management_website || ''} onChange={handleChange}/>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="document_accent_color">Document Accent Colour</Label>
+                                    <div className="flex gap-2">
+                                        <Input type="color" value={settings.document_accent_color || '#B8823D'}
+                                               className="h-10 w-14 p-1"
+                                               onChange={(event) => setSettings(prev => ({
+                                                   ...prev, document_accent_color: event.target.value.toUpperCase()
+                                               }))}/>
+                                        <Input id="document_accent_color" name="document_accent_color"
+                                               value={settings.document_accent_color || '#B8823D'}
+                                               onChange={handleChange} className="font-mono"/>
+                                    </div>
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="document_footer_text">Document Footer Text</Label>
+                                    <Input id="document_footer_text" name="document_footer_text"
+                                           value={settings.document_footer_text || ''} onChange={handleChange}
+                                           placeholder="Confidential - issued on behalf of the Owners Corporation"/>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="agm_recording_disclosure">AGM Recording / Transcription Disclosure</Label>
+                                    <Textarea id="agm_recording_disclosure" name="agm_recording_disclosure"
+                                              value={settings.agm_recording_disclosure || ''}
+                                              onChange={handleChange} rows={4}
+                                              placeholder="Optional disclosure shown on AGM notices..."/>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="agm_insurance_disclosure">AGM Insurance Disclosure</Label>
+                                    <Textarea id="agm_insurance_disclosure" name="agm_insurance_disclosure"
+                                              value={settings.agm_insurance_disclosure || ''}
+                                              onChange={handleChange} rows={4}
+                                              placeholder="Optional insurance commission or broker disclosure..."/>
                                 </div>
                             </div>
 
