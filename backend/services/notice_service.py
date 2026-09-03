@@ -19,6 +19,10 @@ from reportlab.platypus import (
 from database import db
 from services.owner_service import get_owner_info
 from services.settings_service import get_general_settings_or_default
+from services.document_branding_service import (
+    local_brand_asset_path,
+    resolve_document_branding,
+)
 from utils.finance_helpers import compute_period_due_dates
 from utils.helpers import get_current_timestamp, create_audit_log
 
@@ -51,11 +55,10 @@ async def generate_arrears_notice(unit_number: str, year: str, user_id: str, use
     """
     # Fetch building settings for branding
     b_settings = await get_general_settings_or_default(building_id, {"_id": 0})
-    building_name = b_settings.get("building_name", "Strata Building")
-    plan_number = b_settings.get("plan_number", "")
-    # Fix: use building-level strata manager, not hardcoded company name
-    strata_manager = b_settings.get("strata_manager_name") or b_settings.get(
-        "manager_name") or f"Strata Manager, {building_name}"
+    profile = resolve_document_branding(b_settings, building_id)
+    building_name = profile["building_name"]
+    plan_number = profile["plan_number"]
+    strata_manager = profile["strata_management_company"]
 
     year_str, year_int = _coerce_year(year)
 
@@ -174,11 +177,12 @@ async def generate_arrears_notice(unit_number: str, year: str, user_id: str, use
         title=f"Arrears Notice - Unit {unit_number}",
     )
     styles = getSampleStyleSheet()
+    accent = colors.HexColor(profile["document_accent_color"])
 
     # Compact styles to fit on one page
     header_style = ParagraphStyle(
         "NoticeHeader", parent=styles["Heading1"], fontSize=14, spaceAfter=6,
-        alignment=1, textColor=colors.HexColor("#2F4F4F")
+        alignment=1, textColor=accent
     )
     address_style = ParagraphStyle("Address", parent=styles["Normal"], fontSize=9, leading=11)
     label_style = ParagraphStyle("Label", parent=styles["Normal"], fontSize=9, fontName="Helvetica-Bold")
@@ -190,11 +194,49 @@ async def generate_arrears_notice(unit_number: str, year: str, user_id: str, use
 
     story = []
 
-    # Letterhead / Header
+    # Shared agency/building letterhead.
+    agency_logo = local_brand_asset_path(profile.get("strata_management_logo_url"))
+    building_logo = local_brand_asset_path(profile.get("building_logo_url"))
+    mode = profile.get("document_branding_mode", "dual")
+    if mode == "building":
+        primary = RLImage(building_logo, width=3.8 * cm, height=1.4 * cm) if building_logo else Paragraph(
+            html_lib.escape(building_name), styles["Heading2"])
+        secondary = ""
+    else:
+        primary = RLImage(agency_logo, width=3.8 * cm, height=1.4 * cm) if agency_logo else Paragraph(
+            html_lib.escape(strata_manager), styles["Heading2"])
+        secondary = (
+            RLImage(building_logo, width=2.4 * cm, height=1.2 * cm)
+            if mode == "dual" and building_logo
+            else (Paragraph(html_lib.escape(building_name), address_style) if mode == "dual" else "")
+        )
+    contact_lines = []
+    if profile.get("strata_management_abn"):
+        contact_lines.append(f"ABN: {html_lib.escape(profile['strata_management_abn'])}")
+    if profile.get("strata_management_licence"):
+        contact_lines.append(f"Licence: {html_lib.escape(profile['strata_management_licence'])}")
+    for key in ("strata_manager_address", "strata_manager_phone", "strata_manager_email"):
+        if profile.get(key):
+            prefix = "Ph: " if key == "strata_manager_phone" else ""
+            contact_lines.append(prefix + html_lib.escape(profile[key]))
+    brand_header = Table(
+        [[primary, secondary, Paragraph("<br/>".join(contact_lines), address_style)]],
+        colWidths=[6 * cm, 4 * cm, 7.5 * cm],
+    )
+    brand_header.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ALIGN", (1, 0), (1, 0), "CENTER"),
+        ("ALIGN", (2, 0), (2, 0), "RIGHT"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    story.append(brand_header)
+    story.append(HRFlowable(width="100%", thickness=1.2, color=accent))
+    story.append(Spacer(1, 0.2 * cm))
     story.append(Paragraph("ARREARS NOTICE", header_style))
 
     # Divider
-    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#2F4F4F")))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=accent))
     story.append(Spacer(1, 0.2 * cm))
 
     # Two-column header block: Date/Ref on left, Recipient on right
@@ -209,7 +251,7 @@ async def generate_arrears_notice(unit_number: str, year: str, user_id: str, use
         ],
         [
             Paragraph("", address_style),
-            Paragraph(html_lib.escape(b_settings.get("address", "Denman Prospect ACT 2611")), address_style),
+            Paragraph(html_lib.escape(profile.get("building_address") or ""), address_style),
         ],
     ]
     header_tbl = Table(header_data, colWidths=[9 * cm, 8.5 * cm])
@@ -256,8 +298,8 @@ async def generate_arrears_notice(unit_number: str, year: str, user_id: str, use
     ]
     t = Table(tbl_data, colWidths=[11 * cm, 4.5 * cm])
     t.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#f3f4f6")),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('BACKGROUND', (0, 0), (-1, 0), accent),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -333,6 +375,9 @@ async def generate_arrears_notice(unit_number: str, year: str, user_id: str, use
     story.append(Spacer(1, 0.2 * cm))
     story.append(Paragraph(f"<b>{html_lib.escape(strata_manager)}</b>", body_style))
     story.append(Paragraph(f"On behalf of the Owners Corporation for Plan {plan_number}", address_style))
+    if profile.get("document_footer_text"):
+        story.append(Spacer(1, 0.2 * cm))
+        story.append(Paragraph(html_lib.escape(profile["document_footer_text"]), address_style))
 
     doc.build(story)
     pdf_bytes = buf.getvalue()
